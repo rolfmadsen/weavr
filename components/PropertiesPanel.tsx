@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Node, Link, ElementType } from '../types';
 import { ELEMENT_STYLE } from '../constants';
 import { CloseIcon, DeleteIcon } from './icons';
@@ -7,8 +7,8 @@ type SelectedItem = { type: 'node', data: Node } | { type: 'link', data: Link };
 
 interface PropertiesPanelProps {
   selectedItem: SelectedItem | null;
-  onUpdateNode: (updatedNode: Node) => void;
-  onUpdateLink: (updatedLink: Link) => void;
+  onUpdateNode: (nodeId: string, key: string, value: any) => void;
+  onUpdateLink: (linkId: string, key: string, value: any) => void;
   onDeleteLink: (linkId: string) => void;
   onDeleteNode: (nodeId: string) => void;
   onClose: () => void;
@@ -46,13 +46,8 @@ interface EditorProps {
 const TRIGGER_STEREOTYPES = ['Actor', 'System', 'Automation'];
 
 // --- Node Editor Component ---
-const NodeEditor: React.FC<{ node: Node; onUpdateNode: (node: Node) => void; onDeleteNode: (nodeId: string) => void; } & EditorProps> = ({ node, onUpdateNode, onDeleteNode, focusOnRender, onFocusHandled }) => {
-  const [localNode, setLocalNode] = useState(node);
+const NodeEditor: React.FC<{ node: Node; onUpdateNode: (nodeId: string, key: string, value: any) => void; onDeleteNode: (nodeId: string) => void; } & EditorProps> = ({ node, onUpdateNode, onDeleteNode, focusOnRender, onFocusHandled }) => {
   const nameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setLocalNode(node);
-  }, [node]);
 
   useEffect(() => {
     if (focusOnRender) {
@@ -62,13 +57,7 @@ const NodeEditor: React.FC<{ node: Node; onUpdateNode: (node: Node) => void; onD
   }, [focusOnRender, onFocusHandled]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setLocalNode({ ...localNode, [e.target.name]: e.target.value });
-  };
-
-  const handleBlur = () => {
-    if (JSON.stringify(localNode) !== JSON.stringify(node)) {
-      onUpdateNode(localNode);
-    }
+    onUpdateNode(node.id, e.target.name, e.target.value);
   };
 
   return (
@@ -76,17 +65,17 @@ const NodeEditor: React.FC<{ node: Node; onUpdateNode: (node: Node) => void; onD
       <div className="mb-6 relative">
         <input
           ref={nameInputRef}
-          type="text" id="name" name="name" value={localNode.name}
-          onChange={handleInputChange} onBlur={handleBlur}
+          type="text" id="name" name="name" value={node.name}
+          onChange={handleInputChange}
           className="w-full bg-gray-100 border-b-2 border-gray-300 rounded-t-lg p-3 pt-6 focus:outline-none focus:border-indigo-500 transition peer"
           placeholder=" " />
-        <label htmlFor="name" className="absolute top-4 left-3 text-gray-500 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-600">Name</label>
+        <label htmlFor="name" className="absolute top-1 left-3 text-xs text-gray-500 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-600">Name</label>
       </div>
        {node.type === ElementType.Trigger && (
         <div className="mb-6 relative">
           <select
-            id="stereotype" name="stereotype" value={localNode.stereotype || ''}
-            onChange={handleInputChange} onBlur={handleBlur}
+            id="stereotype" name="stereotype" value={node.stereotype || ''}
+            onChange={handleInputChange}
             className="w-full bg-gray-100 border-b-2 border-gray-300 rounded-t-lg p-3 pt-6 focus:outline-none focus:border-indigo-500 transition peer appearance-none"
           >
             <option value="">None</option>
@@ -100,15 +89,15 @@ const NodeEditor: React.FC<{ node: Node; onUpdateNode: (node: Node) => void; onD
       )}
       <div className="mb-6 relative">
           <textarea
-            id="description" name="description" rows={8} value={localNode.description}
-            onChange={handleInputChange} onBlur={handleBlur}
+            id="description" name="description" rows={8} value={node.description || ''}
+            onChange={handleInputChange}
             className="w-full bg-gray-100 border-b-2 border-gray-300 rounded-t-lg p-3 pt-6 focus:outline-none focus:border-indigo-500 transition peer"
             placeholder=" " />
-          <label htmlFor="description" className="absolute top-4 left-3 text-gray-500 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-600">Description</label>
+          <label htmlFor="description" className="absolute top-1 left-3 text-xs text-gray-500 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-600">Description</label>
       </div>
       <div className="mb-4">
           <label className="block text-sm font-medium text-gray-500 mb-1">ID</label>
-          <p className="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg font-mono break-all">{localNode.id}</p>
+          <p className="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg font-mono break-all">{node.id}</p>
       </div>
       <div className="mt-8 border-t border-gray-200 pt-6">
         <button 
@@ -124,14 +113,9 @@ const NodeEditor: React.FC<{ node: Node; onUpdateNode: (node: Node) => void; onD
 };
 
 // --- Link Editor Component ---
-const LinkEditor: React.FC<{ link: Link; onUpdateLink: (link: Link) => void; onDeleteLink: (id: string) => void; } & EditorProps> = ({ link, onUpdateLink, onDeleteLink, focusOnRender, onFocusHandled }) => {
-  const [localLink, setLocalLink] = useState(link);
+const LinkEditor: React.FC<{ link: Link; onUpdateLink: (linkId: string, key: string, value: any) => void; onDeleteLink: (id: string) => void; } & EditorProps> = ({ link, onUpdateLink, onDeleteLink, focusOnRender, onFocusHandled }) => {
   const labelInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setLocalLink(link);
-  }, [link]);
-  
   useEffect(() => {
     if (focusOnRender) {
       labelInputRef.current?.focus();
@@ -140,13 +124,7 @@ const LinkEditor: React.FC<{ link: Link; onUpdateLink: (link: Link) => void; onD
   }, [focusOnRender, onFocusHandled]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalLink({ ...localLink, [e.target.name]: e.target.value });
-  };
-
-  const handleBlur = () => {
-    if (JSON.stringify(localLink) !== JSON.stringify(link)) {
-      onUpdateLink(localLink);
-    }
+    onUpdateLink(link.id, e.target.name, e.target.value);
   };
 
   return (
@@ -154,15 +132,15 @@ const LinkEditor: React.FC<{ link: Link; onUpdateLink: (link: Link) => void; onD
       <div className="mb-6 relative">
         <input
           ref={labelInputRef}
-          type="text" id="label" name="label" value={localLink.label}
-          onChange={handleInputChange} onBlur={handleBlur}
+          type="text" id="label" name="label" value={link.label}
+          onChange={handleInputChange}
           className="w-full bg-gray-100 border-b-2 border-gray-300 rounded-t-lg p-3 pt-6 focus:outline-none focus:border-indigo-500 transition peer"
           placeholder=" " />
-        <label htmlFor="label" className="absolute top-4 left-3 text-gray-500 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-600">Label</label>
+        <label htmlFor="label" className="absolute top-1 left-3 text-xs text-gray-500 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-600">Label</label>
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-500 mb-1">ID</label>
-        <p className="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg font-mono break-all">{localLink.id}</p>
+        <p className="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg font-mono break-all">{link.id}</p>
       </div>
       <div className="mt-8 border-t border-gray-200 pt-6">
         <button 

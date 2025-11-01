@@ -189,11 +189,26 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
         });
 
     const linkDragHandler = d3.drag<SVGCircleElement, { parentNode: SimulationNode; pos: { x: number; y: number } }>()
-        .on('start', function(event) {
+        .on('start', function(event, d) {
             d3.select(this.closest('.node-group')).raise();
             const [startX, startY] = d3.pointer(event, zoomContainer.node()!);
             zoomContainer.append('path').attr('class', 'temp-link').property('__startCoords__', { x: startX, y: startY })
                 .attr('d', `M${startX},${startY}L${startX},${startY}`).attr('marker-end', 'url(#arrowhead-linking)');
+            
+            // --- Global validation feedback ---
+            const sourceNode = d.parentNode;
+            svg.classed('is-linking', true);
+            zoomContainer.selectAll<SVGGElement, SimulationNode>('.node-group')
+                .each(function(targetNodeData) {
+                    const self = d3.select(this);
+                    if (targetNodeData.id === sourceNode.id) {
+                        self.classed('is-linking-source', true);
+                        return;
+                    }
+                    const isValid = validationService.isValidConnection(sourceNode, targetNodeData);
+                    self.classed('is-potential-target-valid', isValid);
+                    self.classed('is-potential-target-invalid', !isValid);
+                });
         })
         .on('drag', function(event, d) {
             const tempLink = zoomContainer.select<SVGPathElement>('.temp-link');
@@ -226,8 +241,15 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
         })
         .on('end', function(_, d) {
             zoomContainer.select('.temp-link').remove();
-            zoomContainer.selectAll('.node-group').classed('linking-target-valid', false).classed('linking-target-invalid', false);
-            svg.classed('cursor-crosshair', false).classed('cursor-not-allowed', false);
+            // --- Clear all global and hover states ---
+            svg.classed('is-linking', false).classed('cursor-crosshair', false).classed('cursor-not-allowed', false);
+            zoomContainer.selectAll('.node-group')
+              .classed('is-linking-source', false)
+              .classed('is-potential-target-valid', false)
+              .classed('is-potential-target-invalid', false)
+              .classed('linking-target-valid', false)
+              .classed('linking-target-invalid', false);
+
             if (potentialTargetNode && isConnectionValid) { onAddLinkRef.current(d.parentNode.id, potentialTargetNode.id); }
             potentialTargetNode = null; isConnectionValid = false;
         });
@@ -379,11 +401,19 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
   }, [nodes, links, onNodeDrag, onNodeClick, onLinkClick, onNodeDoubleClick, onLinkDoubleClick, selectedId, showSlices, slices, nodeSliceMap, swimlanePositions]);
 
   const style = `
+    @keyframes pulse-green {
+        0% { filter: url(#shadow) drop-shadow(0px 0px 3px rgba(34, 197, 94, 0.6)); }
+        50% { filter: url(#shadow) drop-shadow(0px 0px 10px rgba(34, 197, 94, 0.9)); }
+        100% { filter: url(#shadow) drop-shadow(0px 0px 3px rgba(34, 197, 94, 0.6)); }
+    }
     .cursor-crosshair { cursor: crosshair; }
     .cursor-not-allowed { cursor: not-allowed; }
+    .node-group { transition: opacity 0.3s ease-in-out; }
     .node-group.selected > .node-shape { stroke: #4f46e5; stroke-width: 3px; }
     .linking-target-valid > .node-shape { stroke: #22c55e !important; stroke-width: 4px !important; transition: stroke 0.2s, stroke-width 0.2s; }
     .linking-target-invalid > .node-shape { stroke: #ef4444 !important; stroke-width: 4px !important; transition: stroke 0.2s, stroke-width 0.2s; }
+    svg.is-linking .node-group.is-potential-target-invalid { opacity: 0.3; }
+    svg.is-linking .node-group.is-potential-target-valid { animation: pulse-green 1.5s infinite ease-in-out; }
     .temp-link { stroke: #a855f7; stroke-width: 2px; stroke-dasharray: 5 5; pointer-events: none; }
     .link-group { cursor: pointer; }
     .link-hitbox { stroke: transparent; stroke-width: 20px; fill: none; }

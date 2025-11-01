@@ -76,13 +76,10 @@ class LayoutService {
         const result: Node[] = [];
         while (queue.length > 0) {
             const u = queue.shift()!;
-            // FIX: 'u' is already the Node object, so push it directly.
             result.push(u);
-            // FIX: 'adj' map is keyed by node ID (string), not the Node object.
             adj.get(u.id)?.forEach(v => {
                 inDegree.set(v, inDegree.get(v)! - 1);
                 if (inDegree.get(v) === 0) {
-                    // FIX: 'queue' expects Node objects, but 'v' is a node ID (string). Look up the node in the map.
                     queue.push(nodesMap.get(v)!);
                 }
             });

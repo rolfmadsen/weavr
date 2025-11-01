@@ -6,7 +6,7 @@ const Footer: React.FC = () => {
       <span>
         Released under the{' '}
         <a 
-          href="https://github.com/rolfmadsen/event_model_weaver/blob/main/LICENSE" 
+          href="https://github.com/rolfmadsen/weavr/blob/main/LICENSE" 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-indigo-600 hover:underline"
@@ -15,7 +15,7 @@ const Footer: React.FC = () => {
         </a>
         . View on{' '}
         <a 
-          href="https://github.com/rolfmadsen/event_model_weaver" 
+          href="https://github.com/rolfmadsen/weavr" 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-indigo-600 hover:underline"

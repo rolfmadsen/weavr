@@ -186,16 +186,28 @@ const App: React.FC = () => {
     setFocusOnRender(true);
   }, [nodes, links, modelId]);
 
-  const handleUpdateNode = useCallback((updatedNode: Node) => {
+  const handleUpdateNode = useCallback((nodeId: string, key: string, value: any) => {
     if (!modelId) return;
-    const { id, ...data } = updatedNode;
-    gunService.getModel(modelId).get('nodes').get(id).put(data as any);
+
+    // Optimistic UI update for instant feedback
+    setNodes(currentNodes =>
+      currentNodes.map(node => (node.id === nodeId ? { ...node, [key]: value } : node))
+    );
+    
+    // Persist granular change to GunDB. Gun will merge this into the node data.
+    gunService.getModel(modelId).get('nodes').get(nodeId).put({ [key]: value });
   }, [modelId]);
   
-  const handleUpdateLink = useCallback((updatedLink: Link) => {
+  const handleUpdateLink = useCallback((linkId: string, key: string, value: any) => {
     if (!modelId) return;
-    const { id, ...data } = updatedLink;
-    gunService.getModel(modelId).get('links').get(id).put(data as any);
+
+    // Optimistic UI update for instant feedback
+    setLinks(currentLinks =>
+      currentLinks.map(link => (link.id === linkId ? { ...link, [key]: value } : link))
+    );
+    
+    // Persist granular change to GunDB.
+    gunService.getModel(modelId).get('links').get(linkId).put({ [key]: value });
   }, [modelId]);
 
   const handleDeleteLink = useCallback((linkId: string) => {
