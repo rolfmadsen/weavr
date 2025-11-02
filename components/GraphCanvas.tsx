@@ -234,9 +234,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
                     isConnectionValid = validationService.isValidConnection(sourceNode, nodeData);
                 }
             });
-
-            allNodes.classed('linking-target-valid', n => potentialTargetNode?.id === n.id && isConnectionValid);
-            allNodes.classed('linking-target-invalid', n => potentialTargetNode?.id === n.id && !isConnectionValid);
+            
             svg.classed('cursor-crosshair', isConnectionValid).classed('cursor-not-allowed', !!potentialTargetNode && !isConnectionValid);
         })
         .on('end', function(_, d) {
@@ -246,9 +244,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
             zoomContainer.selectAll('.node-group')
               .classed('is-linking-source', false)
               .classed('is-potential-target-valid', false)
-              .classed('is-potential-target-invalid', false)
-              .classed('linking-target-valid', false)
-              .classed('linking-target-invalid', false);
+              .classed('is-potential-target-invalid', false);
 
             if (potentialTargetNode && isConnectionValid) { onAddLinkRef.current(d.parentNode.id, potentialTargetNode.id); }
             potentialTargetNode = null; isConnectionValid = false;
@@ -341,8 +337,9 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
         const STEREOTYPE_HEIGHT = 16;
         let requiredHeight = PADDING_Y * 2;
         
-        const stereotypeLine = d.stereotype ? `<<${d.type} - ${d.stereotype}>>` : `<<${d.type}>>`;
-        textElement.append('tspan').attr('class', 'stereotype-text').text(stereotypeLine);
+        const formattedType = d.type.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+        const typeLine = `<<${formattedType}>>`;
+        textElement.append('tspan').attr('class', 'stereotype-text').text(typeLine);
         requiredHeight += STEREOTYPE_HEIGHT;
 
         const wrappedName = wrapText(d.name, NODE_WIDTH);
@@ -379,7 +376,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
         textElement.attr('x', NODE_WIDTH / 2).attr('y', startY).attr('fill', style.textColor)
             .attr('class', 'node-text font-medium pointer-events-none').attr('text-anchor', 'middle');
         const tspans = textElement.selectAll('tspan').attr('x', NODE_WIDTH / 2);
-        textElement.select('.stereotype-text').attr('dy', `${PADDING_Y}px`).style('font-size', '0.75rem').style('opacity', 0.8).style('text-transform', 'capitalize');
+        textElement.select('.stereotype-text').attr('dy', `${PADDING_Y}px`).style('font-size', '0.75rem').style('opacity', 0.8);
         tspans.filter((_, i) => i > 0).attr('dy', `${LINE_HEIGHT}px`).style('font-size', '0.9rem');
 
         const handlePositions = [{ x: NODE_WIDTH / 2, y: 0 }, { x: NODE_WIDTH, y: height / 2 }, { x: NODE_WIDTH / 2, y: height }, { x: 0, y: height / 2 }];
@@ -401,19 +398,14 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
   }, [nodes, links, onNodeDrag, onNodeClick, onLinkClick, onNodeDoubleClick, onLinkDoubleClick, selectedId, showSlices, slices, nodeSliceMap, swimlanePositions]);
 
   const style = `
-    @keyframes pulse-green {
-        0% { filter: url(#shadow) drop-shadow(0px 0px 3px rgba(34, 197, 94, 0.6)); }
-        50% { filter: url(#shadow) drop-shadow(0px 0px 10px rgba(34, 197, 94, 0.9)); }
-        100% { filter: url(#shadow) drop-shadow(0px 0px 3px rgba(34, 197, 94, 0.6)); }
-    }
     .cursor-crosshair { cursor: crosshair; }
     .cursor-not-allowed { cursor: not-allowed; }
     .node-group { transition: opacity 0.3s ease-in-out; }
+    .node-group > .node-shape { transition: stroke 0.2s, stroke-width 0.2s; }
     .node-group.selected > .node-shape { stroke: #4f46e5; stroke-width: 3px; }
-    .linking-target-valid > .node-shape { stroke: #22c55e !important; stroke-width: 4px !important; transition: stroke 0.2s, stroke-width 0.2s; }
-    .linking-target-invalid > .node-shape { stroke: #ef4444 !important; stroke-width: 4px !important; transition: stroke 0.2s, stroke-width 0.2s; }
-    svg.is-linking .node-group.is-potential-target-invalid { opacity: 0.3; }
-    svg.is-linking .node-group.is-potential-target-valid { animation: pulse-green 1.5s infinite ease-in-out; }
+    svg.is-linking .node-group.is-potential-target-valid > .node-shape { stroke: #22c55e; stroke-width: 3px; }
+    svg.is-linking .node-group.is-potential-target-invalid > .node-shape { stroke: #ef4444; stroke-width: 3px; }
+    svg.is-linking .node-group:not(.is-linking-source):not(.is-potential-target-valid) { opacity: 0.3; }
     .temp-link { stroke: #a855f7; stroke-width: 2px; stroke-dasharray: 5 5; pointer-events: none; }
     .link-group { cursor: pointer; }
     .link-hitbox { stroke: transparent; stroke-width: 20px; fill: none; }

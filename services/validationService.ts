@@ -8,13 +8,14 @@ interface ConnectionRule {
 }
 
 const connectionRules: ConnectionRule[] = [
-  { source: ElementType.Trigger, target: ElementType.Command, verb: 'invokes', description: 'Triggers invoke Commands.' },
-  { source: ElementType.Command, target: ElementType.Aggregate, verb: 'handled by', description: 'Commands are handled by Aggregates.' },
-  { source: ElementType.Aggregate, target: ElementType.Event, verb: 'produces', description: 'Aggregates produce Events.' },
-  { source: ElementType.Event, target: ElementType.View, verb: 'updates', description: 'Events update Views.' },
-  { source: ElementType.Event, target: ElementType.Policy, verb: 'handled by', description: 'Events are handled by Policies.' },
-  { source: ElementType.Policy, target: ElementType.Command, verb: 'issues', description: 'Policies can issue new Commands.' },
-  { source: ElementType.View, target: ElementType.Trigger, verb: 'causes', description: 'Views can cause automated Triggers.' },
+  { source: ElementType.Screen, target: ElementType.Command, verb: 'triggers', description: 'A user interaction on a screen triggers a command.' },
+  { source: ElementType.Command, target: ElementType.EventInternal, verb: 'results in', description: 'A successful command results in one or more internal events.' },
+  { source: ElementType.EventInternal, target: ElementType.ReadModel, verb: 'populates', description: 'Internal events are used to build and update read models.' },
+  { source: ElementType.ReadModel, target: ElementType.Screen, verb: 'is displayed on', description: 'Data from a read model is displayed on a screen.' },
+  { source: ElementType.EventInternal, target: ElementType.Command, verb: 'triggers', description: 'An internal event can trigger a command as part of an automation.' },
+  { source: ElementType.ReadModel, target: ElementType.Command, verb: 'informs', description: 'A read model provides data to an automation to inform a command.' },
+  { source: ElementType.EventExternal, target: ElementType.Command, verb: 'triggers', description: 'An external event can trigger a command to integrate external data.' },
+  { source: ElementType.EventExternal, target: ElementType.ReadModel, verb: 'populates', description: 'Data from an external event can populate a read model.' },
 ];
 
 class ValidationService {

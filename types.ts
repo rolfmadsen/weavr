@@ -1,10 +1,9 @@
 export enum ElementType {
+  Screen = 'SCREEN',
   Command = 'COMMAND',
-  Event = 'EVENT',
-  View = 'VIEW',
-  Trigger = 'TRIGGER',
-  Policy = 'POLICY',
-  Aggregate = 'AGGREGATE',
+  EventInternal = 'EVENT_INTERNAL',
+  ReadModel = 'READ_MODEL',
+  EventExternal = 'EVENT_EXTERNAL',
 }
 
 export interface Node {
@@ -12,7 +11,6 @@ export interface Node {
   type: ElementType;
   name: string;
   description: string;
-  stereotype?: string;
   x?: number;
   y?: number;
   fx?: number | null;

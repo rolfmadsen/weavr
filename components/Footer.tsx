@@ -2,7 +2,7 @@ import React from 'react';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="absolute bottom-0 left-0 right-0 p-2 text-center text-xs text-gray-500 bg-gray-50/80 backdrop-blur-sm z-10 pointer-events-auto">
+    <footer className="absolute bottom-0 left-0 right-0 p-2 text-center text-[10px] sm:text-xs text-gray-500 bg-gray-50/80 backdrop-blur-sm z-10 pointer-events-auto">
       <span>
         Released under the{' '}
         <a 

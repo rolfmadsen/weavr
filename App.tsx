@@ -57,7 +57,6 @@ const App: React.FC = () => {
           type: nodeData.type,
           name: nodeData.name,
           description: nodeData.description || '',
-          stereotype: nodeData.stereotype,
           x: typeof nodeData.x === 'number' ? nodeData.x : undefined,
           y: typeof nodeData.y === 'number' ? nodeData.y : undefined,
           fx: typeof nodeData.fx === 'number' ? nodeData.fx : null,
@@ -125,18 +124,17 @@ const App: React.FC = () => {
     const manualY = window.innerHeight / 2 + (Math.random() - 0.5) * 50;
     const id = uuidv4();
     
+    const formattedTypeName = type.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    
     const newNodeData: Omit<Node, 'id'> = {
       type,
-      name: `New ${type.charAt(0) + type.slice(1).toLowerCase()}`,
+      name: `New ${formattedTypeName}`,
       description: '',
       x: manualX,
       y: manualY,
       fx: showSlices ? null : manualX,
       fy: showSlices ? null : manualY,
     };
-    if (type === ElementType.Trigger) {
-        (newNodeData as Node).stereotype = 'Actor';
-    }
     
     model.get('nodes').get(id).put(newNodeData as any);
     manualPositionsRef.current.set(id, { x: manualX, y: manualY });
@@ -302,7 +300,7 @@ const App: React.FC = () => {
   }, [selection, nodes, links]);
 
   return (
-    <div className="w-screen h-screen overflow-hidden relative font-sans">
+    <div className="w-screen h-[100dvh] overflow-hidden relative font-sans">
       <Header onImport={handleImport} onExport={handleExport} onToggleSlices={handleToggleSlices} slicesVisible={showSlices} />
       <GraphCanvas 
           nodes={nodes} 
@@ -321,18 +319,33 @@ const App: React.FC = () => {
           onCanvasClick={handleCanvasClick}
       />
       <Toolbar onAddNode={handleAddNode} disabled={!isReady} />
-      {selectedItemData && (
-        <PropertiesPanel
-          selectedItem={selectedItemData}
-          onUpdateNode={handleUpdateNode}
-          onUpdateLink={handleUpdateLink}
-          onDeleteLink={handleDeleteLink}
-          onDeleteNode={handleDeleteNode}
-          onClose={handleClosePanel}
-          focusOnRender={focusOnRender}
-          onFocusHandled={handleFocusHandled}
-        />
-      )}
+      
+      {/* Backdrop for mobile, shown when panel is open */}
+      {selectedItemData && <div onClick={handleClosePanel} className="fixed inset-0 bg-black/30 z-20 md:hidden" />}
+
+      {/* Wrapper for PropertiesPanel. Controls position, animation, and interaction blocking. */}
+      <div 
+        className={`
+          fixed bottom-0 left-0 right-0 h-[85vh]
+          md:top-0 md:bottom-auto md:left-auto md:h-full md:w-96
+          transition-transform duration-300 ease-in-out z-30
+          ${!selectedItemData && 'pointer-events-none'} 
+          ${selectedItemData ? 'translate-y-0 translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}
+        `}
+      >
+        {selectedItemData && (
+          <PropertiesPanel
+            selectedItem={selectedItemData}
+            onUpdateNode={handleUpdateNode}
+            onUpdateLink={handleUpdateLink}
+            onDeleteLink={handleDeleteLink}
+            onDeleteNode={handleDeleteNode}
+            onClose={handleClosePanel}
+            focusOnRender={focusOnRender}
+            onFocusHandled={handleFocusHandled}
+          />
+        )}
+      </div>
       <Footer />
     </div>
   );

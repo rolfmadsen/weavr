@@ -44,48 +44,48 @@ const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, sli
   };
 
   return (
-    <header className="absolute top-0 left-0 right-0 px-6 py-3 flex justify-between items-center z-10 bg-white shadow-md">
-       <h1 className="text-xl font-bold text-gray-800 select-none">
+    <header className="absolute top-0 left-0 right-0 px-2 md:px-6 py-2 flex justify-between items-center z-10 bg-white shadow-md">
+       <h1 className="text-lg md:text-xl font-bold text-gray-800 select-none truncate">
         Event Model Weaver
        </h1>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 md:gap-2">
         <button
           onClick={handleShareClick}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition-all duration-200"
+          className="bg-indigo-600 text-white px-3 py-2 md:px-4 rounded-full hover:bg-indigo-700 transition-all duration-200 text-sm"
           title="Copy link to share"
         >
           {copied ? 'Copied!' : 'Share'}
         </button>
 
-        <div className="w-px h-6 bg-gray-300 mx-2"></div>
+        <div className="w-px h-6 bg-gray-300 mx-1 md:mx-2"></div>
 
         <button
           onClick={onToggleSlices}
-          className={`${slicesVisible ? 'bg-indigo-200 text-indigo-800' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-full hover:bg-gray-300 transition-all duration-200 flex items-center gap-2`}
+          className={`${slicesVisible ? 'bg-indigo-200 text-indigo-800' : 'bg-gray-200 text-gray-700'} p-2 md:px-4 md:py-2 rounded-full hover:bg-gray-300 transition-all duration-200 flex items-center gap-2`}
           title={slicesVisible ? 'Hide Slices' : 'Show Slices'}
         >
           <ViewColumnIcon className="text-xl" />
-          Slices
+          <span className="hidden md:inline">Slices</span>
         </button>
 
-        <div className="w-px h-6 bg-gray-300 mx-2"></div>
+        <div className="w-px h-6 bg-gray-300 mx-1 md:mx-2"></div>
 
         <button
           onClick={onExport}
-          className="bg-gray-200 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-300 transition-all duration-200 flex items-center gap-2"
+          className="bg-gray-200 text-gray-700 p-2 md:px-4 md:py-2 rounded-full hover:bg-gray-300 transition-all duration-200 flex items-center gap-2"
           title="Export Model as JSON"
         >
           <ExportIcon className="text-xl" />
-          Export
+          <span className="hidden md:inline">Export</span>
         </button>
         <button
           onClick={handleImportClick}
-          className="bg-gray-200 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-300 transition-all duration-200 flex items-center gap-2"
+          className="bg-gray-200 text-gray-700 p-2 md:px-4 md:py-2 rounded-full hover:bg-gray-300 transition-all duration-200 flex items-center gap-2"
           title="Import Model from JSON"
         >
           <ImportIcon className="text-xl" />
-          Import
+          <span className="hidden md:inline">Import</span>
         </button>
         <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
       </div>

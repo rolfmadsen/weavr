@@ -1,89 +1,76 @@
-import { Node, Link, ElementType, Slice } from '../types';
+import { Node, Link, Slice } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import validationService from './validationService';
 
 const SLICE_COLORS = [
-    'rgba(59, 130, 246, 0.1)',
-    'rgba(249, 115, 22, 0.1)',
-    'rgba(34, 197, 94, 0.1)',
-    'rgba(168, 85, 247, 0.1)',
-    'rgba(239, 68, 68, 0.1)',
-    'rgba(234, 179, 8, 0.1)',
+    'rgba(59, 130, 246, 0.1)',   // Blue
+    'rgba(34, 197, 94, 0.1)',    // Green
+    'rgba(168, 85, 247, 0.1)',   // Purple
+    'rgba(249, 115, 22, 0.1)',   // Orange
+    'rgba(239, 68, 68, 0.1)',    // Red
+    'rgba(234, 179, 8, 0.1)',    // Yellow
 ];
 
 class SliceService {
+    /**
+     * Calculates slices by identifying connected components in the graph.
+     * This approach ensures that entire workflows, even those combining multiple
+     * Event Modeling patterns, are grouped into a single, comprehensive slice.
+     */
     public calculateSlices(nodes: Node[], links: Link[]): { slices: Slice[], nodeSliceMap: Map<string, string> } {
         const nodeSliceMap = new Map<string, string>();
         const slices: Slice[] = [];
-        const linksFromNode = new Map<string, Link[]>(nodes.map(n => [n.id, []]));
-        const linksToNode = new Map<string, Link[]>(nodes.map(n => [n.id, []]));
+
+        // Build an adjacency list for an undirected graph to represent connections.
+        const adj = new Map<string, string[]>();
+        nodes.forEach(node => adj.set(node.id, []));
         links.forEach(link => {
-            linksFromNode.get(link.source)?.push(link);
-            linksToNode.get(link.target)?.push(link);
+            adj.get(link.source)?.push(link.target);
+            adj.get(link.target)?.push(link.source);
         });
-        const nodesMap = new Map(nodes.map(n => [n.id, n]));
 
-        const startNodes: Node[] = nodes.filter(node => {
-            // Rule 1: Any Trigger is a start
-            if (node.type === ElementType.Trigger) return true;
-            
-            // Rule 2 & 3: A Command is a start if...
-            if (node.type === ElementType.Command) {
-                const incomingLinks = linksToNode.get(node.id) ?? [];
-                // It has no incoming links
-                if (incomingLinks.length === 0) return true;
-                // Its only incoming links are from Policies
-                return incomingLinks.every(l => nodesMap.get(l.source)?.type === ElementType.Policy);
+        // Iterate through each node to find un-sliced components.
+        for (const node of nodes) {
+            // If the node is already part of a slice, skip it.
+            if (nodeSliceMap.has(node.id)) {
+                continue;
             }
-            return false;
-        });
 
-        startNodes.forEach((startNode, index) => {
-            if (nodeSliceMap.has(startNode.id)) return; // Already part of another slice
-
-            const slice: Slice = {
-                id: uuidv4(),
-                nodeIds: new Set(),
-                color: SLICE_COLORS[index % SLICE_COLORS.length],
-            };
-            
-            const queue: string[] = [startNode.id];
-            const visitedInSlice = new Set<string>([startNode.id]);
+            // Start a Breadth-First Search (BFS) to find the entire connected component.
+            const componentNodes = new Set<string>();
+            const queue: string[] = [node.id];
+            const visited = new Set<string>([node.id]);
 
             while (queue.length > 0) {
-                const currentNodeId = queue.shift()!;
-                const currentNode = nodesMap.get(currentNodeId)!;
-
-                // Don't traverse into a node that's already in another slice
-                if (nodeSliceMap.has(currentNodeId) && nodeSliceMap.get(currentNodeId) !== slice.id) continue;
+                const currentId = queue.shift()!;
                 
-                nodeSliceMap.set(currentNodeId, slice.id);
-                slice.nodeIds.add(currentNodeId);
+                // If a node in the traversal path was somehow already sliced, respect that.
+                if (nodeSliceMap.has(currentId)) {
+                    continue;
+                }
+                componentNodes.add(currentId);
 
-                const outgoingLinks = linksFromNode.get(currentNodeId) ?? [];
-                outgoingLinks.forEach(link => {
-                    const targetNode = nodesMap.get(link.target)!;
-                    
-                    // Define the specific relationships that act as slice boundaries.
-                    const isSliceBoundary = 
-                        (currentNode.type === ElementType.View && targetNode.type === ElementType.Trigger) ||
-                        (currentNode.type === ElementType.Policy && targetNode.type === ElementType.Command);
-
-                    // If this link crosses a slice boundary, do not traverse it.
-                    if (isSliceBoundary) {
-                        return; // Stop traversal for this path.
+                // Explore neighbors.
+                const neighbors = adj.get(currentId) || [];
+                for (const neighborId of neighbors) {
+                    if (!visited.has(neighborId)) {
+                        visited.add(neighborId);
+                        queue.push(neighborId);
                     }
+                }
+            }
 
-                    if (validationService.isValidConnection(currentNode, targetNode) && !visitedInSlice.has(targetNode.id)) {
-                        visitedInSlice.add(targetNode.id);
-                        queue.push(targetNode.id);
-                    }
+            // If we found any nodes for this component, create a new slice.
+            if (componentNodes.size > 0) {
+                const sliceId = uuidv4();
+                slices.push({
+                    id: sliceId,
+                    nodeIds: componentNodes,
+                    color: SLICE_COLORS[slices.length % SLICE_COLORS.length],
                 });
+                // Assign all nodes in the component to the new slice ID.
+                componentNodes.forEach(nodeId => nodeSliceMap.set(nodeId, sliceId));
             }
-            if (slice.nodeIds.size > 0) {
-                slices.push(slice);
-            }
-        });
+        }
 
         return { slices, nodeSliceMap };
     }
