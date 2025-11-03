@@ -45,9 +45,11 @@ const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, sli
 
   return (
     <header className="absolute top-0 left-0 right-0 px-2 md:px-6 py-2 flex justify-between items-center z-10 bg-white shadow-md">
-       <h1 className="text-lg md:text-xl font-bold text-gray-800 select-none truncate">
-        Event Model Weaver
-       </h1>
+       <a href="/" title="Start a new model">
+        <h1 className="text-lg md:text-xl font-bold text-gray-800 select-none truncate hover:text-indigo-600 transition-colors duration-200">
+          Weavr - Event Modelling
+        </h1>
+       </a>
 
       <div className="flex items-center gap-1 md:gap-2">
         <button

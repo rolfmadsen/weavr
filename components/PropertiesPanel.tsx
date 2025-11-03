@@ -82,7 +82,7 @@ const NodeEditor: React.FC<{ node: Node; onUpdateNode: (nodeId: string, key: str
 
   useEffect(() => {
     if (focusOnRender) {
-      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
       onFocusHandled();
     }
   }, [focusOnRender, onFocusHandled]);
@@ -131,6 +131,7 @@ const NodeEditor: React.FC<{ node: Node; onUpdateNode: (nodeId: string, key: str
         <button 
           onClick={() => onDeleteNode(node.id)}
           className="w-full flex items-center justify-center gap-2 bg-red-100 text-red-700 hover:bg-red-200 font-medium py-3 px-4 rounded-lg transition"
+          title="Delete (Delete/Backspace)"
         >
           <DeleteIcon />
           Delete Element
@@ -146,7 +147,7 @@ const LinkEditor: React.FC<{ link: Link; onUpdateLink: (linkId: string, key: str
 
   useEffect(() => {
     if (focusOnRender) {
-      labelInputRef.current?.focus();
+      labelInputRef.current?.select();
       onFocusHandled();
     }
   }, [focusOnRender, onFocusHandled]);
@@ -174,6 +175,7 @@ const LinkEditor: React.FC<{ link: Link; onUpdateLink: (linkId: string, key: str
         <button 
           onClick={() => onDeleteLink(link.id)}
           className="w-full flex items-center justify-center gap-2 bg-red-100 text-red-700 hover:bg-red-200 font-medium py-3 px-4 rounded-lg transition"
+          title="Delete (Delete/Backspace)"
         >
           <DeleteIcon />
           Delete Relationship

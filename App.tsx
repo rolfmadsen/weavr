@@ -24,9 +24,11 @@ const App: React.FC = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [links, setLinks] = useState<Link[]>([]);
   const [selection, setSelection] = useState<{ type: 'node' | 'link'; id: string } | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [focusOnRender, setFocusOnRender] = useState(false);
   const [showSlices, setShowSlices] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   
   const manualPositionsRef = useRef(new Map<string, { x: number, y: number }>());
 
@@ -88,6 +90,118 @@ const App: React.FC = () => {
 
   }, [modelId]);
 
+
+  const handleAddNode = useCallback((type: ElementType) => {
+    if (!modelId) return;
+    const model = gunService.getModel(modelId);
+
+    const manualX = window.innerWidth / 2 + (Math.random() - 0.5) * 50;
+    const manualY = window.innerHeight / 2 + (Math.random() - 0.5) * 50;
+    const id = uuidv4();
+    
+    const formattedTypeName = type.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    
+    const newNodeData: Omit<Node, 'id'> = {
+      type,
+      name: `New ${formattedTypeName}`,
+      description: '',
+      x: manualX,
+      y: manualY,
+      fx: showSlices ? null : manualX,
+      fy: showSlices ? null : manualY,
+    };
+    
+    model.get('nodes').get(id).put(newNodeData as any);
+    manualPositionsRef.current.set(id, { x: manualX, y: manualY });
+
+    setSelection({ type: 'node', id });
+    setIsPanelOpen(true);
+    setFocusOnRender(true);
+    setIsToolbarOpen(false);
+  }, [modelId, showSlices]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    if (!modelId) return;
+    const model = gunService.getModel(modelId);
+    
+    manualPositionsRef.current.delete(nodeId);
+    model.get('nodes').get(nodeId).put(null as any);
+
+    links.forEach(link => {
+      if (link.source === nodeId || link.target === nodeId) {
+        model.get('links').get(link.id).put(null as any);
+      }
+    });
+
+    setSelection(null);
+    setIsPanelOpen(false);
+  }, [modelId, links]);
+
+  const handleDeleteLink = useCallback((linkId: string) => {
+    if (!modelId) return;
+    gunService.getModel(modelId).get('links').get(linkId).put(null as any);
+    setSelection(null);
+    setIsPanelOpen(false);
+  }, [modelId]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      let shouldPreventDefault = false;
+
+      switch (event.key) {
+        case 'Escape':
+          if (isPanelOpen) setIsPanelOpen(false);
+          else if (selection) setSelection(null);
+          if (isToolbarOpen) setIsToolbarOpen(false);
+          shouldPreventDefault = true;
+          break;
+
+        case 'Delete':
+        case 'Backspace':
+          if (selection) {
+            if (selection.type === 'node') handleDeleteNode(selection.id);
+            if (selection.type === 'link') handleDeleteLink(selection.id);
+            shouldPreventDefault = true;
+          }
+          break;
+
+        case 'a':
+        case 'A':
+        case 'n':
+        case 'N':
+          if (!(event.metaKey || event.ctrlKey)) {
+            if (isReady) setIsToolbarOpen(prev => !prev);
+            shouldPreventDefault = true;
+          }
+          break;
+      }
+
+      if (isToolbarOpen) {
+        const tools = [
+          ElementType.Screen, ElementType.Command, ElementType.EventInternal,
+          ElementType.ReadModel, ElementType.EventExternal
+        ];
+        const keyIndex = parseInt(event.key, 10) - 1;
+        if (keyIndex >= 0 && keyIndex < tools.length) {
+          handleAddNode(tools[keyIndex]);
+          shouldPreventDefault = true;
+        }
+      }
+
+      if (shouldPreventDefault) {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selection, isPanelOpen, isToolbarOpen, isReady, handleDeleteNode, handleDeleteLink, handleAddNode]);
+
+
   const { slices, nodeSliceMap, swimlanePositions } = useMemo(() => {
     if (!showSlices || nodes.length === 0) {
       return { slices: [], nodeSliceMap: new Map(), swimlanePositions: new Map() };
@@ -116,50 +230,27 @@ const App: React.FC = () => {
     setShowSlices(isEnabling);
   }, [showSlices, nodes, modelId]);
 
-  const handleAddNode = useCallback((type: ElementType) => {
-    if (!modelId) return;
-    const model = gunService.getModel(modelId);
-
-    const manualX = window.innerWidth / 2 + (Math.random() - 0.5) * 50;
-    const manualY = window.innerHeight / 2 + (Math.random() - 0.5) * 50;
-    const id = uuidv4();
-    
-    const formattedTypeName = type.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-    
-    const newNodeData: Omit<Node, 'id'> = {
-      type,
-      name: `New ${formattedTypeName}`,
-      description: '',
-      x: manualX,
-      y: manualY,
-      fx: showSlices ? null : manualX,
-      fy: showSlices ? null : manualY,
-    };
-    
-    model.get('nodes').get(id).put(newNodeData as any);
-    manualPositionsRef.current.set(id, { x: manualX, y: manualY });
-
-    setSelection({ type: 'node', id });
-    setFocusOnRender(true);
-  }, [modelId, showSlices]);
-
   const handleNodeClick = useCallback((node: Node) => {
     setSelection({ type: 'node', id: node.id });
-    setFocusOnRender(false);
+    setIsPanelOpen(false);
+    setIsToolbarOpen(false);
   }, []);
 
   const handleLinkClick = useCallback((link: Link) => {
     setSelection({ type: 'link', id: link.id });
-    setFocusOnRender(false);
+    setIsPanelOpen(false);
+    setIsToolbarOpen(false);
   }, []);
 
   const handleNodeDoubleClick = useCallback((node: Node) => {
     setSelection({ type: 'node', id: node.id });
+    setIsPanelOpen(true);
     setFocusOnRender(true);
   }, []);
 
   const handleLinkDoubleClick = useCallback((link: Link) => {
     setSelection({ type: 'link', id: link.id });
+    setIsPanelOpen(true);
     setFocusOnRender(true);
   }, []);
 
@@ -181,6 +272,7 @@ const App: React.FC = () => {
     
     gunService.getModel(modelId).get('links').get(id).put(newLinkData as any);
     setSelection({ type: 'link', id });
+    setIsPanelOpen(true);
     setFocusOnRender(true);
   }, [nodes, links, modelId]);
 
@@ -207,28 +299,6 @@ const App: React.FC = () => {
     // Persist granular change to GunDB.
     gunService.getModel(modelId).get('links').get(linkId).put({ [key]: value });
   }, [modelId]);
-
-  const handleDeleteLink = useCallback((linkId: string) => {
-    if (!modelId) return;
-    gunService.getModel(modelId).get('links').get(linkId).put(null as any);
-    if (selection?.id === linkId) setSelection(null);
-  }, [modelId, selection]);
-
-  const handleDeleteNode = useCallback((nodeId: string) => {
-    if (!modelId) return;
-    const model = gunService.getModel(modelId);
-    
-    manualPositionsRef.current.delete(nodeId);
-    model.get('nodes').get(nodeId).put(null as any);
-
-    links.forEach(link => {
-      if (link.source === nodeId || link.target === nodeId) {
-        model.get('links').get(link.id).put(null as any);
-      }
-    });
-
-    if (selection?.id === nodeId) setSelection(null);
-  }, [modelId, links, selection]);
 
   const handleNodeDrag = useCallback((nodeId: string, x: number, y: number) => {
     if (showSlices || !modelId) return;
@@ -277,6 +347,7 @@ const App: React.FC = () => {
             });
             
             setSelection(null);
+            setIsPanelOpen(false);
         } catch (error) {
             alert('Failed to import model: ' + (error as Error).message);
         }
@@ -284,8 +355,12 @@ const App: React.FC = () => {
     reader.readAsText(file);
   }, [modelId, nodes, links]);
 
-  const handleClosePanel = useCallback(() => setSelection(null), []);
-  const handleCanvasClick = useCallback(() => setSelection(null), []);
+  const handleClosePanel = useCallback(() => setIsPanelOpen(false), []);
+  const handleCanvasClick = useCallback(() => {
+    setSelection(null);
+    setIsPanelOpen(false);
+    setIsToolbarOpen(false);
+  }, []);
   const handleFocusHandled = useCallback(() => setFocusOnRender(false), []);
 
   const selectedItemData = useMemo(() => {
@@ -318,10 +393,15 @@ const App: React.FC = () => {
           onAddLink={handleAddLink}
           onCanvasClick={handleCanvasClick}
       />
-      <Toolbar onAddNode={handleAddNode} disabled={!isReady} />
+      <Toolbar 
+        onAddNode={handleAddNode} 
+        disabled={!isReady} 
+        isMenuOpen={isToolbarOpen}
+        onToggleMenu={() => setIsToolbarOpen(prev => !prev)}
+      />
       
       {/* Backdrop for mobile, shown when panel is open */}
-      {selectedItemData && <div onClick={handleClosePanel} className="fixed inset-0 bg-black/30 z-20 md:hidden" />}
+      {isPanelOpen && selectedItemData && <div onClick={handleClosePanel} className="fixed inset-0 bg-black/30 z-20 md:hidden" />}
 
       {/* Wrapper for PropertiesPanel. Controls position, animation, and interaction blocking. */}
       <div 
@@ -329,8 +409,8 @@ const App: React.FC = () => {
           fixed bottom-0 left-0 right-0 h-[85vh]
           md:top-0 md:bottom-auto md:left-auto md:h-full md:w-96
           transition-transform duration-300 ease-in-out z-30
-          ${!selectedItemData && 'pointer-events-none'} 
-          ${selectedItemData ? 'translate-y-0 translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}
+          ${!(isPanelOpen && selectedItemData) && 'pointer-events-none'} 
+          ${(isPanelOpen && selectedItemData) ? 'translate-y-0 translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}
         `}
       >
         {selectedItemData && (

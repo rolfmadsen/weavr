@@ -313,7 +313,10 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedId, sli
         const t = group.transition().duration(TRANSITION_DURATION);
         t.select('.link-path').attr('d', path);
         t.select('.link-hitbox').attr('d', path);
-        t.select('.link-label').text(d.label).attr('x', midPoint.x).attr('y', midPoint.y);
+        // Fix: Explicitly cast d.label to a string to prevent type errors.
+        // The data from the backend might not strictly conform to the string type,
+        // so this ensures that we always pass a string to the .text() method.
+        t.select('.link-label').text(String(d.label)).attr('x', midPoint.x).attr('y', midPoint.y);
     });
 
     const nodeElements = zoomContainer.select<SVGGElement>('.nodes').selectAll<SVGGElement, SimulationNode>('.node-group').data(Array.from(nodesRef.current.values()), d => d.id);
