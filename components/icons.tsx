@@ -16,3 +16,4 @@ export const DeleteIcon: React.FC<{className?: string}> = ({className}) => <Mate
 export const ExportIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="download" className={className} />;
 export const ImportIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="upload" className={className} />;
 export const ViewColumnIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="view_column" className={className} />;
+export const HelpIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="help_outline" className={className} />;

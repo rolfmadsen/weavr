@@ -10,3 +10,4 @@ export const ELEMENT_STYLE: Record<ElementType, { color: string; textColor: stri
 
 export const NODE_WIDTH = 160;
 export const MIN_NODE_HEIGHT = 60;
+export const GRID_SIZE = 20;

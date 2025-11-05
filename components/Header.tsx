@@ -1,14 +1,15 @@
 import React, { useRef, useState } from 'react';
-import { ExportIcon, ImportIcon, ViewColumnIcon } from './icons';
+import { ExportIcon, ImportIcon, ViewColumnIcon, HelpIcon } from './icons';
 
 interface HeaderProps {
     onImport: (file: File) => void;
     onExport: () => void;
     onToggleSlices: () => void;
     slicesVisible: boolean;
+    onOpenHelp: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, slicesVisible }) => {
+const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, slicesVisible, onOpenHelp }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -61,6 +62,17 @@ const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, sli
         </button>
 
         <div className="w-px h-6 bg-gray-300 mx-1 md:mx-2"></div>
+        
+        <button
+          onClick={onOpenHelp}
+          className="text-gray-500 p-2 rounded-full hover:bg-gray-200 hover:text-gray-800 transition-colors duration-200 flex items-center"
+          title="Help"
+        >
+          <HelpIcon className="text-xl" />
+        </button>
+
+        <div className="w-px h-6 bg-gray-300 mx-1 md:mx-2"></div>
+
 
         <button
           onClick={onToggleSlices}
