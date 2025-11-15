@@ -348,8 +348,8 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedIds, sl
 
     linkUpdate.classed('selected', d => selectedIds.includes(d.id));
     linkUpdate
-      .on('click', (event, d) => { event.stopPropagation(); onLinkClick({ id: d.id, source: d.source.id, target: d.target.id, label: d.label }); })
-      .on('dblclick', (event, d) => { event.stopPropagation(); onLinkDoubleClick({ id: d.id, source: d.source.id, target: d.target.id, label: d.label }); });
+      .on('click', (event, d: SimulationLink) => { event.stopPropagation(); onLinkClick({ id: d.id, source: d.source.id, target: d.target.id, label: d.label }); })
+      .on('dblclick', (event, d: SimulationLink) => { event.stopPropagation(); onLinkDoubleClick({ id: d.id, source: d.source.id, target: d.target.id, label: d.label }); });
     
     linkUpdate.each(function(d) {
         const group = d3.select(this);
@@ -378,7 +378,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedIds, sl
     // Apply the drag handler to the update selection so it always has the latest state in its closure.
     nodeUpdate.call(moveHandler as any);
 
-    nodeUpdate.each(function(d) {
+    nodeUpdate.each(function(d: SimulationNode) {
         const group = d3.select(this);
         const style = ELEMENT_STYLE[d.type];
         const textElement = group.select<SVGTextElement>('.node-text');
@@ -423,16 +423,16 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedIds, sl
     });
         
     nodeUpdate
-        .on('click', (event, d) => { event.stopPropagation(); onNodeClick(d as Node); })
-        .on('dblclick', (event, d) => { event.stopPropagation(); onNodeDoubleClick(d as Node); })
-        .on('mouseenter', function(_event, d) {
+        .on('click', (event, d: SimulationNode) => { event.stopPropagation(); onNodeClick(d as Node); })
+        .on('dblclick', (event, d: SimulationNode) => { event.stopPropagation(); onNodeDoubleClick(d as Node); })
+        .on('mouseenter', function(_event, d: SimulationNode) {
             if (svg.classed('is-linking')) return;
             const canConnect = Array.from(nodesRef.current.values()).some(targetNode => d.id !== targetNode.id && validationService.isValidConnection(d, targetNode));
             if (canConnect) d3.select(this).classed('can-connect', true);
         })
         .on('mouseleave', function() { d3.select(this).classed('can-connect', false); });
 
-    nodeUpdate.classed('selected', d => selectedIds.includes(d.id));
+    nodeUpdate.classed('selected', (d: SimulationNode) => selectedIds.includes(d.id));
         
     nodeUpdate.transition().duration(TRANSITION_DURATION)
         .attr('opacity', 1)
