@@ -68,11 +68,15 @@ const ELEMENT_DESCRIPTIONS: Record<ElementType, { purpose: string, uses: string 
   },
   [ElementType.ReadModel]: {
     purpose: 'Represents a specific query or view of the system\'s state, derived from past Events.',
-    uses: 'Provides the data needed to populate Screens or feed information into Automations. Defines how data is presented or accessed.',
+    uses: 'Provides the data needed to populate a User Interface or feed information into an Automation. Defines how data is presented or accessed.',
   },
   [ElementType.EventExternal]: {
     purpose: 'Represents data entering the system from an external source (e.g., another service, API, message queue).',
-    uses: 'Often triggers a Translation pattern to convert external data into internal Commands/Events, or feeds directly into Read Models.',
+    uses: 'Can trigger a Translation (which is a type of Automation) or feeds directly into Read Models.',
+  },
+  [ElementType.Automation]: {
+    purpose: 'Represents an automated background process or job (not a direct user action).',
+    uses: 'Is triggered by an Event (Internal or External). It queries a Read Model (optional) for data and issues a Command to complete its task. This element represents the "process" in the Automation and Translation patterns.',
   },
 };
 

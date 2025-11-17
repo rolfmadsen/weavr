@@ -4,6 +4,7 @@ export enum ElementType {
   EventInternal = 'EVENT_INTERNAL',
   ReadModel = 'READ_MODEL',
   EventExternal = 'EVENT_EXTERNAL',
+  Automation = 'AUTOMATION',
 }
 
 export interface Node {

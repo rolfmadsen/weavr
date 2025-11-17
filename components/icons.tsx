@@ -9,6 +9,7 @@ export const EventInternalIcon: React.FC<{className?: string}> = ({className}) =
 export const ReadModelIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="visibility" className={className} />;
 export const ScreenIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="desktop_windows" className={className} />;
 export const EventExternalIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="public" className={className} />;
+export const AutomationIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="settings" className={className} />;
 
 export const AddIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="add" className={className} />;
 export const CloseIcon: React.FC<{className?: string}> = ({className}) => <MaterialIcon icon="close" className={className} />;

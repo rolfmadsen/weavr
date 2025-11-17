@@ -1,6 +1,6 @@
 import React from 'react';
 import { ElementType } from '../types';
-import { AddIcon, CommandIcon, EventInternalIcon, ReadModelIcon, ScreenIcon, EventExternalIcon } from './icons';
+import { AddIcon, CommandIcon, EventInternalIcon, ReadModelIcon, ScreenIcon, EventExternalIcon, AutomationIcon } from './icons';
 
 interface ToolbarProps {
   onAddNode: (type: ElementType) => void;
@@ -16,6 +16,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
     { type: ElementType.EventInternal, label: 'Internal Event', icon: <EventInternalIcon />, shortcut: '3' },
     { type: ElementType.ReadModel, label: 'Read Model', icon: <ReadModelIcon />, shortcut: '4' },
     { type: ElementType.EventExternal, label: 'External Event', icon: <EventExternalIcon />, shortcut: '5' },
+    { type: ElementType.Automation, label: 'Automation', icon: <AutomationIcon />, shortcut: '6' },
   ];
 
   const handleAddClick = (type: ElementType) => {

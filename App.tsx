@@ -6,6 +6,7 @@ import PropertiesPanel from './components/PropertiesPanel';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HelpModal from './components/HelpModal';
+import WelcomeModal from './components/WelcomeModal';
 import { Node, Link, ElementType, ModelData } from './types';
 import { GRID_SIZE } from './constants';
 import validationService from './services/validationService';
@@ -33,14 +34,15 @@ const App: React.FC = () => {
   const [isReady, setIsReady] = useState(false);
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   
   const manualPositionsRef = React.useRef(new Map<string, { x: number, y: number }>());
 
   useEffect(() => {
-    if (localStorage.getItem('weavr-help-shown') !== 'true') {
-        setIsHelpModalOpen(true);
+    if (isReady && nodes.length === 0 && localStorage.getItem('weavr-welcome-shown') !== 'true') {
+        setIsWelcomeModalOpen(true);
     }
-  }, []);
+  }, [isReady, nodes]);
 
   useEffect(() => {
     const id = getModelIdFromUrl();
@@ -62,6 +64,7 @@ const App: React.FC = () => {
     model.get('nodes').map().on((nodeData: any, nodeId: string) => {
       if (nodeData === null) {
         tempNodes.delete(nodeId);
+        manualPositionsRef.current.delete(nodeId);
       } else if (nodeData && typeof nodeData === 'object' && nodeData.type && nodeData.name) {
         const newNode: Node = {
           id: nodeId,
@@ -73,6 +76,9 @@ const App: React.FC = () => {
           fx: typeof nodeData.fx === 'number' ? nodeData.fx : null,
           fy: typeof nodeData.fy === 'number' ? nodeData.fy : null,
         };
+        if (newNode.fx != null && newNode.fy != null) {
+          manualPositionsRef.current.set(nodeId, { x: newNode.fx, y: newNode.fy });
+        }
         tempNodes.set(nodeId, newNode);
       }
       setNodes(Array.from(tempNodes.values()));
@@ -122,8 +128,8 @@ const App: React.FC = () => {
       description: '',
       x: manualX,
       y: manualY,
-      fx: showSlices ? null : manualX,
-      fy: showSlices ? null : manualY,
+      fx: manualX, // Always set the manual fixed position
+      fy: manualY,
     };
     
     model.get('nodes').get(id).put(newNodeData as any);
@@ -134,7 +140,7 @@ const App: React.FC = () => {
     setIsPanelOpen(true);
     setFocusOnRender(true);
     setIsToolbarOpen(false);
-  }, [modelId, showSlices]);
+  }, [modelId]);
 
   const handleDeleteNode = useCallback((nodeId: string) => {
     if (!modelId) return;
@@ -334,7 +340,7 @@ const App: React.FC = () => {
       }
 
       if (isToolbarOpen) {
-        const tools = [ElementType.Screen, ElementType.Command, ElementType.EventInternal, ElementType.ReadModel, ElementType.EventExternal];
+        const tools = [ElementType.Screen, ElementType.Command, ElementType.EventInternal, ElementType.ReadModel, ElementType.EventExternal, ElementType.Automation];
         const keyIndex = parseInt(event.key, 10) - 1;
         if (keyIndex >= 0 && keyIndex < tools.length) {
           handleAddNode(tools[keyIndex]);
@@ -351,23 +357,10 @@ const App: React.FC = () => {
 
 
   const handleToggleSlices = useCallback(() => {
-    if (!modelId) return;
-    const model = gunService.getModel(modelId);
-    const isEnabling = !showSlices;
-    if (isEnabling) {
-      nodes.forEach(n => {
-        model.get('nodes').get(n.id).put({ fx: null, fy: null });
-      });
-    } else {
-      nodes.forEach(n => {
-        const manualPos = manualPositionsRef.current.get(n.id);
-        if (manualPos) {
-          model.get('nodes').get(n.id).put({ fx: manualPos.x, fy: manualPos.y });
-        }
-      });
-    }
-    setShowSlices(isEnabling);
-  }, [showSlices, nodes, modelId]);
+    // This is now a purely local state change.
+    // It does not modify the shared data in Gun.js.
+    setShowSlices(prev => !prev);
+  }, []);
 
   const handleLinkClick = useCallback((link: Link) => {
     setSelectedNodeIds([]);
@@ -487,9 +480,9 @@ const App: React.FC = () => {
 
   const handleFocusHandled = useCallback(() => setFocusOnRender(false), []);
 
-  const handleCloseHelpModal = useCallback(() => {
-    setIsHelpModalOpen(false);
-    localStorage.setItem('weavr-help-shown', 'true');
+  const handleCloseWelcomeModal = useCallback(() => {
+    setIsWelcomeModalOpen(false);
+    localStorage.setItem('weavr-welcome-shown', 'true');
   }, []);
 
   const selectedItemData = useMemo(() => {
@@ -551,7 +544,8 @@ const App: React.FC = () => {
           />
         )}
       </div>
-      <HelpModal isOpen={isHelpModalOpen} onClose={handleCloseHelpModal} />
+      <WelcomeModal isOpen={isWelcomeModalOpen} onClose={handleCloseWelcomeModal} />
+      <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
       <Footer />
     </div>
   );
