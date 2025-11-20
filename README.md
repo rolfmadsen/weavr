@@ -55,6 +55,10 @@ Event Modeling is a method of describing a system by illustrating the informatio
 This project uses Vite for a modern, fast development experience.
 
 1.  **Clone the repository.**
+    ```bash
+    git clone https://github.com/rolfmadsen/weavr.git
+    cd weavr
+    ```
 2.  **Install dependencies**:
     ```bash
     npm install
@@ -70,3 +74,8 @@ This project uses Vite for a modern, fast development experience.
 5. **Build the application**
     ```bash
     npm run build
+    ```
+6. **Run the test suite**
+    ```bash
+    npm test
+    ```
