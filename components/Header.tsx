@@ -2,21 +2,35 @@ import React, { useRef, useState } from 'react';
 import { ExportIcon, ImportIcon, ViewColumnIcon, HelpIcon } from './icons';
 
 interface HeaderProps {
-    onImport: (file: File) => void;
-    onExport: () => void;
-    onToggleSlices: () => void;
-    slicesVisible: boolean;
-    onOpenHelp: () => void;
+  onImport: (file: File) => void;
+  onExport: () => void;
+  onToggleSlices: () => void;
+  slicesVisible: boolean;
+  onOpenHelp: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, slicesVisible, onOpenHelp }) => {
+const Header: React.FC<HeaderProps> = ({
+  onImport,
+  onExport,
+  onToggleSlices,
+  slicesVisible,
+  onOpenHelp,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
 
   const handleImportClick = () => {
-      fileInputRef.current?.click();
+    fileInputRef.current?.click();
   };
-  
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -31,9 +45,9 @@ const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, sli
     const cleanOrigin = window.location.origin.startsWith('blob:')
       ? window.location.origin.substring(5) // Remove 'blob:' prefix
       : window.location.origin;
-    
+
     const hash = window.location.hash;
-    
+
     // With SPA routing, the server serves index.html for any path.
     // We just need the origin and the hash for the client-side state.
     const shareUrl = `${cleanOrigin}${hash}`;
@@ -46,11 +60,11 @@ const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, sli
 
   return (
     <header className="absolute top-0 left-0 right-0 px-2 md:px-6 py-2 flex justify-between items-center z-10 bg-white shadow-md">
-       <a href="/" title="Start a new model">
+      <a href="/" title="Start a new model">
         <h1 className="text-lg md:text-xl font-bold text-gray-800 select-none truncate hover:text-indigo-600 transition-colors duration-200">
           Weavr - Event Modelling
         </h1>
-       </a>
+      </a>
 
       <div className="flex items-center gap-1 md:gap-2">
         <button
@@ -62,7 +76,26 @@ const Header: React.FC<HeaderProps> = ({ onImport, onExport, onToggleSlices, sli
         </button>
 
         <div className="w-px h-6 bg-gray-300 mx-1 md:mx-2"></div>
-        
+
+        <button
+          onClick={onUndo}
+          disabled={!canUndo}
+          className={`p-2 rounded-full transition-colors duration-200 flex items-center ${canUndo ? 'text-gray-700 hover:bg-gray-200 hover:text-gray-900' : 'text-gray-300 cursor-not-allowed'}`}
+          title="Undo (Ctrl+Z)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" /></svg>
+        </button>
+        <button
+          onClick={onRedo}
+          disabled={!canRedo}
+          className={`p-2 rounded-full transition-colors duration-200 flex items-center ${canRedo ? 'text-gray-700 hover:bg-gray-200 hover:text-gray-900' : 'text-gray-300 cursor-not-allowed'}`}
+          title="Redo (Ctrl+Y)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6" /><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" /></svg>
+        </button>
+
+        <div className="w-px h-6 bg-gray-300 mx-1 md:mx-2"></div>
+
         <button
           onClick={onOpenHelp}
           className="text-gray-500 p-2 rounded-full hover:bg-gray-200 hover:text-gray-800 transition-colors duration-200 flex items-center"
