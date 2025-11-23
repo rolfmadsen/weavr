@@ -20,43 +20,51 @@ export function useGunState(modelId: string | null) {
         const tempNodes = new Map<string, Node>();
         // Subscribe to nodes
         model.get('nodes').map().on((nodeData: any, nodeId: string) => {
-            if (nodeData === null) {
-                tempNodes.delete(nodeId);
-                manualPositionsRef.current.delete(nodeId);
-            } else if (nodeData && typeof nodeData === 'object' && nodeData.type && nodeData.name) {
-                const newNode: Node = {
-                    id: nodeId,
-                    type: nodeData.type,
-                    name: nodeData.name,
-                    description: nodeData.description || '',
-                    x: typeof nodeData.x === 'number' ? nodeData.x : undefined,
-                    y: typeof nodeData.y === 'number' ? nodeData.y : undefined,
-                    fx: typeof nodeData.fx === 'number' ? nodeData.fx : null,
-                    fy: typeof nodeData.fy === 'number' ? nodeData.fy : null,
-                };
-                if (newNode.fx != null && newNode.fy != null) {
-                    manualPositionsRef.current.set(nodeId, { x: newNode.fx, y: newNode.fy });
+            try {
+                if (nodeData === null) {
+                    tempNodes.delete(nodeId);
+                    manualPositionsRef.current.delete(nodeId);
+                } else if (nodeData && typeof nodeData === 'object' && nodeData.type && nodeData.name) {
+                    const newNode: Node = {
+                        id: nodeId,
+                        type: nodeData.type,
+                        name: nodeData.name,
+                        description: nodeData.description || '',
+                        x: typeof nodeData.x === 'number' ? nodeData.x : undefined,
+                        y: typeof nodeData.y === 'number' ? nodeData.y : undefined,
+                        fx: typeof nodeData.fx === 'number' ? nodeData.fx : null,
+                        fy: typeof nodeData.fy === 'number' ? nodeData.fy : null,
+                    };
+                    if (newNode.fx != null && newNode.fy != null) {
+                        manualPositionsRef.current.set(nodeId, { x: newNode.fx, y: newNode.fy });
+                    }
+                    tempNodes.set(nodeId, newNode);
                 }
-                tempNodes.set(nodeId, newNode);
+                setNodes(Array.from(tempNodes.values()));
+            } catch (err) {
+                console.error(`Error processing node ${nodeId}:`, err);
             }
-            setNodes(Array.from(tempNodes.values()));
         });
 
         const tempLinks = new Map<string, Link>();
         // Subscribe to links
         model.get('links').map().on((linkData: any, linkId: string) => {
-            if (linkData === null) {
-                tempLinks.delete(linkId);
-            } else if (linkData && typeof linkData === 'object' && linkData.source && linkData.target) {
-                const newLink: Link = {
-                    id: linkId,
-                    source: linkData.source,
-                    target: linkData.target,
-                    label: linkData.label || '',
-                };
-                tempLinks.set(linkId, newLink);
+            try {
+                if (linkData === null) {
+                    tempLinks.delete(linkId);
+                } else if (linkData && typeof linkData === 'object' && linkData.source && linkData.target) {
+                    const newLink: Link = {
+                        id: linkId,
+                        source: linkData.source,
+                        target: linkData.target,
+                        label: linkData.label || '',
+                    };
+                    tempLinks.set(linkId, newLink);
+                }
+                setLinks(Array.from(tempLinks.values()));
+            } catch (err) {
+                console.error(`Error processing link ${linkId}:`, err);
             }
-            setLinks(Array.from(tempLinks.values()));
         });
 
         // Simple timeout to simulate "ready" state after initial load
@@ -132,8 +140,11 @@ export function useGunState(modelId: string | null) {
 
     const updateNodePosition = useCallback((nodeId: string, x: number, y: number) => {
         if (!modelId) return;
+        // Optimistic update to prevent snap-back
+        setNodes(currentNodes => currentNodes.map(node => (node.id === nodeId ? { ...node, x, y, fx: x, fy: y } : node)));
+
         manualPositionsRef.current.set(nodeId, { x, y });
-        gunService.getModel(modelId).get('nodes').get(nodeId).put({ fx: x, fy: y } as any);
+        gunService.getModel(modelId).get('nodes').get(nodeId).put({ x, y, fx: x, fy: y } as any);
     }, [modelId]);
 
     return {

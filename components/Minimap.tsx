@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import * as d3 from 'd3';
+import React, { useMemo } from 'react';
+import { Stage, Layer, Rect, Group } from 'react-konva';
 import { Node, Slice } from '../types';
 import { NODE_WIDTH, MIN_NODE_HEIGHT } from '../constants';
 
@@ -8,22 +8,30 @@ interface MinimapProps {
     slices: Slice[];
     showSlices: boolean;
     swimlanePositions: Map<string, { x: number; y: number }>;
-    zoomTransform: d3.ZoomTransform;
+    zoomTransform: { k: number; x: number; y: number };
     onNavigate: (x: number, y: number, k: number) => void;
+    stageWidth: number;
+    stageHeight: number;
 }
 
-const Minimap: React.FC<MinimapProps> = ({ nodes, slices, showSlices, swimlanePositions, zoomTransform, onNavigate }) => {
-    const svgRef = useRef<SVGSVGElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+const Minimap: React.FC<MinimapProps> = ({
+    nodes,
+    slices,
+    showSlices,
+    swimlanePositions,
+    zoomTransform,
+    onNavigate,
+    stageWidth,   // <--- Use this
+    stageHeight   // <--- Use this
+}) => {
+    const width = 240;
+    const height = 160;
+    const padding = 30;
 
-    useEffect(() => {
-        if (!svgRef.current || !containerRef.current || nodes.length === 0) return;
+    // Calculate bounds and scale
+    const { scale, minX, minY, contentWidth, contentHeight } = useMemo(() => {
+        if (nodes.length === 0) return { scale: 1, minX: 0, minY: 0, contentWidth: 100, contentHeight: 100 };
 
-        const svg = d3.select(svgRef.current);
-        const width = 240;
-        const height = 160;
-
-        // Calculate bounds of the content
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
         nodes.forEach(node => {
@@ -37,8 +45,6 @@ const Minimap: React.FC<MinimapProps> = ({ nodes, slices, showSlices, swimlanePo
             maxY = Math.max(maxY, pos.y + MIN_NODE_HEIGHT / 2);
         });
 
-        // Add some padding
-        const padding = 100;
         minX -= padding; minY -= padding;
         maxX += padding; maxY += padding;
 
@@ -46,84 +52,111 @@ const Minimap: React.FC<MinimapProps> = ({ nodes, slices, showSlices, swimlanePo
         const contentHeight = maxY - minY;
         const scale = Math.min(width / contentWidth, height / contentHeight);
 
-        // Clear previous content
-        svg.selectAll('*').remove();
+        return { scale, minX, minY, contentWidth, contentHeight };
+    }, [nodes, showSlices, swimlanePositions]);
 
-        const g = svg.append('g')
-            .attr('transform', `translate(${(width - contentWidth * scale) / 2 - minX * scale}, ${(height - contentHeight * scale) / 2 - minY * scale}) scale(${scale})`);
+    // Viewport calculation
+    const viewport = useMemo(() => {
+        const vx = -zoomTransform.x / zoomTransform.k;
+        const vy = -zoomTransform.y / zoomTransform.k;
 
-        // Draw slices if enabled
-        if (showSlices) {
-            g.selectAll('rect.slice')
-                .data(slices)
-                .enter()
-                .append('rect')
-                .attr('class', 'slice')
-                .attr('x', d => d.x!)
-                .attr('y', d => d.y!)
-                .attr('width', d => d.width!)
-                .attr('height', d => d.height!)
-                .attr('fill', d => d.color)
-                .attr('opacity', 0.3);
-        }
+        // CHANGE 2: Use stage dimensions instead of window
+        const vw = stageWidth / zoomTransform.k;
+        const vh = stageHeight / zoomTransform.k;
 
-        // Draw nodes
-        g.selectAll('rect.node')
-            .data(nodes)
-            .enter()
-            .append('rect')
-            .attr('class', 'node')
-            .attr('x', d => {
-                const pos = showSlices
-                    ? swimlanePositions.get(d.id) || { x: d.x || 0, y: d.y || 0 }
-                    : { x: d.fx ?? d.x ?? 0, y: d.fy ?? d.y ?? 0 };
-                return pos.x - NODE_WIDTH / 2;
-            })
-            .attr('y', d => {
-                const pos = showSlices
-                    ? swimlanePositions.get(d.id) || { x: d.x || 0, y: d.y || 0 }
-                    : { x: d.fx ?? d.x ?? 0, y: d.fy ?? d.y ?? 0 };
-                return pos.y - MIN_NODE_HEIGHT / 2;
-            })
-            .attr('width', NODE_WIDTH)
-            .attr('height', MIN_NODE_HEIGHT) // Using min height for simplicity in minimap
-            .attr('fill', '#9ca3af') // Lighter gray for better contrast
-            .attr('rx', 4) // Rounded corners for nodes
-            .attr('ry', 4);
+        return { x: vx, y: vy, width: vw, height: vh };
+    }, [zoomTransform, stageWidth, stageHeight]);
 
-        // Draw viewport rectangle
-        // The viewport is defined by the inverse of the zoom transform applied to the window dimensions
-        const viewportX = -zoomTransform.x / zoomTransform.k;
-        const viewportY = -zoomTransform.y / zoomTransform.k;
-        const viewportW = window.innerWidth / zoomTransform.k;
-        const viewportH = window.innerHeight / zoomTransform.k;
+    const handleStageClick = (e: any) => {
+        const stage = e.target.getStage();
+        const pointer = stage.getPointerPosition();
+        if (!pointer) return;
 
-        g.append('rect')
-            .attr('class', 'viewport')
-            .attr('x', viewportX)
-            .attr('y', viewportY)
-            .attr('width', viewportW)
-            .attr('height', viewportH)
-            .attr('fill', 'none')
-            .attr('stroke', '#6366f1') // Indigo-500
-            .attr('stroke-width', 20 / scale)
-            .attr('rx', 20 / scale) // Rounded viewport
-            .attr('ry', 20 / scale);
+        // Convert click position back to world coordinates
+        // The group transform is: translate(tx, ty) scale(scale)
+        // clickX = (worldX - minX) * scale + tx
+        // worldX = (clickX - tx) / scale + minX
 
-        // Click to navigate
-        svg.on('click', (event) => {
-            const [clickX, clickY] = d3.pointer(event, g.node());
-            // Center the view on the click
-            const newX = -clickX * zoomTransform.k + window.innerWidth / 2;
-            const newY = -clickY * zoomTransform.k + window.innerHeight / 2;
-            onNavigate(newX, newY, zoomTransform.k);
-        });
+        const tx = (width - contentWidth * scale) / 2;
+        const ty = (height - contentHeight * scale) / 2;
 
-    }, [nodes, slices, showSlices, swimlanePositions, zoomTransform, onNavigate]);
+        const worldX = (pointer.x - tx) / scale + minX;
+        const worldY = (pointer.y - ty) / scale + minY;
+
+        // FIX: Use stageWidth/Height props here instead of window.inner...
+        const newX = -worldX * zoomTransform.k + stageWidth / 2;
+        const newY = -worldY * zoomTransform.k + stageHeight / 2;
+
+        onNavigate(newX, newY, zoomTransform.k);
+    };
+
+    const tx = (width - contentWidth * scale) / 2;
+    const ty = (height - contentHeight * scale) / 2;
 
     return (
-        <div ref={containerRef} className="absolute bottom-8 left-8 bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-xl rounded-xl overflow-hidden z-10 w-[240px] h-[160px] hidden md:block transition-all duration-300 hover:shadow-2xl hover:border-indigo-200">
-            <svg ref={svgRef} width="100%" height="100%" className="cursor-crosshair"></svg>
+        <div className="absolute bottom-20 left-8 bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-xl rounded-xl overflow-hidden z-10 w-[240px] h-[160px] hidden md:block transition-all duration-300 hover:shadow-2xl hover:border-indigo-200">
+            <Stage width={width} height={height} onClick={handleStageClick}>
+                <Layer>
+                    <Group
+                        scaleX={scale}
+                        scaleY={scale}
+                        x={tx}
+                        y={ty}
+                        offsetX={minX}
+                        offsetY={minY}
+                    >
+                        {/* Slices */}
+                        {showSlices && slices.map(slice => (
+                            <Rect
+                                key={slice.id}
+                                x={slice.x}
+                                y={slice.y}
+                                width={slice.width}
+                                height={slice.height}
+                                fill={slice.color}
+                                opacity={0.3}
+                            />
+                        ))}
+
+                        {/* Nodes */}
+                        {nodes.map(node => {
+                            const pos = showSlices
+                                ? swimlanePositions.get(node.id) || { x: node.x || 0, y: node.y || 0 }
+                                : { x: node.fx ?? node.x ?? 0, y: node.fy ?? node.y ?? 0 };
+                            return (
+                                <Rect
+                                    key={node.id}
+                                    x={pos.x - NODE_WIDTH / 2}
+                                    y={pos.y - MIN_NODE_HEIGHT / 2}
+                                    width={NODE_WIDTH}
+                                    height={MIN_NODE_HEIGHT}
+                                    fill="#9ca3af"
+                                    cornerRadius={4}
+                                />
+                            );
+                        })}
+
+                        {/* Viewport Indicator */}
+                        <Rect
+                            x={viewport.x}
+                            y={viewport.y}
+                            width={viewport.width}
+                            height={viewport.height}
+                            stroke="#6366f1"
+                            strokeWidth={2 / scale}
+
+                            // Use 4px (visual) radius, OR half the rectangle width/height—whichever is smaller.
+                            cornerRadius={Math.min(
+                                4 / scale,
+                                viewport.width / 2,
+                                viewport.height / 2
+                            )}
+
+                            listening={false}
+                        />
+                    </Group>
+                </Layer>
+            </Stage>
         </div>
     );
 };

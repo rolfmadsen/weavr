@@ -2,8 +2,21 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// Custom plugin from official GUN.js docs to exclude Node.js specific polyfills.
-// This prevents Vite from bundling a large, unnecessary 'text-encoding' library.
+// 1. The Cleanup Plugin (Fixes the HTML for production)
+const aiStudioCleanup = () => {
+  return {
+    name: 'ai-studio-cleanup',
+    transformIndexHtml(html: string) {
+      if (process.env.NODE_ENV !== 'production') return html;
+      return html
+        .replace(/<script type="importmap">[\s\S]*?<\/script>/, '')
+        .replace(/<script src="https:\/\/cdn\.tailwindcss\.com"><\/script>/, '')
+        .replace(/<script type="module">[\s\S]*?process[\s\S]*?<\/script>/, '');
+    }
+  }
+}
+
+// 2. The Gun.js Plugin (Fixes the polyfills)
 const moduleExclude = (match: string) => {
   const m = (id: string) => id.indexOf(match) > -1
   return {
@@ -20,13 +33,11 @@ const moduleExclude = (match: string) => {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react(), 
+    react(),
     tailwindcss(),
     moduleExclude('text-encoding'),
+    aiStudioCleanup(), // <--- Clean HTML on build
   ],
-  // This section is critical for making GUN.js work with Vite.
-  // It tells Vite to pre-bundle these specific files from the 'gun' package,
-  // making them available for ES6 module imports in the application.
   optimizeDeps: {
     include: [
       'gun',
@@ -40,5 +51,20 @@ export default defineConfig({
       'gun/lib/store',
       'gun/lib/rindexed',
     ],
+  },
+  // 3. The Build Config (Fixes the "Large Chunk" warning)
+  build: {
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-konva': ['konva', 'react-konva'],
+          'vendor-gun': ['gun'],
+          'vendor-elk': ['elkjs', 'elkjs/lib/elk.bundled'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 2000,
   },
 })

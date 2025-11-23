@@ -424,7 +424,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedIds, sl
             const handlePositions = [{ x: NODE_WIDTH / 2, y: 0 }, { x: NODE_WIDTH, y: height / 2 }, { x: NODE_WIDTH / 2, y: height }, { x: 0, y: height / 2 }];
             const handleData = handlePositions.map(pos => ({ parentNode: d as SimulationNode, pos }));
             const handles = group.selectAll<SVGCircleElement, (typeof handleData)[0]>('.link-handle').data(handleData);
-            handles.enter().append('circle').attr('class', 'link-handle').call(linkDragHandler as any).merge(handles).attr('r', 10).attr('cx', p => p.pos.x).attr('cy', p => p.pos.y);
+            handles.enter().append('circle').attr('class', 'link-handle').call(linkDragHandler as any).merge(handles).attr('r', 15).attr('cx', p => p.pos.x).attr('cy', p => p.pos.y);
         });
 
         nodeUpdate
@@ -490,6 +490,8 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, links, selectedIds, sl
                 swimlanePositions={swimlanePositions}
                 zoomTransform={zoomTransform}
                 onNavigate={handleNavigate}
+                stageWidth={window.innerWidth}
+                stageHeight={window.innerHeight}
             />
             <svg ref={svgRef} className="w-full h-full" onClick={onCanvasClick}>
                 <defs>

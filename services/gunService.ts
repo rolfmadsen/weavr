@@ -13,8 +13,8 @@ import 'gun/lib/rindexed';
 // 3. Create a single, configured Gun instance for the entire application.
 // The `localStorage: false` option is critical to ensure the IndexedDB adapter is used.
 const gun = Gun({
-  peers: [`${window.location.origin}/gun`],
-  localStorage: false, 
+  peers: [typeof window !== 'undefined' ? window.location.origin + '/gun' : 'http://localhost:8080/gun'],
+  localStorage: false,
 });
 
 // 4. Expose the instance through a service object.

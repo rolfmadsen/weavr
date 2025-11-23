@@ -15,9 +15,10 @@ interface UseKeyboardShortcutsProps {
     onClosePanel: () => void;
     onToggleToolbar: () => void;
     onOpenPropertiesPanel: () => void;
-    onSelectNode: (node: Node) => void;
+    onSelectNode: (node: Node, event?: any) => void;
     onAddNode: (type: ElementType) => void;
     onMoveNodes: (updates: Map<string, { fx: number, fy: number }>) => void;
+    onFocusNode: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -35,7 +36,8 @@ export function useKeyboardShortcuts({
     onOpenPropertiesPanel,
     onSelectNode,
     onAddNode,
-    onMoveNodes
+    onMoveNodes,
+    onFocusNode
 }: UseKeyboardShortcutsProps) {
 
     useEffect(() => {
@@ -115,6 +117,13 @@ export function useKeyboardShortcuts({
                     }
                     break;
 
+                case 'f': case 'F':
+                    if (!(event.metaKey || event.ctrlKey)) {
+                        onFocusNode();
+                        shouldPreventDefault = true;
+                    }
+                    break;
+
                 case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
                     if (selectedNodeIds.length > 0 && !showSlices) {
                         const updates = new Map<string, { fx: number, fy: number }>();
@@ -158,6 +167,6 @@ export function useKeyboardShortcuts({
     }, [
         nodes, selectedNodeIds, selectedLinkId, isPanelOpen, isToolbarOpen, isReady,
         showSlices, swimlanePositions, onDeleteSelection, onClosePanel, onToggleToolbar,
-        onOpenPropertiesPanel, onSelectNode, onAddNode, onMoveNodes
+        onOpenPropertiesPanel, onSelectNode, onAddNode, onMoveNodes, onFocusNode
     ]);
 }

@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
+// Polyfill global for Gun.js
+(window as any).global = window;
+
 // With the new Vite configuration, we no longer need to manually load scripts
 // or handle global variables. The application now uses standard ES module imports.
 

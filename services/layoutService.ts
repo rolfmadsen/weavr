@@ -1,5 +1,6 @@
 import { Node, Slice, ElementType, Link } from '../types';
 import { MIN_NODE_HEIGHT, NODE_WIDTH } from '../constants';
+import { calculateNodeHeight } from '../utils/textUtils';
 
 const HORIZONTAL_SPACING = 100;
 const NODE_VERTICAL_SPACING = 40;
@@ -35,7 +36,7 @@ class LayoutService {
             // Increment Y position for the next slice
             currentY += layout.height + SLICE_PADDING;
         }
-        
+
         return finalPositions;
     }
 
@@ -46,7 +47,7 @@ class LayoutService {
         if (sliceNodes.length === 0) {
             return { positions: new Map(), width: 0, height: 0 };
         }
-        
+
         const sliceNodeIds = new Set(sliceNodes.map(n => n.id));
         const sliceLinks = allLinks.filter(l => sliceNodeIds.has(l.source) && sliceNodeIds.has(l.target));
         const nodesMap = new Map(sliceNodes.map(n => [n.id, n]));
@@ -56,12 +57,12 @@ class LayoutService {
         sliceNodes.forEach(node => {
             nodeLayerMap.set(node.id, 0); // Start all nodes at layer 0
         });
-        
+
         // 2. Iteratively enforce left-to-right flow by pushing nodes with incoming edges to later layers
         let changed = true;
         const maxIterations = sliceNodes.length * sliceNodes.length; // A robust iteration limit for convergence
         let iter = 0;
-        while(changed && iter < maxIterations) {
+        while (changed && iter < maxIterations) {
             changed = false;
             iter++;
             for (const link of sliceLinks) {
@@ -73,7 +74,7 @@ class LayoutService {
                 }
             }
         }
-        
+
         // 3. Handle special case for terminal State View screens to place them at the very end for clarity
         const successors = new Map<string, string[]>();
         sliceNodes.forEach(n => successors.set(n.id, []));
@@ -98,7 +99,7 @@ class LayoutService {
                 nodeLayerMap.set(screenId, maxLayer + 1);
             });
         }
-        
+
         // 4. Group nodes into layers and normalize layer indices to be contiguous (e.g., 0, 1, 2, ...)
         const tempLayers = new Map<number, string[]>();
         sliceNodes.forEach(node => {
@@ -106,13 +107,13 @@ class LayoutService {
             if (!tempLayers.has(layerIndex)) tempLayers.set(layerIndex, []);
             tempLayers.get(layerIndex)!.push(node.id);
         });
-        
-        const sortedOriginalLayers = Array.from(tempLayers.keys()).sort((a,b) => a - b);
+
+        const sortedOriginalLayers = Array.from(tempLayers.keys()).sort((a, b) => a - b);
         const layers = new Map<number, string[]>();
         sortedOriginalLayers.forEach((originalLayer, i) => {
             layers.set(i, tempLayers.get(originalLayer)!);
         });
-        
+
         const sortedLayerIndices = Array.from(layers.keys()).sort((a, b) => a - b);
 
         // 5. Build predecessor/successor maps for crossing minimization
@@ -134,7 +135,7 @@ class LayoutService {
             nodePositionsInLayer = newPositions;
         };
         updatePositions();
-        
+
         // 6. Iteratively improve vertex ordering to minimize crossings (Barycenter heuristic)
         const calculateBarycenter = (nodes: string[], neighborMap: Map<string, string[]>): Map<string, number> => {
             const weights = new Map<string, number>();
@@ -168,7 +169,7 @@ class LayoutService {
             }
             updatePositions();
         }
-        
+
         // 7. Assign final coordinates
         const positions = new Map<string, { x: number; y: number }>();
         const layerXMap = new Map<number, number>();
@@ -199,6 +200,81 @@ class LayoutService {
         }
 
         return { positions, width: sliceWidth, height: sliceHeight };
+    }
+    public calculateZonedSliceLayout(
+        slices: Slice[],
+        nodes: Node[],
+        _links: Link[],
+        _canvasWidth: number
+    ): Map<string, { x: number; y: number }> {
+        console.log('calculateZonedSliceLayout called', { slices: slices.length, nodes: nodes.length });
+        const finalPositions = new Map<string, { x: number; y: number }>();
+        const nodesMap = new Map(nodes.map(n => [n.id, n]));
+
+        // Constants for Zoned Layout
+        const ZONE_HEIGHT = 200; // Height of each horizontal zone
+        const SLICE_SPACING = 100; // Horizontal spacing between slices
+        const NODE_SPACING_Y = 20; // Vertical spacing between nodes in the same zone
+
+        let currentX = 100; // Start X
+
+        for (const slice of slices) {
+            const sliceNodes = Array.from(slice.nodeIds).map(id => nodesMap.get(id)!);
+            if (sliceNodes.length === 0) continue;
+
+            // Group nodes by Zone
+            const zones = {
+                top: [] as Node[],    // Trigger / UI
+                middle: [] as Node[], // Intention / Model
+                bottom: [] as Node[]  // Facts / Events
+            };
+
+            sliceNodes.forEach(node => {
+                switch (node.type) {
+                    case ElementType.Screen:
+                    case ElementType.Automation:
+                        zones.top.push(node);
+                        break;
+                    case ElementType.Command:
+                    case ElementType.ReadModel:
+                        zones.middle.push(node);
+                        break;
+                    case ElementType.EventInternal:
+                    case ElementType.EventExternal:
+                        zones.bottom.push(node);
+                        break;
+                    default:
+                        zones.middle.push(node); // Default to middle
+                }
+            });
+
+            // Calculate Slice Width based on widest zone (if we were placing side-by-side, but we stack for now)
+            // For now, we stack nodes vertically within a zone, so width is just NODE_WIDTH
+            const sliceWidth = NODE_WIDTH;
+
+            // Assign Positions
+            const assignZonePositions = (zoneNodes: Node[], startY: number) => {
+                let y = startY;
+                zoneNodes.forEach(node => {
+                    // Center node in slice width
+                    finalPositions.set(node.id, {
+                        x: currentX,
+                        y: y
+                    });
+                    console.log(`Positioned node ${node.id} (${node.type}) at ${currentX}, ${y}`);
+                    y += (calculateNodeHeight(node.name) || MIN_NODE_HEIGHT) + NODE_SPACING_Y;
+                });
+            };
+
+            assignZonePositions(zones.top, 0);
+            assignZonePositions(zones.middle, ZONE_HEIGHT * 1.5); // Give some space
+            assignZonePositions(zones.bottom, ZONE_HEIGHT * 3);
+
+            // Move to next slice
+            currentX += sliceWidth + SLICE_SPACING;
+        }
+
+        return finalPositions;
     }
 }
 

@@ -16,6 +16,7 @@ export interface Node {
   y?: number;
   fx?: number | null;
   fy?: number | null;
+  computedHeight?: number;
 }
 
 export interface Link {
@@ -46,12 +47,12 @@ export interface ModelData {
 }
 
 export interface Slice {
-    id: string;
-    nodeIds: Set<string>;
-    color: string;
-    // Bounding box for rendering
-    x?: number;
-    y?: number;
-    width?: number;
-    height?: number;
+  id: string;
+  nodeIds: Set<string>;
+  color: string;
+  // Bounding box for rendering
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
 }

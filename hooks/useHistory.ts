@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Node, Link, ElementType } from '../types';
 
+// 1. Add 'BATCH_MOVE' to the supported types
 type ActionType =
     | 'ADD_NODE'
     | 'DELETE_NODE'
@@ -8,7 +9,8 @@ type ActionType =
     | 'ADD_LINK'
     | 'DELETE_LINK'
     | 'UPDATE_NODE'
-    | 'UPDATE_LINK';
+    | 'UPDATE_LINK'
+    | 'BATCH_MOVE';
 
 interface HistoryAction {
     type: ActionType;
@@ -17,10 +19,10 @@ interface HistoryAction {
 }
 
 interface UseHistoryProps {
-    onAddNode: (type: ElementType, x: number, y: number, id?: string) => void; // Modified to accept ID for restoration
+    onAddNode: (type: ElementType, x: number, y: number, id?: string) => void;
     onDeleteNode: (id: string) => void;
     onUpdateNode: (id: string, data: Partial<Node>) => void;
-    onAddLink: (source: string, target: string, label: string, id?: string) => void; // Modified to accept ID
+    onAddLink: (source: string, target: string, label: string, id?: string) => void;
     onDeleteLink: (id: string) => void;
     onUpdateLink: (id: string, data: Partial<Link>) => void;
     onMoveNode: (id: string, x: number, y: number) => void;
@@ -72,6 +74,16 @@ export function useHistory({
                 case 'MOVE_NODE':
                     onMoveNode(action.payload.id, action.undoPayload.x, action.undoPayload.y);
                     break;
+
+                // 2. Handle BATCH_MOVE Undo (Restore old positions)
+                case 'BATCH_MOVE':
+                    if (Array.isArray(action.undoPayload)) {
+                        action.undoPayload.forEach((item: { id: string, x: number, y: number }) => {
+                            onMoveNode(item.id, item.x, item.y);
+                        });
+                    }
+                    break;
+
                 case 'ADD_LINK':
                     onDeleteLink(action.payload.id);
                     break;
@@ -98,12 +110,10 @@ export function useHistory({
             const action = prev[prev.length - 1];
             const newStack = prev.slice(0, -1);
 
-            // Execute redo logic (same as original action)
+            // Execute redo logic
             switch (action.type) {
                 case 'ADD_NODE':
-                    // Re-add the node
-                    const node = action.payload; // This might just be ID/Type/Pos or full node depending on how we stored it
-                    // If payload was just {id, type, x, y}, we use that.
+                    const node = action.payload;
                     onAddNode(node.type, node.x, node.y, node.id);
                     break;
                 case 'DELETE_NODE':
@@ -112,9 +122,19 @@ export function useHistory({
                 case 'MOVE_NODE':
                     onMoveNode(action.payload.id, action.payload.x, action.payload.y);
                     break;
+
+                // 3. Handle BATCH_MOVE Redo (Re-apply new positions)
+                case 'BATCH_MOVE':
+                    if (Array.isArray(action.payload)) {
+                        action.payload.forEach((item: { id: string, x: number, y: number }) => {
+                            onMoveNode(item.id, item.x, item.y);
+                        });
+                    }
+                    break;
+
                 case 'ADD_LINK':
-                    const link = action.payload;
-                    onAddLink(link.source, link.target, link.label, link.id);
+                    const linkPayload = action.payload;
+                    onAddLink(linkPayload.source, linkPayload.target, linkPayload.label, linkPayload.id);
                     break;
                 case 'DELETE_LINK':
                     onDeleteLink(action.payload.id);

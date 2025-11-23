@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import GraphCanvas from './components/GraphCanvas';
+import GraphCanvasKonva from './components/GraphCanvasKonva';
 import Toolbar from './components/Toolbar';
 import PropertiesPanel from './components/PropertiesPanel';
 import Header from './components/Header';
@@ -33,6 +33,15 @@ const App: React.FC = () => {
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
+  const [experimentalLayoutEnabled, setExperimentalLayoutEnabled] = useState(false); // Added state
+
+  // Track view state (pan/zoom) for smart node placement
+  const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1 });
+  const graphRef = React.useRef<any>(null);
+  const [isLayoutLoading, setIsLayoutLoading] = useState(false);
+
+  // NEW: Store explicit edge paths from ELK
+  const [autoLayoutEdges, setAutoLayoutEdges] = useState<Map<string, number[]>>(new Map());
 
   // 1. Gun State Management
   const {
@@ -99,11 +108,23 @@ const App: React.FC = () => {
     setIsPanelOpen(false);
   }, []);
 
-  const handleAddNode = useCallback((type: ElementType) => {
-    const manualX = window.innerWidth / 2 + (Math.random() - 0.5) * 50;
-    const manualY = window.innerHeight / 2 + (Math.random() - 0.5) * 50;
+  // Smart Add: Places node in the center of the current view
+  const handleAddNode = useCallback((type: ElementType, explicitId?: string) => {
+    // Calculate center of current view in world coordinates
+    const centerX = (window.innerWidth / 2 - viewState.x) / viewState.scale;
+    const centerY = (window.innerHeight / 2 - viewState.y) / viewState.scale;
 
-    const id = gunAddNode(type, manualX, manualY);
+    // Adjust for Top-Left anchor (subtract half width/height)
+    // We use MIN_NODE_HEIGHT as a default since we don't know the exact text height yet
+    let manualX = centerX - 80; // NODE_WIDTH / 2
+    let manualY = centerY - 30; // MIN_NODE_HEIGHT / 2
+
+    // Snap to grid (20px)
+    const GRID = 20;
+    manualX = Math.round(manualX / GRID) * GRID;
+    manualY = Math.round(manualY / GRID) * GRID;
+
+    const id = gunAddNode(type, manualX, manualY, explicitId);
     if (id) {
       addToHistory({ type: 'ADD_NODE', payload: { id, type, x: manualX, y: manualY }, undoPayload: { id } });
       selectNode(id);
@@ -111,7 +132,7 @@ const App: React.FC = () => {
       setFocusOnRender(true);
       setIsToolbarOpen(false);
     }
-  }, [gunAddNode, addToHistory, selectNode]);
+  }, [gunAddNode, addToHistory, selectNode, viewState]);
 
   const handleDeleteNode = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
@@ -123,14 +144,14 @@ const App: React.FC = () => {
     addToHistory({
       type: 'DELETE_NODE',
       payload: { id: nodeId },
-      undoPayload: { node, links: connectedLinks } // Save full node and links for restoration
+      undoPayload: { node, links: connectedLinks }
     });
 
     if (selectedNodeIds.includes(nodeId)) {
       setSelection(selectedNodeIds.filter(id => id !== nodeId));
     }
     handleClosePanel();
-  }, [nodes, gunDeleteNode, addToHistory, selectedNodeIds, setSelection, handleClosePanel]);
+  }, [nodes, links, gunDeleteNode, addToHistory, selectedNodeIds, setSelection, handleClosePanel]);
 
   const handleDeleteLink = useCallback((linkId: string) => {
     const link = links.find(l => l.id === linkId);
@@ -151,7 +172,6 @@ const App: React.FC = () => {
 
   const handleDeleteSelection = useCallback(() => {
     if (selectedNodeIds.length > 0) {
-      // Group delete not fully supported in history yet, doing individual
       selectedNodeIds.forEach(nodeId => handleDeleteNode(nodeId));
     }
     if (selectedLinkId) {
@@ -163,13 +183,17 @@ const App: React.FC = () => {
   const handleNodesDrag = useCallback((updates: { nodeId: string; pos: { x: number; y: number } }[]) => {
     if (showSlices) return;
 
+    // If user manually drags, we clear the rigid ELK edge paths so lines behave naturally again
+    if (autoLayoutEdges.size > 0) {
+      setAutoLayoutEdges(new Map());
+    }
+
     updates.forEach(({ nodeId, pos }) => {
       const node = nodes.find(n => n.id === nodeId);
       const oldPos = node ? { x: node.fx ?? node.x, y: node.fy ?? node.y } : { x: 0, y: 0 };
 
       gunUpdateNodePosition(nodeId, pos.x, pos.y);
 
-      // Only add to history if position actually changed significantly
       if (Math.abs(oldPos.x! - pos.x) > 1 || Math.abs(oldPos.y! - pos.y) > 1) {
         addToHistory({
           type: 'MOVE_NODE',
@@ -178,9 +202,14 @@ const App: React.FC = () => {
         });
       }
     });
-  }, [showSlices, nodes, gunUpdateNodePosition, addToHistory]);
+  }, [showSlices, nodes, gunUpdateNodePosition, addToHistory, autoLayoutEdges]);
 
-  const handleNodeClick = useCallback((node: Node) => {
+  const handleNodeClick = useCallback((node: Node, event: any) => {
+    const isMulti = event?.evt?.shiftKey || event?.shiftKey;
+    if (isMulti) {
+      selectNode(node.id, true);
+      return;
+    }
     if (selectedNodeIds.length > 1 && selectedNodeIds.includes(node.id)) {
       return;
     }
@@ -188,6 +217,12 @@ const App: React.FC = () => {
     setIsPanelOpen(false);
     setIsToolbarOpen(false);
   }, [selectedNodeIds, selectNode]);
+
+  const handleFocusNode = useCallback(() => {
+    if (selectedNodeIds.length === 1 && graphRef.current) {
+      graphRef.current.panToNode(selectedNodeIds[0]);
+    }
+  }, [selectedNodeIds]);
 
   const handleOpenPropertiesPanel = useCallback(() => {
     if (selectedNodeIds.length === 1 || selectedLinkId) {
@@ -197,16 +232,75 @@ const App: React.FC = () => {
     }
   }, [selectedNodeIds, selectedLinkId]);
 
-  const { slices, nodeSliceMap, swimlanePositions } = useMemo(() => {
+  // --- Calculated Slices & Swimlanes ---
+  const { slices, swimlanePositions } = useMemo(() => {
     if (!showSlices || nodes.length === 0) {
-      return { slices: [], nodeSliceMap: new Map(), swimlanePositions: new Map() };
+      return { slices: [], swimlanePositions: new Map() };
     }
-    const { slices, nodeSliceMap } = sliceService.calculateSlices(nodes, links);
-    const swimlanePositions = layoutService.calculateSwimlaneLayout(slices, nodes, links, window.innerWidth);
-    return { slices, nodeSliceMap, swimlanePositions };
-  }, [showSlices, nodes, links]);
+    const { slices } = sliceService.calculateSlices(nodes, links);
 
-  // 4. Keyboard Shortcuts
+    // Calculate auto-layout for slice view
+    let swimlanePositions;
+    if (experimentalLayoutEnabled) {
+      swimlanePositions = layoutService.calculateZonedSliceLayout(slices, nodes, links, window.innerWidth);
+    } else {
+      swimlanePositions = layoutService.calculateSwimlaneLayout(slices, nodes, links, window.innerWidth);
+    }
+
+    return { slices, swimlanePositions };
+  }, [showSlices, nodes, links, experimentalLayoutEnabled]);
+
+  // --- Auto Layout Handler (ELK) ---
+  const handleAutoLayout = useCallback(async () => {
+    if (nodes.length === 0) return;
+    if (showSlices) return; // Disable Auto Layout when Slices are active
+    setIsLayoutLoading(true);
+
+    try {
+      // 1. Snapshot the CURRENT (Old) positions before we change them
+      const oldPositions = nodes.map(n => ({
+        id: n.id,
+        x: n.fx ?? n.x, // Use fixed position if available, else current x
+        y: n.fy ?? n.y
+      }));
+
+      const { calculateElkLayout } = await import('./services/elkLayoutService');
+
+      // 2. Get new positions (returns Map directly now)
+      const newPositionsMap = await calculateElkLayout(nodes, links, slices);
+
+      console.log(`Auto-layout calculated for ${newPositionsMap.size} nodes.`);
+
+      // 3. Prepare the NEW positions array for history
+      const newPositions: { id: string, x: number, y: number }[] = [];
+
+      // 4. Update GunDB
+      newPositionsMap.forEach((pos, nodeId) => {
+        // Extra safety check for ID
+        if (!nodeId || nodeId.length === 0) return;
+
+        // Save to GunDB - Pass RAW float values (pos.x, pos.y)
+        gunUpdateNodePosition(nodeId, pos.x, pos.y);
+
+        // Add to our history tracker
+        newPositions.push({ id: nodeId, x: pos.x, y: pos.y });
+      });
+
+      // 5. ONE History Entry for the entire operation (Batch)
+      addToHistory({
+        type: 'BATCH_MOVE',
+        payload: newPositions,      // When Redoing: move all these to new
+        undoPayload: oldPositions   // When Undoing: move all these to old
+      });
+
+    } catch (error) {
+      console.error("Auto-layout failed:", error);
+    } finally {
+      setIsLayoutLoading(false);
+    }
+  }, [nodes, links, slices, gunUpdateNodePosition, addToHistory, showSlices]);
+
+  // --- Keyboard Shortcuts ---
   useKeyboardShortcuts({
     nodes,
     selectedNodeIds,
@@ -233,9 +327,10 @@ const App: React.FC = () => {
           undoPayload: { id, x: oldPos.x, y: oldPos.y }
         });
       });
-    }
+    },
+    // @ts-ignore
+    onFocusNode: handleFocusNode
   });
-
 
   const handleToggleSlices = useCallback(() => {
     setShowSlices(prev => !prev);
@@ -261,6 +356,10 @@ const App: React.FC = () => {
     setSelection(nodeIds);
     setIsPanelOpen(false);
   }, [setSelection]);
+
+  const handleValidateConnection = useCallback((s: Node, t: Node) => {
+    return !!validationService.isValidConnection(s, t);
+  }, []);
 
   const handleAddLink = useCallback((sourceId: string, targetId: string) => {
     if (!modelId || sourceId === targetId) return;
@@ -292,14 +391,6 @@ const App: React.FC = () => {
     const oldValue = (node as any)[key];
     gunUpdateNode(nodeId, { [key]: value });
 
-    // Debouncing history for text inputs would be ideal, but for now we add every change
-    // Ideally we'd use onBlur or a debounced callback for history
-    // For now, let's assume this is fine or we might flood history with keystrokes if not careful.
-    // PropertiesPanel usually updates on change, so this might be spammy.
-    // Let's check if it's a text field.
-    // Actually PropertiesPanel calls onUpdateNode on every change.
-    // We should probably only add to history if the value is different and maybe debounce it?
-    // For this iteration, let's just add it.
     addToHistory({
       type: 'UPDATE_NODE',
       payload: { id: nodeId, data: { [key]: value } },
@@ -369,8 +460,9 @@ const App: React.FC = () => {
     reader.readAsText(file);
   }, [modelId, nodes, links, handleClosePanel, clearSelection, manualPositionsRef]);
 
-  const handleCanvasClick = useCallback((event: React.MouseEvent) => {
-    if (!event.shiftKey) {
+  const handleCanvasClick = useCallback((event: any) => {
+    const shiftKey = event.shiftKey || event.evt?.shiftKey;
+    if (!shiftKey) {
       clearSelection();
       handleClosePanel();
       setIsToolbarOpen(false);
@@ -412,15 +504,21 @@ const App: React.FC = () => {
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
+        onAutoLayout={handleAutoLayout}
+        isAutoLayoutDisabled={showSlices}
+        onToggleExperimentalLayout={() => setExperimentalLayoutEnabled(!experimentalLayoutEnabled)}
+        experimentalLayoutEnabled={experimentalLayoutEnabled}
       />
-      <GraphCanvas
+      <div className={isLayoutLoading ? 'cursor-wait' : ''}></div>
+      <GraphCanvasKonva
         nodes={nodes}
         links={links}
         selectedIds={selectedIds}
         slices={slices}
-        nodeSliceMap={nodeSliceMap}
         swimlanePositions={swimlanePositions}
         showSlices={showSlices}
+        experimentalLayoutEnabled={experimentalLayoutEnabled} // <-- Passed here
+        edgeRoutes={autoLayoutEdges} // <-- Passed here
         onNodeClick={handleNodeClick}
         onLinkClick={handleLinkClick}
         onNodeDoubleClick={handleNodeDoubleClick}
@@ -429,7 +527,11 @@ const App: React.FC = () => {
         onAddLink={handleAddLink}
         onCanvasClick={handleCanvasClick}
         onMarqueeSelect={handleMarqueeSelect}
+        onValidateConnection={handleValidateConnection}
+        onViewChange={setViewState}
+        ref={graphRef}
       />
+
       <Toolbar
         onAddNode={handleAddNode}
         disabled={!isReady}

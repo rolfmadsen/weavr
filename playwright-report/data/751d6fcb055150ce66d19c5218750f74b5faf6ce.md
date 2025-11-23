@@ -1,0 +1,63 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - link "Weavr - Event Modelling" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - heading "Weavr - Event Modelling" [level=1] [ref=e6]
+    - generic [ref=e7]:
+      - button "Share" [ref=e8]
+      - button "Undo (Ctrl+Z)" [ref=e10]:
+        - img [ref=e11]
+      - button "Redo (Ctrl+Y)" [disabled] [ref=e14]:
+        - img [ref=e15]
+      - button "help_outline" [ref=e19]:
+        - generic [ref=e20]: help_outline
+      - button "view_column Slices" [ref=e22]:
+        - generic [ref=e23]: view_column
+        - generic [ref=e24]: Slices
+      - button "download Export" [ref=e26]:
+        - generic [ref=e27]: download
+        - generic [ref=e28]: Export
+      - button "upload Import" [ref=e29]:
+        - generic [ref=e30]: upload
+        - generic [ref=e31]: Import
+  - button "add" [ref=e37]:
+    - generic [ref=e39]: add
+  - generic [ref=e41]:
+    - generic [ref=e42]:
+      - heading "Screen" [level=2] [ref=e43]
+      - button "close" [ref=e44]:
+        - generic [ref=e45]: close
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - textbox "Name" [active] [ref=e48]:
+          - /placeholder: " "
+          - text: New Screen
+        - generic [ref=e49]: Name
+      - generic [ref=e50]:
+        - textbox "Description" [ref=e51]:
+          - /placeholder: " "
+        - generic [ref=e52]: Description
+      - generic [ref=e53]:
+        - heading "Purpose" [level=3] [ref=e54]
+        - paragraph [ref=e55]: Visualizes how users interact with the system or view information.
+        - heading "Uses" [level=3] [ref=e56]
+        - paragraph [ref=e57]: Shows where commands originate (e.g., button clicks) and where read models are displayed. Helps clarify data requirements and user flow.
+      - generic [ref=e58]:
+        - generic [ref=e59]: ID
+        - paragraph [ref=e60]: a5902156-94f2-4ad0-b5d8-108ea1399498
+      - button "delete Delete Element" [ref=e62]:
+        - generic [ref=e63]: delete
+        - text: Delete Element
+  - contentinfo [ref=e64]:
+    - generic [ref=e65]:
+      - text: Released under the
+      - link "GNU AGPLv3 License" [ref=e66] [cursor=pointer]:
+        - /url: https://github.com/rolfmadsen/weavr/blob/main/LICENSE
+      - text: . View on
+      - link "GitHub" [ref=e67] [cursor=pointer]:
+        - /url: https://github.com/rolfmadsen/weavr
+      - text: .
+```

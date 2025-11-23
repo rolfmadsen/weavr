@@ -8,7 +8,7 @@ export function useSelection() {
     const selectNode = useCallback((nodeId: string, multi: boolean = false) => {
         setSelectedLinkId(null);
         if (multi) {
-            setSelectedNodeIds(prev => prev.includes(nodeId) ? prev : [...prev, nodeId]);
+            setSelectedNodeIds(prev => prev.includes(nodeId) ? prev.filter(id => id !== nodeId) : [...prev, nodeId]);
         } else {
             setSelectedNodeIds([nodeId]);
         }
