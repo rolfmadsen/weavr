@@ -389,6 +389,19 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
 
         // Update links for ALL moving nodes
         nodesToUpdate.forEach(movingNodeId => {
+            // NEW: Manually move other selected nodes
+            if (movingNodeId !== nodeId) {
+                const otherNode = lookup.nodeMap.get(movingNodeId);
+                if (otherNode) {
+                    const newX = safeNum(otherNode.x) + dx;
+                    const newY = safeNum(otherNode.y) + dy;
+                    const nodeGroup = stage.findOne(`#node-${movingNodeId}`);
+                    if (nodeGroup) {
+                        nodeGroup.position({ x: newX, y: newY });
+                    }
+                }
+            }
+
             const connectedLinks = lookup.linksByNode.get(movingNodeId) || [];
 
             connectedLinks.forEach(link => {
@@ -406,11 +419,11 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 if (!sNodeRaw || !tNodeRaw) return;
 
                 const sNode = nodesToUpdate.has(sId)
-                    ? { ...sNodeRaw, x: (sId === nodeId ? x : safeNum(sNodeRaw.x) + dx), y: (sId === nodeId ? y : safeNum(sNodeRaw.y) + dy) }
+                    ? { ...sNodeRaw, x: safeNum(sNodeRaw.x) + dx, y: safeNum(sNodeRaw.y) + dy }
                     : sNodeRaw;
 
                 const tNode = nodesToUpdate.has(tId)
-                    ? { ...tNodeRaw, x: (tId === nodeId ? x : safeNum(tNodeRaw.x) + dx), y: (tId === nodeId ? y : safeNum(tNodeRaw.y) + dy) }
+                    ? { ...tNodeRaw, x: safeNum(tNodeRaw.x) + dx, y: safeNum(tNodeRaw.y) + dy }
                     : tNodeRaw;
 
                 const sH = safeNum((sNode as any).computedHeight, MIN_NODE_HEIGHT);
@@ -621,7 +634,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         // ---------------------------------------------------------
         // 2. Experimental Layout Calculation
         // ---------------------------------------------------------
-        if (experimentalLayoutEnabled) {
+        if (experimentalLayoutEnabled && showSlices) {
             const ZONE_HEIGHT = 300;
             const GAP = 50;
             const START_X = 100;
@@ -771,12 +784,15 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                                         scaleX={1 / stageScale} scaleY={1 / stageScale}
                                     />
 
-                                    {/* 3. Slice Dividers */}
+                                    {/* 3. Slice Bounding Boxes (Same as Standard View) */}
                                     {(slices || []).filter(s => s && typeof s === 'object').map((slice, i) => (
                                         <Group key={safeStr(slice.id) || i}>
-                                            <Line
-                                                points={[safeNum(slice.x), -5000, safeNum(slice.x), 5000]}
-                                                stroke="#e5e7eb" strokeWidth={2} dash={[10, 10]}
+                                            <Rect
+                                                x={safeNum(slice.x)} y={safeNum(slice.y)}
+                                                width={safeNum(slice.width)} height={safeNum(slice.height)}
+                                                fill={slice.color} opacity={0.05} // Very light background
+                                                stroke={slice.color} strokeWidth={2} dash={[5, 5]}
+                                                cornerRadius={10}
                                             />
                                         </Group>
                                     ))}
@@ -838,7 +854,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                             />
                         ))}
                     </Group>
-                    {tempLink && <Line points={[safeNum(tempLink.startPos.x), safeNum(tempLink.startPos.y), safeNum(tempLink.currentPos.x), safeNum(tempLink.currentPos.y)]} stroke="#a855f7" strokeWidth={2} dash={[5, 5]} />}
+                    {tempLink && <Line points={[safeNum(tempLink.startPos.x), safeNum(tempLink.startPos.y), safeNum(tempLink.currentPos.x), safeNum(tempLink.currentPos.y)]} stroke="#a855f7" strokeWidth={2} dash={[5, 5]} listening={false} />}
                     {marqueeRect && <Rect x={marqueeRect.x} y={marqueeRect.y} width={marqueeRect.width} height={marqueeRect.height} fill="rgba(79, 70, 229, 0.1)" stroke="#4f46e5" strokeWidth={1} />}
                 </Layer>
                 <Layer name="top-layer" />

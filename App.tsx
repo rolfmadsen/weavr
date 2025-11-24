@@ -237,17 +237,28 @@ const App: React.FC = () => {
     if (!showSlices || nodes.length === 0) {
       return { slices: [], swimlanePositions: new Map() };
     }
-    const { slices } = sliceService.calculateSlices(nodes, links);
+    const { slices: rawSlices } = sliceService.calculateSlices(nodes, links);
 
     // Calculate auto-layout for slice view
-    let swimlanePositions;
+    let layoutResult;
     if (experimentalLayoutEnabled) {
-      swimlanePositions = layoutService.calculateZonedSliceLayout(slices, nodes, links, window.innerWidth);
+      layoutResult = layoutService.calculateZonedSliceLayout(rawSlices, nodes, links, window.innerWidth);
     } else {
-      swimlanePositions = layoutService.calculateSwimlaneLayout(slices, nodes, links, window.innerWidth);
+      layoutResult = layoutService.calculateSwimlaneLayout(rawSlices, nodes, links, window.innerWidth);
     }
 
-    return { slices, swimlanePositions };
+    const { nodePositions, sliceBounds } = layoutResult;
+
+    // Merge bounds into slices
+    const slicesWithBounds = rawSlices.map(slice => {
+      const bounds = sliceBounds.get(slice.id);
+      if (bounds) {
+        return { ...slice, ...bounds };
+      }
+      return slice;
+    });
+
+    return { slices: slicesWithBounds, swimlanePositions: nodePositions };
   }, [showSlices, nodes, links, experimentalLayoutEnabled]);
 
   // --- Auto Layout Handler (ELK) ---
@@ -334,6 +345,7 @@ const App: React.FC = () => {
 
   const handleToggleSlices = useCallback(() => {
     setShowSlices(prev => !prev);
+    setAutoLayoutEdges(new Map()); // Clear explicit routes on toggle
   }, []);
 
   const handleLinkClick = useCallback((link: Link) => {
