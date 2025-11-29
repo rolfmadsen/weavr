@@ -29,7 +29,6 @@ const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> 
   [ElementType.Automation]: { name: 'Automation', icon: <AutomationIcon /> },
 };
 
-
 const IntroductionContent = () => (
   <div className="space-y-6">
     <p className="text-base">

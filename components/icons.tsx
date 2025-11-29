@@ -23,3 +23,4 @@ export const PlusIcon: React.FC<{ className?: string }> = ({ className }) => <Ma
 export const CheckIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="check" className={className} />;
 export const EditIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="edit" className={className} />;
 export const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="expand_more" className={className} />;
+export const MenuIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="menu" className={className} />;

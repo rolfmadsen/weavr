@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Node as GraphNode, Link, Slice } from '../types';
+import { Node as GraphNode, Link, Slice, ElementType } from '../types';
 import { DeleteIcon, PlusIcon, ChevronDownIcon } from './icons';
 
 type SelectedItem = { type: 'node', data: GraphNode } | { type: 'link', data: Link } | { type: 'multi-node', data: GraphNode[] };
@@ -207,8 +207,51 @@ const NodeEditor: React.FC<{
           Delete Node
         </button>
       </div>
+
+      {ELEMENT_DETAILS[node.type as ElementType] && (
+        <div className="pt-4 border-t border-gray-200 space-y-3">
+          <h4 className="text-sm font-bold text-gray-900">Documentation</h4>
+
+          <div>
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Purpose</span>
+            <p className="text-sm text-gray-600 mt-1">{ELEMENT_DETAILS[node.type as ElementType].purpose}</p>
+          </div>
+
+          <div>
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Uses</span>
+            <p className="text-sm text-gray-600 mt-1">{ELEMENT_DETAILS[node.type as ElementType].uses}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
+};
+
+const ELEMENT_DETAILS: Record<ElementType, { purpose: string; uses: string }> = {
+  [ElementType.Screen]: {
+    purpose: 'Visualizes how users interact with the system or view information.',
+    uses: 'Shows where commands originate (e.g., button clicks) and where read models are displayed. Helps clarify data requirements and user flow.'
+  },
+  [ElementType.Command]: {
+    purpose: 'Represents an intention or instruction for the system to perform an action.',
+    uses: 'Triggered by user interaction (via a Screen) or an Automation. A successful command results in one or more Events.'
+  },
+  [ElementType.EventInternal]: {
+    purpose: 'Represents a significant fact that has occurred in the system and resulted in persisted data. Written in the past tense.',
+    uses: "Forms the system's history and source of truth. Events are used to build Read Models and can trigger Automations."
+  },
+  [ElementType.ReadModel]: {
+    purpose: "Represents a specific query or view of the system's state, derived from past Events.",
+    uses: 'Provides the data needed to populate a User Interface or feed information into an Automation. Defines how data is presented or accessed.'
+  },
+  [ElementType.EventExternal]: {
+    purpose: 'Represents data entering the system from an external source (e.g., another service, API, message queue).',
+    uses: 'Can trigger a Translation (which is a type of Automation) or feeds directly into Read Models.'
+  },
+  [ElementType.Automation]: {
+    purpose: 'Represents an automated background process or job (not a direct user action).',
+    uses: 'Is triggered by an Event (Internal or External). It queries a Read Model (optional) for data and issues a Command to complete its task. This element represents the "process" in the Automation and Translation patterns.'
+  },
 };
 
 const LinkEditor: React.FC<{

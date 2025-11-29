@@ -10,6 +10,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import HelpModal from './components/HelpModal';
 import WelcomeModal from './components/WelcomeModal';
+import ModelListModal from './components/ModelListModal';
 
 import { Node, Link, ElementType, ModelData } from './types';
 import validationService from './services/validationService';
@@ -18,6 +19,7 @@ import { useGunState } from './hooks/useGunState';
 import { useSelection } from './hooks/useSelection';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useHistory } from './hooks/useHistory';
+import { useModelList } from './hooks/useModelList';
 
 function getModelIdFromUrl(): string {
   const hash = window.location.hash.slice(1);
@@ -34,6 +36,7 @@ const App: React.FC = () => {
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
+  const [isModelListOpen, setIsModelListOpen] = useState(false);
 
   // --- Sidebar Management ---
   const [sidebarView, setSidebarView] = useState<'properties' | 'slices' | 'dictionary' | null>(null);
@@ -69,6 +72,25 @@ const App: React.FC = () => {
     updateDefinition,
     deleteDefinition
   } = useGunState(modelId);
+
+  const { models, updateModel, addModel } = useModelList();
+
+  const currentModelName = useMemo(() => {
+    return models.find(m => m.id === modelId)?.name || 'Untitled Model';
+  }, [models, modelId]);
+
+  // Register model in local index if not present
+  useEffect(() => {
+    if (modelId) {
+      addModel(modelId, 'Untitled Model');
+    }
+  }, [modelId, addModel]);
+
+  const handleRenameModel = useCallback((newName: string) => {
+    if (modelId) {
+      updateModel(modelId, { name: newName });
+    }
+  }, [modelId, updateModel]);
 
   const definitionsArray = useMemo(() => {
     return definitions;
@@ -536,6 +558,9 @@ const App: React.FC = () => {
         onUndo={undo}
         onRedo={redo}
         onAutoLayout={handleAutoLayout}
+        onOpenModelList={() => setIsModelListOpen(true)}
+        currentModelName={currentModelName}
+        onRenameModel={handleRenameModel}
       />
 
 
@@ -612,6 +637,7 @@ const App: React.FC = () => {
 
       <WelcomeModal isOpen={isWelcomeModalOpen} onClose={handleCloseWelcomeModal} />
       <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
+      <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
 
       <Footer />
     </div >
