@@ -4,25 +4,15 @@ const Footer: React.FC = () => {
   return (
     <footer className="absolute bottom-0 left-0 right-0 p-2 text-center text-[10px] sm:text-xs text-gray-500 bg-gray-50/80 backdrop-blur-sm z-10 pointer-events-auto">
       <span>
-        Released under the{' '}
-        <a 
-          href="https://github.com/rolfmadsen/weavr/blob/main/LICENSE" 
-          target="_blank" 
+        Weavr &copy; Rolf Madsen 2025{' '}
+        <a
+          href="https://www.linkedin.com/in/rolfmadsen/"
+          target="_blank"
           rel="noopener noreferrer"
           className="text-indigo-600 hover:underline"
         >
-          GNU AGPLv3 License
+          LinkedIn
         </a>
-        . View on{' '}
-        <a 
-          href="https://github.com/rolfmadsen/weavr" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-indigo-600 hover:underline"
-        >
-          GitHub
-        </a>
-        .
       </span>
     </footer>
   );

@@ -19,3 +19,7 @@ export const ImportIcon: React.FC<{ className?: string }> = ({ className }) => <
 export const ViewColumnIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="view_column" className={className} />;
 export const HelpIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="help_outline" className={className} />;
 export const MagicWandIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="auto_fix_high" className={className} />;
+export const PlusIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="add" className={className} />;
+export const CheckIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="check" className={className} />;
+export const EditIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="edit" className={className} />;
+export const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="expand_more" className={className} />;

@@ -2,15 +2,17 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import GraphCanvasKonva from './components/GraphCanvasKonva';
 import Toolbar from './components/Toolbar';
+import Sidebar from './components/Sidebar';
+import SliceList from './components/SliceList';
+import DataDictionaryList from './components/DataDictionaryList';
 import PropertiesPanel from './components/PropertiesPanel';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HelpModal from './components/HelpModal';
 import WelcomeModal from './components/WelcomeModal';
+
 import { Node, Link, ElementType, ModelData } from './types';
 import validationService from './services/validationService';
-import sliceService from './services/sliceService';
-import layoutService from './services/layoutService';
 import gunService from './services/gunService';
 import { useGunState } from './hooks/useGunState';
 import { useSelection } from './hooks/useSelection';
@@ -27,26 +29,30 @@ function getModelIdFromUrl(): string {
 
 const App: React.FC = () => {
   const [modelId, setModelId] = useState<string | null>(null);
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
+
   const [focusOnRender, setFocusOnRender] = useState(false);
-  const [showSlices, setShowSlices] = useState(false);
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
-  const [experimentalLayoutEnabled, setExperimentalLayoutEnabled] = useState(false); // Added state
+
+  // --- Sidebar Management ---
+  const [sidebarView, setSidebarView] = useState<'properties' | 'slices' | 'dictionary' | null>(null);
 
   // Track view state (pan/zoom) for smart node placement
   const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1 });
   const graphRef = React.useRef<any>(null);
   const [isLayoutLoading, setIsLayoutLoading] = useState(false);
 
-  // NEW: Store explicit edge paths from ELK
+  // Store explicit edge paths from ELK
   const [autoLayoutEdges, setAutoLayoutEdges] = useState<Map<string, number[]>>(new Map());
 
   // 1. Gun State Management
+
   const {
     nodes,
     links,
+    slices, // Restored slices
+    addSlice, // Needed for PropertiesPanel
     isReady,
     manualPositionsRef,
     addNode: gunAddNode,
@@ -55,18 +61,44 @@ const App: React.FC = () => {
     addLink: gunAddLink,
     updateLink: gunUpdateLink,
     deleteLink: gunDeleteLink,
-    updateNodePosition: gunUpdateNodePosition
+    updateNodePosition: gunUpdateNodePosition,
+    updateSlice,
+    deleteSlice,
+    definitions,
+    addDefinition,
+    updateDefinition,
+    deleteDefinition
   } = useGunState(modelId);
+
+  const definitionsArray = useMemo(() => {
+    return definitions;
+  }, [definitions]);
+
+  const handleAddDefinition = (def: any) => {
+    return addDefinition(def);
+  };
+
+  const handleUpdateDefinition = (id: string, updates: any) => {
+    updateDefinition(id, updates);
+  };
+
+  const handleDeleteDefinition = (id: string) => {
+    deleteDefinition(id);
+  };
+
 
   // 2. Selection Management
   const {
-    selectedNodeIds,
+    selectedNodeIds, // This is a Set<string> in useSelection, but we need to handle it carefully
     selectedLinkId,
     selectNode,
     selectLink,
     clearSelection,
     setSelection
   } = useSelection();
+
+  // Convert Set to Array for easier usage in App.tsx
+  const selectedNodeIdsArray = useMemo(() => Array.from(selectedNodeIds), [selectedNodeIds]);
 
   // 3. History (Undo/Redo)
   const { undo, redo, addToHistory, canUndo, canRedo } = useHistory({
@@ -105,7 +137,8 @@ const App: React.FC = () => {
     if (document.activeElement) {
       (document.activeElement as HTMLElement).blur();
     }
-    setIsPanelOpen(false);
+
+    setSidebarView(null);
   }, []);
 
   // Smart Add: Places node in the center of the current view
@@ -115,9 +148,8 @@ const App: React.FC = () => {
     const centerY = (window.innerHeight / 2 - viewState.y) / viewState.scale;
 
     // Adjust for Top-Left anchor (subtract half width/height)
-    // We use MIN_NODE_HEIGHT as a default since we don't know the exact text height yet
-    let manualX = centerX - 80; // NODE_WIDTH / 2
-    let manualY = centerY - 30; // MIN_NODE_HEIGHT / 2
+    let manualX = centerX - 80;
+    let manualY = centerY - 30;
 
     // Snap to grid (20px)
     const GRID = 20;
@@ -128,7 +160,8 @@ const App: React.FC = () => {
     if (id) {
       addToHistory({ type: 'ADD_NODE', payload: { id, type, x: manualX, y: manualY }, undoPayload: { id } });
       selectNode(id);
-      setIsPanelOpen(true);
+      selectNode(id);
+      setSidebarView('properties');
       setFocusOnRender(true);
       setIsToolbarOpen(false);
     }
@@ -148,10 +181,10 @@ const App: React.FC = () => {
     });
 
     if (selectedNodeIds.includes(nodeId)) {
-      setSelection(selectedNodeIds.filter(id => id !== nodeId));
+      setSelection(selectedNodeIdsArray.filter(id => id !== nodeId));
     }
     handleClosePanel();
-  }, [nodes, links, gunDeleteNode, addToHistory, selectedNodeIds, setSelection, handleClosePanel]);
+  }, [nodes, links, gunDeleteNode, addToHistory, selectedNodeIds, selectedNodeIdsArray, setSelection, handleClosePanel]);
 
   const handleDeleteLink = useCallback((linkId: string) => {
     const link = links.find(l => l.id === linkId);
@@ -181,8 +214,6 @@ const App: React.FC = () => {
   }, [selectedNodeIds, selectedLinkId, handleDeleteNode, handleDeleteLink, handleClosePanel]);
 
   const handleNodesDrag = useCallback((updates: { nodeId: string; pos: { x: number; y: number } }[]) => {
-    if (showSlices) return;
-
     // If user manually drags, we clear the rigid ELK edge paths so lines behave naturally again
     if (autoLayoutEdges.size > 0) {
       setAutoLayoutEdges(new Map());
@@ -202,7 +233,8 @@ const App: React.FC = () => {
         });
       }
     });
-  }, [showSlices, nodes, gunUpdateNodePosition, addToHistory, autoLayoutEdges]);
+  }, [nodes, gunUpdateNodePosition, addToHistory, autoLayoutEdges]);
+
 
   const handleNodeClick = useCallback((node: Node, event: any) => {
     const isMulti = event?.evt?.shiftKey || event?.shiftKey;
@@ -214,57 +246,19 @@ const App: React.FC = () => {
       return;
     }
     selectNode(node.id);
-    setIsPanelOpen(false);
+
     setIsToolbarOpen(false);
   }, [selectedNodeIds, selectNode]);
 
   const handleFocusNode = useCallback(() => {
     if (selectedNodeIds.length === 1 && graphRef.current) {
-      graphRef.current.panToNode(selectedNodeIds[0]);
+      graphRef.current.panToNode(selectedNodeIdsArray[0]);
     }
-  }, [selectedNodeIds]);
-
-  const handleOpenPropertiesPanel = useCallback(() => {
-    if (selectedNodeIds.length === 1 || selectedLinkId) {
-      setIsPanelOpen(true);
-      setFocusOnRender(true);
-      setIsToolbarOpen(false);
-    }
-  }, [selectedNodeIds, selectedLinkId]);
-
-  // --- Calculated Slices & Swimlanes ---
-  const { slices, swimlanePositions } = useMemo(() => {
-    if (!showSlices || nodes.length === 0) {
-      return { slices: [], swimlanePositions: new Map() };
-    }
-    const { slices: rawSlices } = sliceService.calculateSlices(nodes, links);
-
-    // Calculate auto-layout for slice view
-    let layoutResult;
-    if (experimentalLayoutEnabled) {
-      layoutResult = layoutService.calculateZonedSliceLayout(rawSlices, nodes, links, window.innerWidth);
-    } else {
-      layoutResult = layoutService.calculateSwimlaneLayout(rawSlices, nodes, links, window.innerWidth);
-    }
-
-    const { nodePositions, sliceBounds } = layoutResult;
-
-    // Merge bounds into slices
-    const slicesWithBounds = rawSlices.map(slice => {
-      const bounds = sliceBounds.get(slice.id);
-      if (bounds) {
-        return { ...slice, ...bounds };
-      }
-      return slice;
-    });
-
-    return { slices: slicesWithBounds, swimlanePositions: nodePositions };
-  }, [showSlices, nodes, links, experimentalLayoutEnabled]);
+  }, [selectedNodeIds, selectedNodeIdsArray]);
 
   // --- Auto Layout Handler (ELK) ---
   const handleAutoLayout = useCallback(async () => {
     if (nodes.length === 0) return;
-    if (showSlices) return; // Disable Auto Layout when Slices are active
     setIsLayoutLoading(true);
 
     try {
@@ -278,9 +272,10 @@ const App: React.FC = () => {
       const { calculateElkLayout } = await import('./services/elkLayoutService');
 
       // 2. Get new positions (returns Map directly now)
-      const newPositionsMap = await calculateElkLayout(nodes, links, slices);
+      const newPositionsMap = await calculateElkLayout(nodes, links);
 
       console.log(`Auto-layout calculated for ${newPositionsMap.size} nodes.`);
+
 
       // 3. Prepare the NEW positions array for history
       const newPositions: { id: string, x: number, y: number }[] = [];
@@ -309,22 +304,29 @@ const App: React.FC = () => {
     } finally {
       setIsLayoutLoading(false);
     }
-  }, [nodes, links, slices, gunUpdateNodePosition, addToHistory, showSlices]);
+  }, [nodes, links, gunUpdateNodePosition, addToHistory]);
+
+
 
   // --- Keyboard Shortcuts ---
   useKeyboardShortcuts({
     nodes,
     selectedNodeIds,
     selectedLinkId,
-    isPanelOpen,
+    isPanelOpen: !!sidebarView,
     isToolbarOpen,
     isReady,
-    showSlices,
-    swimlanePositions,
+    showSlices: false, // Force false
+    swimlanePositions: new Map(), // Empty
     onDeleteSelection: handleDeleteSelection,
     onClosePanel: handleClosePanel,
     onToggleToolbar: () => setIsToolbarOpen(prev => !prev),
-    onOpenPropertiesPanel: handleOpenPropertiesPanel,
+    onOpenPropertiesPanel: () => {
+      setSidebarView('properties');
+      setFocusOnRender(true);
+    },
+    onOpenSlices: () => setSidebarView('slices'),
+    onOpenDictionary: () => setSidebarView('dictionary'),
     onSelectNode: handleNodeClick,
     onAddNode: handleAddNode,
     onMoveNodes: (updates) => {
@@ -343,30 +345,32 @@ const App: React.FC = () => {
     onFocusNode: handleFocusNode
   });
 
-  const handleToggleSlices = useCallback(() => {
-    setShowSlices(prev => !prev);
-    setAutoLayoutEdges(new Map()); // Clear explicit routes on toggle
-  }, []);
 
   const handleLinkClick = useCallback((link: Link) => {
     selectLink(link.id);
-    setIsPanelOpen(false);
+
     setIsToolbarOpen(false);
   }, [selectLink]);
 
   const handleNodeDoubleClick = useCallback((node: Node) => {
     selectNode(node.id);
-    handleOpenPropertiesPanel();
-  }, [selectNode, handleOpenPropertiesPanel]);
+    setSidebarView('properties');
+    setFocusOnRender(true);
+  }, [selectNode]);
 
   const handleLinkDoubleClick = useCallback((link: Link) => {
     selectLink(link.id);
-    handleOpenPropertiesPanel();
-  }, [selectLink, handleOpenPropertiesPanel]);
+    setSidebarView('properties');
+  }, [selectLink]);
 
   const handleMarqueeSelect = useCallback((nodeIds: string[]) => {
     setSelection(nodeIds);
-    setIsPanelOpen(false);
+    if (nodeIds.length > 0) {
+      setSidebarView('properties');
+
+    } else {
+
+    }
   }, [setSelection]);
 
   const handleValidateConnection = useCallback((s: Node, t: Node) => {
@@ -391,8 +395,7 @@ const App: React.FC = () => {
         undoPayload: { id }
       });
       selectLink(id);
-      setIsPanelOpen(true);
-      setFocusOnRender(true);
+      setSidebarView('properties');
     }
   }, [nodes, links, modelId, gunAddLink, addToHistory, selectLink]);
 
@@ -458,6 +461,7 @@ const App: React.FC = () => {
             manualPositionsRef.current.set(id, { x: node.fx, y: node.fy });
           }
         });
+
         (data.links || []).forEach(link => {
           const { id, ...linkData } = link;
           model.get('links').get(id).put(linkData as any);
@@ -490,47 +494,57 @@ const App: React.FC = () => {
 
   const selectedItemData = useMemo(() => {
     if (selectedNodeIds.length === 1 && !selectedLinkId) {
-      const node = nodes.find(n => n.id === selectedNodeIds[0]);
+      const node = nodes.find(n => n.id === selectedNodeIdsArray[0]);
       return node ? { type: 'node' as const, data: node } : null;
+    }
+    if (selectedNodeIds.length > 1 && !selectedLinkId) {
+      const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
+      return { type: 'multi-node' as const, data: selectedNodes };
     }
     if (selectedLinkId && selectedNodeIds.length === 0) {
       const link = links.find(l => l.id === selectedLinkId);
       return link ? { type: 'link' as const, data: link } : null;
     }
     return null;
-  }, [selectedNodeIds, selectedLinkId, nodes, links]);
+  }, [selectedNodeIds, selectedNodeIdsArray, selectedLinkId, nodes, links]);
 
   const selectedIds = useMemo(() => {
-    return selectedLinkId ? [...selectedNodeIds, selectedLinkId] : selectedNodeIds;
-  }, [selectedNodeIds, selectedLinkId]);
+    return selectedLinkId ? [...selectedNodeIdsArray, selectedLinkId] : selectedNodeIdsArray;
+  }, [selectedNodeIdsArray, selectedLinkId]);
 
+  const handleAddSlice = useCallback((title: string) => {
+    addSlice(title, slices.length);
+  }, [addSlice, slices.length]);
+
+
+
+  const handleCloseSidebar = () => {
+    setSidebarView(null);
+    setSelection([]);
+    selectLink(''); // Assuming selectLink expects a string, passing empty string to clear
+  };
+
+  // --- Render ---
   return (
     <div className="w-screen h-[100dvh] overflow-hidden relative font-sans">
       <Header
         onImport={handleImport}
         onExport={handleExport}
-        onToggleSlices={handleToggleSlices}
-        slicesVisible={showSlices}
         onOpenHelp={() => setIsHelpModalOpen(true)}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
         onAutoLayout={handleAutoLayout}
-        isAutoLayoutDisabled={showSlices}
-        onToggleExperimentalLayout={() => setExperimentalLayoutEnabled(!experimentalLayoutEnabled)}
-        experimentalLayoutEnabled={experimentalLayoutEnabled}
       />
+
+
       <div className={isLayoutLoading ? 'cursor-wait' : ''}></div>
       <GraphCanvasKonva
         nodes={nodes}
         links={links}
         selectedIds={selectedIds}
-        slices={slices}
-        swimlanePositions={swimlanePositions}
-        showSlices={showSlices}
-        experimentalLayoutEnabled={experimentalLayoutEnabled} // <-- Passed here
-        edgeRoutes={autoLayoutEdges} // <-- Passed here
+        edgeRoutes={autoLayoutEdges}
         onNodeClick={handleNodeClick}
         onLinkClick={handleLinkClick}
         onNodeDoubleClick={handleNodeDoubleClick}
@@ -551,26 +565,56 @@ const App: React.FC = () => {
         onToggleMenu={() => setIsToolbarOpen(prev => !prev)}
       />
 
-      {isPanelOpen && selectedItemData && <div onClick={handleClosePanel} className="fixed inset-0 bg-black/30 z-20 md:hidden" />}
-
-      <div className={`fixed bottom-0 left-0 right-0 h-[85vh] md:top-0 md:bottom-auto md:left-auto md:h-full md:w-96 transition-transform duration-300 ease-in-out z-30 ${!(isPanelOpen && selectedItemData) && 'pointer-events-none'} ${(isPanelOpen && selectedItemData) ? 'translate-y-0 translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`}>
-        {selectedItemData && (
+      <Sidebar
+        isOpen={!!sidebarView}
+        onClose={handleCloseSidebar}
+        title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
+        activeTab={sidebarView || 'properties'}
+        onTabChange={(tab) => setSidebarView(tab as any)}
+        tabs={[
+          { id: 'properties', label: 'Properties' },
+          { id: 'slices', label: 'Slices' },
+          { id: 'dictionary', label: 'Dictionary' }
+        ]}
+      >
+        {sidebarView === 'properties' && (
           <PropertiesPanel
             selectedItem={selectedItemData}
             onUpdateNode={handleUpdateNode}
             onUpdateLink={handleUpdateLink}
             onDeleteLink={handleDeleteLink}
             onDeleteNode={handleDeleteNode}
-            onClose={handleClosePanel}
+            slices={slices}
+            onAddSlice={handleAddSlice}
             focusOnRender={focusOnRender}
             onFocusHandled={handleFocusHandled}
+            definitions={definitionsArray}
+            onAddDefinition={handleAddDefinition}
           />
         )}
-      </div>
+        {sidebarView === 'slices' && (
+          <SliceList
+            slices={slices}
+            onAddSlice={addSlice}
+            onUpdateSlice={updateSlice}
+            onDeleteSlice={deleteSlice}
+          />
+        )}
+        {sidebarView === 'dictionary' && (
+          <DataDictionaryList
+            definitions={definitionsArray}
+            onAddDefinition={handleAddDefinition}
+            onUpdateDefinition={handleUpdateDefinition}
+            onDeleteDefinition={handleDeleteDefinition}
+          />
+        )}
+      </Sidebar>
+
       <WelcomeModal isOpen={isWelcomeModalOpen} onClose={handleCloseWelcomeModal} />
       <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
+
       <Footer />
-    </div>
+    </div >
   );
 };
 

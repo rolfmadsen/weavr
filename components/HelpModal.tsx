@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { ElementType } from '../types';
 import { ELEMENT_STYLE } from '../constants';
-import { 
+import {
   CloseIcon,
-  ScreenIcon, 
-  CommandIcon, 
-  EventInternalIcon, 
-  ReadModelIcon, 
-  EventExternalIcon, 
-  AutomationIcon 
+  ScreenIcon,
+  CommandIcon,
+  EventInternalIcon,
+  ReadModelIcon,
+  EventExternalIcon,
+  AutomationIcon
 } from './icons';
 
 interface HelpModalProps {
@@ -52,20 +52,27 @@ const IntroductionContent = () => (
         ))}
       </div>
     </div>
-    
+
     <div>
-      <h3 className="text-lg font-bold text-gray-800 mb-2">Getting Started (The Workflow)</h3>
-      <ol className="list-decimal list-inside space-y-3 text-gray-600">
-          <li>
-              <strong>Model the Core User Flow:</strong> Start with the user's perspective. An action begins on a <span className="font-semibold text-gray-800">User Interface</span>, which triggers a <span className="font-semibold" style={{color: ELEMENT_STYLE.COMMAND.color}}>Command</span> (the intent). A successful command creates an <span className="font-semibold" style={{color: ELEMENT_STYLE.EVENT_INTERNAL.color}}>Internal Event</span> (the fact). This event then updates a <span className="font-semibold" style={{color: ELEMENT_STYLE.READ_MODEL.color}}>Read Model</span>, providing feedback to the user on a <span className="font-semibold text-gray-800">User Interface</span>.
-          </li>
-          <li>
-              <strong>Add System Reactions:</strong> Does an Event trigger an automatic process? Use an <span className="font-semibold" style={{color: ELEMENT_STYLE.AUTOMATION.color}}>Automation</span> element. It listens for an event and issues a new command.
-          </li>
-          <li>
-              <strong>Integrate External Systems:</strong> When data enters your system from an outside source, use an <span className="font-semibold" style={{color: ELEMENT_STYLE.EVENT_EXTERNAL.textColor}}>External Event</span>. It can either update a Read Model directly or trigger an Automation to translate it into an internal command.
-          </li>
-      </ol>
+      <h3 className="text-lg font-bold text-gray-800 mb-2">Event Model Patterns</h3>
+      <ul className="list-disc list-inside space-y-3 text-gray-600">
+        <li>
+          <strong>State Change:</strong> The most common pattern. A user interacts with a <span className="font-semibold text-gray-800">User Interface</span> to issue a <span className="font-semibold" style={{ color: ELEMENT_STYLE.COMMAND.color }}>Command</span>. If successful, an <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event</span> is stored, which updates a <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>Read Model</span> to show the new state on a <span className="font-semibold text-gray-800">User Interface</span>.
+          <div className="ml-4 mt-1 text-sm text-gray-500 font-mono">UI → Command → Event → Read Model → UI</div>
+        </li>
+        <li>
+          <strong>Automation:</strong> When a system reacts to an event without user intervention. An <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event</span> triggers an <span className="font-semibold" style={{ color: ELEMENT_STYLE.AUTOMATION.color }}>Automation</span>, which issues a new <span className="font-semibold" style={{ color: ELEMENT_STYLE.COMMAND.color }}>Command</span>.
+          <div className="ml-4 mt-1 text-sm text-gray-500 font-mono">Event → Automation → Command</div>
+        </li>
+        <li>
+          <strong>Translation:</strong> Adapting external systems. An <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_EXTERNAL.textColor }}>External Event</span> triggers an <span className="font-semibold" style={{ color: ELEMENT_STYLE.AUTOMATION.color }}>Automation</span> to issue an internal <span className="font-semibold" style={{ color: ELEMENT_STYLE.COMMAND.color }}>Command</span>.
+          <div className="ml-4 mt-1 text-sm text-gray-500 font-mono">External Event → Automation → Command</div>
+        </li>
+        <li>
+          <strong>Integration:</strong> Direct data ingestion. An <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_EXTERNAL.textColor }}>External Event</span> directly updates a <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>Read Model</span>.
+          <div className="ml-4 mt-1 text-sm text-gray-500 font-mono">External Event → Read Model</div>
+        </li>
+      </ul>
     </div>
   </div>
 );
@@ -80,7 +87,7 @@ const ControlsContent = () => (
         <li><strong>Deselect All:</strong> Click once on the empty canvas background.</li>
       </ul>
     </div>
-    
+
     <div>
       <h3 className="text-lg font-bold text-gray-800 mb-2">Working with Elements</h3>
       <ul className="list-disc list-inside space-y-1">
@@ -88,7 +95,7 @@ const ControlsContent = () => (
         <li><strong>Single Select:</strong> Click any element to select it.</li>
         <li><strong>Multi-Select:</strong> Hold <Kbd>Shift</Kbd> and drag a box around elements.</li>
         <li><strong>Move Single Element:</strong> Click and drag a single element.</li>
-        <li><strong>Move Multiple Elements:</strong> Select multiple elements, then use the <Kbd>Arrow Keys</Kbd>.</li>
+        <li><strong>Move Multiple Elements:</strong> Select multiple elements, then drag them with the cursor or use the <Kbd>Arrow Keys</Kbd>.</li>
         <li><strong>Delete:</strong> Select one or more elements and press <Kbd>Delete</Kbd> or <Kbd>Backspace</Kbd>.</li>
         <li><strong>Navigate:</strong> Use <Kbd>Tab</Kbd> and <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> to cycle through elements.</li>
       </ul>
@@ -99,15 +106,25 @@ const ControlsContent = () => (
       <ul className="list-disc list-inside space-y-1">
         <li><strong>Open Panel:</strong> Double-click an element, or select one and press <Kbd>Enter</Kbd>.</li>
         <li><strong>Close Panel:</strong> Press <Kbd>Esc</Kbd> or click the 'X' button.</li>
+        <li><strong>Multi-Edit:</strong> Select multiple elements to assign Slices or Entities to all of them at once.</li>
       </ul>
     </div>
 
-     <div>
+    <div>
+      <h3 className="text-lg font-bold text-gray-800 mb-2">Sidebar Navigation</h3>
+      <ul className="list-disc list-inside space-y-1">
+        <li><strong>Open Properties:</strong> Press <Kbd>Alt</Kbd> + <Kbd>P</Kbd>.</li>
+        <li><strong>Open Slices:</strong> Press <Kbd>Alt</Kbd> + <Kbd>S</Kbd>.</li>
+        <li><strong>Open Dictionary:</strong> Press <Kbd>Alt</Kbd> + <Kbd>D</Kbd>.</li>
+      </ul>
+    </div>
+
+    <div>
       <h3 className="text-lg font-bold text-gray-800 mb-2">Creating Relationships</h3>
       <ul className="list-disc list-inside space-y-1">
-          <li>Hover over an element to see its connection handles.</li>
-          <li>Drag a handle from a source element to a target element to create a link.</li>
-          <li>The canvas provides feedback on valid connections.</li>
+        <li>Hover over an element to see its connection handles.</li>
+        <li>Drag a handle from a source element to a target element to create a link.</li>
+        <li>The canvas provides feedback on valid connections.</li>
       </ul>
     </div>
   </div>
@@ -122,22 +139,21 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   const TabButton: React.FC<{ tabId: 'introduction' | 'controls', children: React.ReactNode }> = ({ tabId, children }) => (
     <button
       onClick={() => setActiveTab(tabId)}
-      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-        activeTab === tabId 
-        ? 'bg-indigo-100 text-indigo-700' 
+      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tabId
+        ? 'bg-indigo-100 text-indigo-700'
         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-      }`}
+        }`}
     >
       {children}
     </button>
   );
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
@@ -147,12 +163,12 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             <CloseIcon />
           </button>
         </div>
-        
+
         <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-                <TabButton tabId="introduction">Introduction</TabButton>
-                <TabButton tabId="controls">Controls & Shortcuts</TabButton>
-            </div>
+          <div className="flex items-center gap-2">
+            <TabButton tabId="introduction">Introduction</TabButton>
+            <TabButton tabId="controls">Controls & Shortcuts</TabButton>
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto text-gray-700">
@@ -161,12 +177,12 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-6 mt-auto border-t border-gray-200 bg-gray-50 rounded-b-2xl text-right">
-            <button
-                onClick={onClose}
-                className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
-            >
-                Got it!
-            </button>
+          <button
+            onClick={onClose}
+            className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+          >
+            Got it!
+          </button>
         </div>
       </div>
     </div>

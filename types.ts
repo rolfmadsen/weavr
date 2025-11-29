@@ -17,14 +17,21 @@ export interface Node {
   fx?: number | null;
   fy?: number | null;
   computedHeight?: number;
+  sliceId?: string;
+  schemaBinding?: string;
+  entityIds?: string[];
 }
+
 
 export interface Link {
   id: string;
   source: string; // node id
   target: string; // node id
   label: string;
+  type?: 'FLOW' | 'DATA_DEPENDENCY';
 }
+
+
 
 export interface SimulationNode extends Node {
   index?: number;
@@ -43,8 +50,10 @@ export interface SimulationLink extends Omit<Link, 'source' | 'target'> {
 export interface ModelData {
   nodes: Node[];
   links: Link[];
+  slices?: Record<string, Slice>; // Added for Strict Mode Storage
   nodeSliceMap?: Record<string, string>;
 }
+
 
 export interface Slice {
   id: string;
@@ -55,4 +64,21 @@ export interface Slice {
   y?: number;
   width?: number;
   height?: number;
+  order?: number; // Added for Strict Mode
+  title?: string; // Added for Strict Mode
+}
+
+export interface StrictSlice {
+  id: string;
+  title: string;
+  order: number;
+  nodeIds?: string[]; // Optional in strict export, but useful
+}
+
+export interface StrictEventModel {
+  slices: StrictSlice[];
+}
+
+export interface StorageEventModel {
+  slices: Record<string, StrictSlice>;
 }

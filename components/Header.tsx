@@ -1,37 +1,32 @@
 import React, { useRef, useState } from 'react';
-import { ExportIcon, ImportIcon, ViewColumnIcon, HelpIcon, MagicWandIcon } from './icons';
+import { ExportIcon, ImportIcon, HelpIcon, MagicWandIcon } from './icons';
+
 
 interface HeaderProps {
   onImport: (file: File) => void;
   onExport: () => void;
-  onToggleSlices: () => void;
-  slicesVisible: boolean;
   onOpenHelp: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onAutoLayout: () => void;
-  isAutoLayoutDisabled?: boolean;
-  onToggleExperimentalLayout: () => void; // Added prop
-  experimentalLayoutEnabled: boolean; // Added prop
 }
+
 
 const Header: React.FC<HeaderProps> = ({
   onImport,
   onExport,
-  onToggleSlices,
-  slicesVisible,
   onOpenHelp,
   canUndo,
   canRedo,
   onUndo,
   onRedo,
   onAutoLayout,
-  isAutoLayoutDisabled = false,
-  onToggleExperimentalLayout,
-  experimentalLayoutEnabled
 }) => {
+
+
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -112,37 +107,12 @@ const Header: React.FC<HeaderProps> = ({
         {/* Auto Layout Button */}
         <button
           onClick={onAutoLayout}
-          disabled={isAutoLayoutDisabled}
-          className={`${isAutoLayoutDisabled ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'} p-2 md:px-4 md:py-2 rounded-full transition-all duration-200 flex items-center gap-2`}
-          title={isAutoLayoutDisabled ? "Auto Layout disabled in Slice view" : "Auto-Layout (ELK)"}
+          className="bg-purple-100 text-purple-700 hover:bg-purple-200 p-2 md:px-4 md:py-2 rounded-full transition-all duration-200 flex items-center gap-2"
+          title="Auto-Layout (ELK)"
         >
           <MagicWandIcon className="text-xl" />
           <span className="hidden md:inline">Auto Layout</span>
         </button>
-
-        <div className="w-px h-6 bg-gray-300 mx-1 md:mx-2"></div>
-
-        <div className="flex items-center bg-gray-100 rounded-full p-1">
-          <button
-            onClick={onToggleSlices}
-            className={`${slicesVisible ? 'bg-indigo-200 text-indigo-800 shadow-sm' : 'text-gray-600 hover:bg-gray-200'} p-2 md:px-4 md:py-2 rounded-full transition-all duration-200 flex items-center gap-2`}
-            title={slicesVisible ? 'Hide Slices' : 'Show Slices'}
-          >
-            <ViewColumnIcon className="text-xl" />
-            <span className="hidden md:inline">Slices</span>
-          </button>
-
-          {slicesVisible && (
-            <button
-              onClick={onToggleExperimentalLayout}
-              className={`${experimentalLayoutEnabled ? 'bg-green-200 text-green-800 shadow-sm' : 'text-gray-600 hover:bg-gray-200'} p-2 md:px-3 md:py-2 rounded-full transition-all duration-200 flex items-center gap-2 ml-1`}
-              title="Toggle Experimental Zoned Layout"
-            >
-              {/* Beaker Icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 3h15" /><path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3" /><path d="M6 14h12" /></svg>
-            </button>
-          )}
-        </div>
 
         <div className="w-px h-6 bg-gray-300 mx-1 md:mx-2"></div>
 

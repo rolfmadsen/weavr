@@ -15,6 +15,8 @@ interface UseKeyboardShortcutsProps {
     onClosePanel: () => void;
     onToggleToolbar: () => void;
     onOpenPropertiesPanel: () => void;
+    onOpenSlices?: () => void;
+    onOpenDictionary?: () => void;
     onSelectNode: (node: Node, event?: any) => void;
     onAddNode: (type: ElementType) => void;
     onMoveNodes: (updates: Map<string, { fx: number, fy: number }>) => void;
@@ -34,6 +36,8 @@ export function useKeyboardShortcuts({
     onClosePanel,
     onToggleToolbar,
     onOpenPropertiesPanel,
+    onOpenSlices,
+    onOpenDictionary,
     onSelectNode,
     onAddNode,
     onMoveNodes,
@@ -55,7 +59,8 @@ export function useKeyboardShortcuts({
                 return;
             }
 
-            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+            // Allow Alt+Key shortcuts to work even in inputs
+            if ((event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) && !event.altKey) {
                 return;
             }
 
@@ -70,7 +75,7 @@ export function useKeyboardShortcuts({
                     break;
 
                 case 'Tab':
-                    if (nodes.length > 0) {
+                    if (nodes.length > 0 && !isPanelOpen) {
                         const getNodePosition = (node: Node) => {
                             if (showSlices) {
                                 return swimlanePositions.get(node.id) || { x: node.x ?? 0, y: node.y ?? 0 };
@@ -148,6 +153,27 @@ export function useKeyboardShortcuts({
                         }
                     }
                     break;
+
+                case 's': case 'S':
+                    if (event.altKey) {
+                        onOpenSlices?.();
+                        shouldPreventDefault = true;
+                    }
+                    break;
+
+                case 'd': case 'D':
+                    if (event.altKey) {
+                        onOpenDictionary?.();
+                        shouldPreventDefault = true;
+                    }
+                    break;
+
+                case 'p': case 'P':
+                    if (event.altKey) {
+                        onOpenPropertiesPanel();
+                        shouldPreventDefault = true;
+                    }
+                    break;
             }
 
             if (isToolbarOpen) {
@@ -167,6 +193,6 @@ export function useKeyboardShortcuts({
     }, [
         nodes, selectedNodeIds, selectedLinkId, isPanelOpen, isToolbarOpen, isReady,
         showSlices, swimlanePositions, onDeleteSelection, onClosePanel, onToggleToolbar,
-        onOpenPropertiesPanel, onSelectNode, onAddNode, onMoveNodes, onFocusNode
+        onOpenPropertiesPanel, onOpenSlices, onOpenDictionary, onSelectNode, onAddNode, onMoveNodes, onFocusNode
     ]);
 }

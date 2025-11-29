@@ -12,3 +12,18 @@ export const ELEMENT_STYLE: Record<ElementType, { color: string; textColor: stri
 export const NODE_WIDTH = 160;
 export const MIN_NODE_HEIGHT = 60;
 export const GRID_SIZE = 20;
+export const NODE_PADDING = 10;
+
+export const FONT_FAMILY = 'Roboto, sans-serif';
+export const FONT_SIZE = 14;
+export const LINE_HEIGHT = 1.2; // Multiplier
+
+export const SLICE_WIDTH = 280;
+export const SLICE_GAP = 60;
+export const SLICE_PADDING = 20;
+
+export const SLICE_TYPE_COLORS: Record<string, string> = {
+  'STATE_CHANGE': '#3b82f6', // Blue
+  'STATE_VIEW': '#22c55e',   // Green
+  'AUTOMATION': '#f97316',   // Orange
+};

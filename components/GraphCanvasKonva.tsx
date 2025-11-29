@@ -2,10 +2,11 @@ import React, { useRef, useState, useEffect, useMemo, useCallback, useImperative
 import { Stage, Layer, Rect, Group, Path, Text, Line, Arrow, Circle } from 'react-konva';
 import { Portal } from 'react-konva-utils';
 import Konva from 'konva';
-import { Node, Link, Slice } from '../types';
-import { ELEMENT_STYLE, MIN_NODE_HEIGHT, NODE_WIDTH, GRID_SIZE } from '../constants';
+import { Node, Link } from '../types';
+import { ELEMENT_STYLE, MIN_NODE_HEIGHT, NODE_WIDTH, GRID_SIZE, FONT_FAMILY, FONT_SIZE, LINE_HEIGHT, NODE_PADDING } from '../constants';
 import Minimap from './Minimap';
 import { calculateNodeHeight } from '../utils/textUtils';
+import { useSpatialIndex } from '../hooks/useSpatialIndex';
 
 // =============================================================================
 // PART 1: UTILITY FUNCTIONS
@@ -29,10 +30,6 @@ interface GraphCanvasKonvaProps {
     nodes: Node[];
     links: Link[];
     selectedIds: string[];
-    slices: Slice[];
-    swimlanePositions: Map<string, { x: number; y: number }>;
-    showSlices: boolean;
-    // 👇 ADDED THIS PROP
     edgeRoutes?: Map<string, number[]>;
     onNodeClick: (node: Node, event?: any) => void;
     onLinkClick: (link: Link) => void;
@@ -44,7 +41,6 @@ interface GraphCanvasKonvaProps {
     onMarqueeSelect: (nodeIds: string[]) => void;
     onValidateConnection?: (source: Node, target: Node) => boolean;
     onViewChange?: (view: { x: number, y: number, scale: number }) => void;
-    experimentalLayoutEnabled?: boolean;
 }
 
 function calculatePoints(sNode: { x: number, y: number, h?: number }, tNode: { x: number, y: number, h?: number }): number[] {
@@ -64,13 +60,15 @@ function calculatePoints(sNode: { x: number, y: number, h?: number }, tNode: { x
     if (Math.abs(dx) > Math.abs(dy)) {
         p1 = { x: sx + Math.sign(dx) * w2, y: sy };
         p4 = { x: tx - Math.sign(dx) * w2, y: ty };
-        const midX = sx + dx / 2;
+        const gridSize = GRID_SIZE || 20;
+        const midX = Math.round((sx + dx / 2) / gridSize) * gridSize;
         p2 = { x: midX, y: p1.y };
         p3 = { x: midX, y: p4.y };
     } else {
         p1 = { x: sx, y: sy + Math.sign(dy) * sourceH2 };
         p4 = { x: tx, y: ty - Math.sign(dy) * targetH2 };
-        const midY = sy + dy / 2;
+        const gridSize = GRID_SIZE || 20;
+        const midY = Math.round((sy + dy / 2) / gridSize) * gridSize;
         p2 = { x: p1.x, y: midY };
         p3 = { x: p4.x, y: midY };
     }
@@ -91,21 +89,57 @@ function calculateOrthogonalPathPoints(source: Node, target: Node): number[] {
 // PART 2: SUB-COMPONENTS
 // =============================================================================
 
+function getPolylineMidpoint(points: number[]): { x: number, y: number } {
+    if (points.length < 4) return { x: points[0] || 0, y: points[1] || 0 };
+
+    let totalLength = 0;
+    const segments: { x1: number, y1: number, x2: number, y2: number, length: number }[] = [];
+
+    for (let i = 0; i < points.length - 2; i += 2) {
+        const x1 = points[i];
+        const y1 = points[i + 1];
+        const x2 = points[i + 2];
+        const y2 = points[i + 3];
+        const len = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        segments.push({ x1, y1, x2, y2, length: len });
+        totalLength += len;
+    }
+
+    const targetDist = totalLength / 2;
+    let currentDist = 0;
+
+    for (const seg of segments) {
+        if (currentDist + seg.length >= targetDist) {
+            const remaining = targetDist - currentDist;
+            // Handle zero-length segments to avoid NaN
+            if (seg.length === 0) return { x: seg.x1, y: seg.y1 };
+
+            const ratio = remaining / seg.length;
+            return {
+                x: seg.x1 + (seg.x2 - seg.x1) * ratio,
+                y: seg.y1 + (seg.y2 - seg.y1) * ratio
+            };
+        }
+        currentDist += seg.length;
+    }
+
+    // Fallback: return the middle point of the array
+    const midIdx = Math.floor(points.length / 2);
+    const idx = midIdx % 2 === 0 ? midIdx : midIdx - 1;
+    return { x: points[idx] || 0, y: points[idx + 1] || 0 };
+}
+
 // Updated LinkGroup to accept customPoints
 const LinkGroup = React.memo(({ link, sourceNode, targetNode, isSelected, onLinkClick, onLinkDoubleClick, customPoints }: any) => {
     // 👇 Use customPoints (from ELK) if they exist, otherwise calculate normally
     const points = customPoints || calculateOrthogonalPathPoints(sourceNode, targetNode);
 
-    // Calculate label position based on the middle segment of the path
-    const midIdx = Math.floor(points.length / 2) - (Math.floor(points.length / 2) % 2);
-    // Ensure we don't go out of bounds
-    const idx = Math.max(0, Math.min(midIdx, points.length - 2));
-
-    const midX = (points[idx] + points[idx + 2] || points[idx]) / 2; // Fallback logic
-    const midY = (points[idx + 1] + points[idx + 3] || points[idx + 1]) / 2;
+    // Calculate label position based on the true midpoint of the path
+    const { x: midX, y: midY } = getPolylineMidpoint(points);
 
     const label = safeStr(link.label);
     const linkId = safeStr(link.id);
+
 
     return (
         <Group
@@ -155,11 +189,11 @@ const LinkGroup = React.memo(({ link, sourceNode, targetNode, isSelected, onLink
     );
 });
 
-const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, onNodeDoubleClick, onDragMove, onDragEnd, onLinkStart, onHoverChange, stagePos, stageScale, isDraggable }: any) => {
+const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, onNodeDoubleClick, onDragMove, onDragEnd, onLinkStart, stagePos, stageScale, isDraggable }: any) => {
     const defaultStyle = { color: 'gray', shape: 'rect', textColor: 'black' };
     const style = ELEMENT_STYLE[node.type as keyof typeof ELEMENT_STYLE] || defaultStyle;
 
-    const height = safeNum(node.computedHeight, MIN_NODE_HEIGHT);
+    const height = node.computedHeight || calculateNodeHeight(node.name);
     const width = NODE_WIDTH;
     const x = safeNum(node.x);
     const y = safeNum(node.y);
@@ -234,13 +268,11 @@ const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, on
                     const stage = e.target.getStage();
                     if (stage) stage.container().style.cursor = 'grab';
                     setShowHandles(true);
-                    onHoverChange(true);
                 }}
                 onMouseLeave={(e) => {
                     const stage = e.target.getStage();
                     if (stage) stage.container().style.cursor = 'default';
                     setShowHandles(false);
-                    onHoverChange(false);
                 }}
                 dragBoundFunc={(pos) => {
                     // SNAP TO WORLD GRID
@@ -276,7 +308,14 @@ const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, on
                 <Text
                     x={contentOffsetX} y={contentOffsetY + 30} width={width}
                     text={safeStr(node.name)}
-                    align="center" fontSize={14} fontStyle="500" fill={style.textColor} wrap="word"
+                    align="center"
+                    fontSize={FONT_SIZE}
+                    fontFamily={FONT_FAMILY}
+                    lineHeight={LINE_HEIGHT}
+                    fontStyle="500"
+                    fill={style.textColor}
+                    wrap="word"
+                    padding={NODE_PADDING}
                     listening={false}
                 />
                 {showHandles && handlePositions.map((pos, i) => (
@@ -307,10 +346,10 @@ const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, on
 // =============================================================================
 
 const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(({
-    nodes, links, selectedIds, slices, swimlanePositions, showSlices,
+    nodes, links, selectedIds,
     onNodeClick, onLinkClick, onNodeDoubleClick, onLinkDoubleClick, onNodesDrag,
     onAddLink, onCanvasClick, onMarqueeSelect, onValidateConnection, onViewChange,
-    edgeRoutes, experimentalLayoutEnabled // Destructure the new prop here
+    edgeRoutes // Destructure the new prop here
 }, ref) => {
     const stageRef = useRef<Konva.Stage>(null);
     const [stageScale, setStageScale] = useState(1);
@@ -319,7 +358,6 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
     const [marqueeRect, setMarqueeRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
     const [validTargetIds, setValidTargetIds] = useState<Set<string>>(new Set());
-    const [isHoveringNode, setIsHoveringNode] = useState(false);
 
     useEffect(() => {
         if (onViewChange) {
@@ -479,24 +517,94 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         img.onload = () => setGridImage(img);
     }, [GRID_SIZE]);
 
+
+
+    // --- Virtualization ---
+    const { search } = useSpatialIndex(nodes);
+    const [visibleNodeIds, setVisibleNodeIds] = useState<Set<string>>(new Set());
+
+    const updateVisibleNodes = useCallback(() => {
+        if (!stageRef.current) return;
+
+        const stage = stageRef.current;
+        const scale = stage.scaleX();
+        const x = -stage.x() / scale;
+        const y = -stage.y() / scale;
+        const width = stage.width() / scale;
+        const height = stage.height() / scale;
+
+        // Add buffer to prevent popping
+        const BUFFER = 500;
+
+        const visibleRect = {
+            minX: x - BUFFER,
+            minY: y - BUFFER,
+            maxX: x + width + BUFFER,
+            maxY: y + height + BUFFER
+        };
+
+        const results = search(visibleRect);
+        const ids = new Set<string>(results.map((item: any) => item.id));
+        setVisibleNodeIds(ids);
+    }, [search]);
+
+    // Update visible nodes when nodes change or layout finishes
+    useEffect(() => {
+        updateVisibleNodes();
+    }, [nodes, updateVisibleNodes]);
+
+    // --- Event Handlers ---
+
     const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
         e.evt.preventDefault();
+        if (!stageRef.current) return;
+
         const stage = stageRef.current;
-        if (!stage) return;
         const oldScale = stage.scaleX();
         const pointer = stage.getPointerPosition();
+
         if (!pointer) return;
-        const scaleBy = 1.1;
-        const newScale = e.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
-        if (newScale < 0.1 || newScale > 5) return;
-        const mousePointTo = { x: (pointer.x - stage.x()) / oldScale, y: (pointer.y - stage.y()) / oldScale };
+
+        const mousePointTo = {
+            x: (pointer.x - stage.x()) / oldScale,
+            y: (pointer.y - stage.y()) / oldScale,
+        };
+
+        const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1; // Zoom Speed
+        if (newScale < 0.1 || newScale > 5) return; // Keep existing scale limits
+
+        stage.scale({ x: newScale, y: newScale });
+
+        const newPos = {
+            x: pointer.x - mousePointTo.x * newScale,
+            y: pointer.y - mousePointTo.y * newScale,
+        };
+
+        stage.position(newPos);
+
+        // Update state for onViewChange and other dependencies
         setStageScale(newScale);
-        setStagePos({ x: pointer.x - mousePointTo.x * newScale, y: pointer.y - mousePointTo.y * newScale });
-    }, []);
+        setStagePos(newPos);
+
+        // Update virtualization
+        updateVisibleNodes();
+    }, [updateVisibleNodes]);
+
+    const handleDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+        // Only update if dragging the STAGE (panning)
+        if (e.target === e.target.getStage()) {
+            // Update state for onViewChange
+            const stage = stageRef.current;
+            if (stage) {
+                setStagePos({ x: stage.x(), y: stage.y() });
+            }
+            updateVisibleNodes();
+        }
+    }, [updateVisibleNodes]);
 
     const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
         if (e.target === e.target.getStage() || e.target.name() === 'grid-background') {
-            if (e.evt.shiftKey && !showSlices) {
+            if (e.evt.shiftKey) {
                 const stage = stageRef.current;
                 if (stage) {
                     const pointer = stage.getRelativePointerPosition();
@@ -509,7 +617,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 onCanvasClick(e);
             }
         }
-    }, [onCanvasClick, showSlices]);
+    }, [onCanvasClick]);
 
     const handleMouseMove = useCallback(() => {
         const stage = stageRef.current;
@@ -558,6 +666,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 if (node && typeof node === 'object') {
                     const x = safeNum(node.x);
                     const y = safeNum(node.y);
+                    // Check intersection with marqueeRect (already in World Space)
                     if (x >= marqueeRect.x && x <= marqueeRect.x + marqueeRect.width && y >= marqueeRect.y && y <= marqueeRect.y + marqueeRect.height) {
                         selected.push(safeStr(node.id));
                     }
@@ -601,8 +710,6 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         const safeNodes: Node[] = [];
         const seenIds = new Set<string>();
 
-        const shouldUseCalculatedPositions = (showSlices || experimentalLayoutEnabled) && swimlanePositions;
-
         // ---------------------------------------------------------
         // 1. Gather Nodes & Basic Safety
         // ---------------------------------------------------------
@@ -616,14 +723,6 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         let x = safeNum(n.x);
                         let y = safeNum(n.y);
 
-                        if (shouldUseCalculatedPositions) {
-                            const pos = swimlanePositions.get(id);
-                            if (pos) {
-                                x = safeNum(pos.x);
-                                y = safeNum(pos.y);
-                            }
-                        }
-
                         const computedHeight = calculateNodeHeight(safeStr(n.name));
                         safeNodes.push({ ...n, id, x, y, computedHeight });
                     }
@@ -631,115 +730,33 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             });
         }
 
-        // ---------------------------------------------------------
-        // 2. Experimental Layout Calculation
-        // ---------------------------------------------------------
-        if (experimentalLayoutEnabled && showSlices) {
-            const ZONE_HEIGHT = 300;
-            const GAP = 50;
-            const START_X = 100;
-
-            const zones: Record<number, Node[]> = { 0: [], 300: [], 600: [] };
-
-            // A. Snap Y to Zones
-            safeNodes.forEach(node => {
-                const closestZoneY = Math.round(safeNum(node.y) / ZONE_HEIGHT) * ZONE_HEIGHT;
-                if (!zones[closestZoneY]) zones[closestZoneY] = [];
-                zones[closestZoneY].push(node);
-            });
-
-            // B. Initial Horizontal Spread (Grid Layout)
-            Object.keys(zones).forEach(key => {
-                const zoneY = Number(key);
-                const zoneNodes = zones[zoneY];
-                if (zoneNodes.length === 0) return;
-
-                // Sort by original X to maintain relative user order
-                zoneNodes.sort((a, b) => safeNum(a.x) - safeNum(b.x));
-
-                zoneNodes.forEach((node, index) => {
-                    node.y = zoneY;
-                    node.x = START_X + (index * (NODE_WIDTH + GAP));
-                });
-            });
-
-            // ---------------------------------------------------------
-            // 3. VERTICAL ALIGNMENT PASS (New!)
-            // ---------------------------------------------------------
-            const nodeMap = new Map(safeNodes.map(n => [n.id, n]));
-
-            (links || []).forEach(link => {
-                const source = nodeMap.get(safeStr(link.source));
-                const target = nodeMap.get(safeStr(link.target));
-
-                if (source && target) {
-                    // 👇 FIX: Extract safe numbers here to satisfy TypeScript
-                    const sy = safeNum(source.y);
-                    const ty = safeNum(target.y);
-
-                    // CASE 1: Top (Source) -> Middle (Target)
-                    // e.g. Automation -> Command
-                    if (Math.abs(sy - 0) < 50 && Math.abs(ty - 300) < 50) {
-                        source.x = target.x; // Snap Parent to Child X
-                    }
-
-                    // CASE 2: Middle (Source) -> Top (Target)
-                    // e.g. Read Model -> Automation
-                    if (Math.abs(sy - 300) < 50 && Math.abs(ty - 0) < 50) {
-                        target.x = source.x; // Snap Child to Parent X
-                    }
-
-                    // CASE 3: Middle (Source) -> Bottom (Target)
-                    // e.g. Command -> Event
-                    if (Math.abs(sy - 300) < 50 && Math.abs(ty - 600) < 50) {
-                        target.x = source.x; // Snap Child to Parent X
-                    }
-                }
-            });
-        }
-
-        const safeLinks = (links || []).filter(l => l && typeof l === 'object').filter(l => {
-            const s = safeStr(l.source);
-            const t = safeStr(l.target);
-            return s && t && safeNodes.some(n => n.id === s) && safeNodes.some(n => n.id === t);
-        });
-
-        return { nodes: safeNodes, links: safeLinks };
-    }, [nodes, links, showSlices, swimlanePositions, experimentalLayoutEnabled]);
-
-    const handleMinimapNavigate = (x: number, y: number, k: number) => {
-        if (stageRef.current) {
-            stageRef.current.to({
-                x,
-                y,
-                scaleX: k,
-                scaleY: k,
-                duration: 0.3
-            });
-            setStagePos({ x, y });
-            setStageScale(k);
-        }
-    };
+        return { safeNodes };
+    }, [nodes]);
 
     return (
-        <div className="w-full h-screen bg-gray-50 overflow-hidden relative">
+        <div className="w-full h-full bg-gray-50 overflow-hidden relative" onContextMenu={(e) => e.preventDefault()}>
             <Stage
+                ref={stageRef}
                 width={window.innerWidth}
                 height={window.innerHeight}
-                draggable={!tempLink && !marqueeStart && !isHoveringNode} // Allow pan even if slices are shown
+                draggable
                 onWheel={handleWheel}
-                scaleX={stageScale}
-                scaleY={stageScale}
-                x={stagePos.x}
-                y={stagePos.y}
-                ref={stageRef}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
                 onDragStart={(e) => {
+                    // Prevent Stage dragging if Shift is pressed (Marquee Select)
+                    if (e.target === e.target.getStage() && e.evt.shiftKey) {
+                        e.target.stopDrag();
+                        return;
+                    }
                     if (e.target === e.target.getStage()) {
                         const stage = e.target.getStage();
                         if (stage) stage.container().style.cursor = 'grabbing';
+                    }
+                }}
+                onDragMove={(e) => {
+                    handleDragMove(e);
+                    // Ensure stagePos is updated in real-time for minimap
+                    if (e.target === e.target.getStage()) {
+                        setStagePos({ x: e.target.x(), y: e.target.y() });
                     }
                 }}
                 onDragEnd={(e) => {
@@ -749,125 +766,116 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         setStagePos({ x: e.target.x(), y: e.target.y() });
                     }
                 }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
             >
                 <Layer>
-                    <Rect name="grid-background" x={-50000} y={-50000} width={100000} height={100000} fillPatternImage={gridImage || undefined} fillPatternOffset={{ x: 0, y: 0 }} fill={gridImage ? undefined : "#f9fafb"} />
-                    {showSlices && (
-                        <Group>
-                            {experimentalLayoutEnabled ? (
-                                <Group>
-                                    {/* 1. Large Background Zones */}
-                                    <Rect x={-50000} y={0} width={100000} height={200} fill="rgba(59, 130, 246, 0.05)" listening={false} />
-                                    <Rect x={-50000} y={300} width={100000} height={200} fill="rgba(34, 197, 94, 0.05)" listening={false} />
-                                    <Rect x={-50000} y={600} width={100000} height={200} fill="rgba(249, 115, 22, 0.05)" listening={false} />
+                    {/* Infinite Grid Background */}
+                    <Rect
+                        x={-stagePos.x / stageScale}
+                        y={-stagePos.y / stageScale}
+                        width={window.innerWidth / stageScale}
+                        height={window.innerHeight / stageScale}
+                        fillPatternImage={gridImage || undefined}
+                        fillPatternOffset={{ x: (-stagePos.x / stageScale) % (GRID_SIZE || 20), y: (-stagePos.y / stageScale) % (GRID_SIZE || 20) }}
+                        name="grid-background"
+                    />
+                </Layer>
 
-                                    {/* 2. Fixed Sticky Labels */}
-                                    <Text
-                                        x={(20 - stagePos.x) / stageScale}
-                                        y={10}
-                                        text="TRIGGER / UI"
-                                        fontSize={16} fontStyle="bold" fill="#3b82f6" opacity={0.8}
-                                        scaleX={1 / stageScale} scaleY={1 / stageScale}
-                                    />
-                                    <Text
-                                        x={(20 - stagePos.x) / stageScale}
-                                        y={310}
-                                        text="INTENTION / MODEL"
-                                        fontSize={16} fontStyle="bold" fill="#22c55e" opacity={0.8}
-                                        scaleX={1 / stageScale} scaleY={1 / stageScale}
-                                    />
-                                    <Text
-                                        x={(20 - stagePos.x) / stageScale}
-                                        y={610}
-                                        text="FACTS / EVENTS"
-                                        fontSize={16} fontStyle="bold" fill="#f97316" opacity={0.8}
-                                        scaleX={1 / stageScale} scaleY={1 / stageScale}
-                                    />
+                <Layer>
+                    {/* Links */}
+                    {links.map(link => {
+                        const s = safeData.safeNodes.find(n => n.id === link.source);
+                        const t = safeData.safeNodes.find(n => n.id === link.target);
+                        if (!s || !t) return null;
 
-                                    {/* 3. Slice Bounding Boxes (Same as Standard View) */}
-                                    {(slices || []).filter(s => s && typeof s === 'object').map((slice, i) => (
-                                        <Group key={safeStr(slice.id) || i}>
-                                            <Rect
-                                                x={safeNum(slice.x)} y={safeNum(slice.y)}
-                                                width={safeNum(slice.width)} height={safeNum(slice.height)}
-                                                fill={slice.color} opacity={0.05} // Very light background
-                                                stroke={slice.color} strokeWidth={2} dash={[5, 5]}
-                                                cornerRadius={10}
-                                            />
-                                        </Group>
-                                    ))}
-                                </Group>
-                            ) : (
-                                <Group>
-                                    {/* Standard Layout: Bounding Boxes */}
-                                    {(slices || []).filter(s => s && typeof s === 'object').map((slice, i) => (
-                                        <Group key={safeStr(slice.id) || i}>
-                                            <Rect
-                                                x={safeNum(slice.x)} y={safeNum(slice.y)}
-                                                width={safeNum(slice.width)} height={safeNum(slice.height)}
-                                                fill={slice.color} opacity={0.1}
-                                                stroke={slice.color} strokeWidth={2} dash={[5, 5]}
-                                            />
-                                        </Group>
-                                    ))}
-                                </Group>
-                            )}
-                        </Group>
-                    )}
-                    <Group>
-                        {safeData.links.map((link, i) => {
-                            const source = safeData.nodes.find(n => n.id === link.source);
-                            const target = safeData.nodes.find(n => n.id === link.target);
-                            if (!source || !target) return null;
+                        // Only render if at least one node is visible (Virtualization)
+                        if (!visibleNodeIds.has(s.id) && !visibleNodeIds.has(t.id)) return null;
 
-                            // 👇 CHECK FOR CUSTOM ROUTE FROM ELK
-                            const route = edgeRoutes?.get(safeStr(link.id));
+                        const isSelected = selectedIds.includes(link.id);
+                        const customPoints = edgeRoutes?.get(link.id);
 
-                            return <LinkGroup
-                                key={safeStr(link.id) || `link-${i}`}
+                        return (
+                            <LinkGroup
+                                key={link.id}
                                 link={link}
-                                sourceNode={source}
-                                targetNode={target}
-                                isSelected={selectedIds.includes(safeStr(link.id))}
+                                sourceNode={s}
+                                targetNode={t}
+                                isSelected={isSelected}
                                 onLinkClick={onLinkClick}
                                 onLinkDoubleClick={onLinkDoubleClick}
-                                customPoints={route} // <-- Pass it here
-                            />;
-                        })}
-                    </Group>
-                    <Group>
-                        {safeData.nodes.map((node, i) => (
+                                customPoints={customPoints}
+                            />
+                        );
+                    })}
+
+                    {/* Temp Link (Drag creation) */}
+                    {tempLink && (
+                        <Line
+                            points={[tempLink.startPos.x, tempLink.startPos.y, tempLink.currentPos.x, tempLink.currentPos.y]}
+                            stroke="#4f46e5"
+                            strokeWidth={2}
+                            dash={[10, 5]}
+                        />
+                    )}
+
+                    {/* Nodes */}
+                    {safeData.safeNodes.map(node => {
+                        // Virtualization Check
+                        if (!visibleNodeIds.has(node.id)) return null;
+
+                        const isSelected = selectedIds.includes(node.id);
+                        const isValidTarget = validTargetIds.has(node.id);
+
+                        return (
                             <NodeGroup
-                                key={safeStr(node.id) || `node-${i}`}
+                                key={node.id}
                                 node={node}
-                                isSelected={selectedIds.includes(safeStr(node.id))}
-                                isValidTarget={validTargetIds.has(safeStr(node.id))}
+                                isSelected={isSelected}
+                                isValidTarget={isValidTarget}
                                 onNodeClick={onNodeClick}
                                 onNodeDoubleClick={onNodeDoubleClick}
                                 onDragMove={handleNodeDragMove}
                                 onDragEnd={handleNodeDragEnd}
-                                onLinkStart={(pos: any) => { setTempLink({ sourceId: safeStr(node.id), startPos: pos, currentPos: pos }); }}
-                                onHoverChange={setIsHoveringNode}
-                                stagePos={stagePos} // <-- Pass stagePos
-                                stageScale={stageScale} // <-- Pass stageScale
-                                isDraggable={!showSlices} // Disable dragging in Slice view
+                                onLinkStart={(pos: { x: number; y: number }) => setTempLink({ sourceId: node.id, startPos: pos, currentPos: pos })}
+                                stagePos={stagePos}
+                                stageScale={stageScale}
+                                isDraggable={true}
                             />
-                        ))}
-                    </Group>
-                    {tempLink && <Line points={[safeNum(tempLink.startPos.x), safeNum(tempLink.startPos.y), safeNum(tempLink.currentPos.x), safeNum(tempLink.currentPos.y)]} stroke="#a855f7" strokeWidth={2} dash={[5, 5]} listening={false} />}
-                    {marqueeRect && <Rect x={marqueeRect.x} y={marqueeRect.y} width={marqueeRect.width} height={marqueeRect.height} fill="rgba(79, 70, 229, 0.1)" stroke="#4f46e5" strokeWidth={1} />}
+                        );
+                    })}
+
+                    {/* Marquee Selection Rect */}
+                    {marqueeRect && (
+                        <Rect
+                            x={marqueeRect.x}
+                            y={marqueeRect.y}
+                            width={marqueeRect.width}
+                            height={marqueeRect.height}
+                            fill="rgba(79, 70, 229, 0.1)"
+                            stroke="#4f46e5"
+                            strokeWidth={1}
+                        />
+                    )}
                 </Layer>
-                <Layer name="top-layer" />
+                {/* Portal Layer for dragging nodes on top */}
+                <Layer name="top-layer" className="top-layer" />
             </Stage>
+
             <Minimap
-                nodes={nodes}
-                slices={slices}
-                showSlices={showSlices}
-                swimlanePositions={swimlanePositions}
-                zoomTransform={{ k: stageScale, x: stagePos.x, y: stagePos.y }}
-                onNavigate={handleMinimapNavigate}
-                stageWidth={window.innerWidth}
-                stageHeight={window.innerHeight}
+                nodes={safeData.safeNodes}
+                stageScale={stageScale}
+                stagePos={stagePos}
+                viewportWidth={window.innerWidth}
+                viewportHeight={window.innerHeight}
+                onNavigate={(x, y) => {
+                    if (stageRef.current) {
+                        stageRef.current.position({ x, y });
+                        setStagePos({ x, y });
+                        updateVisibleNodes();
+                    }
+                }}
             />
         </div>
     );
