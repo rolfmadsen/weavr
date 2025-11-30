@@ -535,7 +535,7 @@ const App: React.FC = () => {
   }, [selectedNodeIdsArray, selectedLinkId]);
 
   const handleAddSlice = useCallback((title: string) => {
-    addSlice(title, slices.length);
+    return addSlice(title, slices.length);
   }, [addSlice, slices.length]);
 
 
@@ -597,9 +597,9 @@ const App: React.FC = () => {
         activeTab={sidebarView || 'properties'}
         onTabChange={(tab) => setSidebarView(tab as any)}
         tabs={[
-          { id: 'properties', label: 'Properties' },
-          { id: 'slices', label: 'Slices' },
-          { id: 'dictionary', label: 'Dictionary' }
+          { id: 'properties', label: 'Properties', title: 'Alt + P' },
+          { id: 'slices', label: 'Slices', title: 'Alt + S' },
+          { id: 'dictionary', label: 'Dictionary', title: 'Alt + D' }
         ]}
       >
         {sidebarView === 'properties' && (
@@ -615,22 +615,27 @@ const App: React.FC = () => {
             onFocusHandled={handleFocusHandled}
             definitions={definitionsArray}
             onAddDefinition={handleAddDefinition}
+            modelId={modelId}
           />
         )}
         {sidebarView === 'slices' && (
           <SliceList
             slices={slices}
+            definitions={definitionsArray}
             onAddSlice={addSlice}
             onUpdateSlice={updateSlice}
             onDeleteSlice={deleteSlice}
+            modelId={modelId}
           />
         )}
         {sidebarView === 'dictionary' && (
           <DataDictionaryList
             definitions={definitionsArray}
+            slices={slices}
             onAddDefinition={handleAddDefinition}
             onUpdateDefinition={handleUpdateDefinition}
             onDeleteDefinition={handleDeleteDefinition}
+            modelId={modelId}
           />
         )}
       </Sidebar>

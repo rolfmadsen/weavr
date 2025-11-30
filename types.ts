@@ -79,6 +79,25 @@ export interface StrictEventModel {
   slices: StrictSlice[];
 }
 
+export interface Attribute {
+  name: string;
+  type: string;
+}
+
+export enum DefinitionType {
+  ValueObject = 'Value Object',
+  Entity = 'Entity',
+  Enum = 'Enum'
+}
+
+export interface DataDefinition {
+  id: string;
+  name: string;
+  type: DefinitionType;
+  description?: string;
+  attributes?: Attribute[];
+}
+
 export interface StorageEventModel {
   slices: Record<string, StrictSlice>;
 }

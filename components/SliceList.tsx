@@ -1,28 +1,45 @@
-import React, { useState } from 'react';
-import { Slice } from '../types';
-import { PlusIcon, DeleteIcon, EditIcon, CheckIcon, CloseIcon } from './icons';
+import React, { useState, useMemo } from 'react';
+import { Slice, DataDefinition } from '../types';
+import { DeleteIcon, EditIcon, CheckIcon, CloseIcon } from './icons';
+import SmartSelect from './SmartSelect';
+import { useCrossModelData } from '../hooks/useCrossModelData';
 
 interface SliceListProps {
     slices: Slice[];
+    definitions: DataDefinition[];
     onAddSlice: (title: string, order: number) => void;
     onUpdateSlice: (id: string, updates: Partial<Slice>) => void;
     onDeleteSlice: (id: string) => void;
+    modelId: string | null;
 }
 
 const SliceList: React.FC<SliceListProps> = ({
     slices,
+    definitions,
     onAddSlice,
     onUpdateSlice,
-    onDeleteSlice
+    onDeleteSlice,
+    modelId
 }) => {
-    const [newSliceName, setNewSliceName] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
-    const handleAdd = () => {
-        if (newSliceName.trim()) {
-            onAddSlice(newSliceName.trim(), slices.length);
-            setNewSliceName('');
+    const { crossModelSlices, isLoading } = useCrossModelData(modelId);
+
+    const handleAdd = (title: string) => {
+        if (title.trim()) {
+            const normalizedTitle = title.trim().toLowerCase();
+            // Check if already exists in Slices
+            if (slices.some(s => s.title?.toLowerCase() === normalizedTitle)) {
+                alert('Slice with this name already exists in this model.');
+                return;
+            }
+            // Check if already exists in Definitions (Entities)
+            if (definitions.some(d => d.name.toLowerCase() === normalizedTitle)) {
+                alert('An Entity with this name already exists. Names must be unique across Slices and Entities.');
+                return;
+            }
+            onAddSlice(title.trim(), slices.length);
         }
     };
 
@@ -43,25 +60,37 @@ const SliceList: React.FC<SliceListProps> = ({
         setEditName('');
     };
 
+    const options = useMemo(() => {
+        // Filter out slices that are already in the current model
+        const currentTitles = new Set(slices.map(s => s.title?.toLowerCase()));
+        return crossModelSlices
+            .filter(s => !currentTitles.has(s.label.toLowerCase()))
+            .map(s => ({
+                id: s.id,
+                label: s.label,
+                subLabel: `From ${s.modelName}`,
+                group: 'Suggestions'
+            }));
+    }, [crossModelSlices, slices]);
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
             {/* Add New Slice */}
             <div className="flex gap-2">
-                <input
-                    type="text"
-                    value={newSliceName}
-                    onChange={(e) => setNewSliceName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                    placeholder="New Slice Name..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-                <button
-                    onClick={handleAdd}
-                    disabled={!newSliceName.trim()}
-                    className="p-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    <PlusIcon className="text-xl" />
-                </button>
+                <div className="flex-1">
+                    <SmartSelect
+                        options={options}
+                        value={undefined}
+                        onChange={(_id, option) => {
+                            if (option) {
+                                handleAdd(option.label);
+                            }
+                        }}
+                        onCreate={handleAdd}
+                        placeholder={isLoading ? "Loading suggestions..." : "New Slice Name..."}
+                        autoFocus={true}
+                    />
+                </div>
             </div>
 
             {/* List */}

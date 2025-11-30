@@ -35,7 +35,6 @@ export const calculateElkLayout = async (
                     positionMap.set(id, pos);
                 });
                 resolve(positionMap);
-                // worker.terminate(); // Clean up
             } else if (type === 'ERROR') {
                 console.error("ELK Worker Error:", message);
                 reject(new Error(message));

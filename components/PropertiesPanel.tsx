@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Node as GraphNode, Link, Slice, ElementType } from '../types';
-import { DeleteIcon, PlusIcon, ChevronDownIcon } from './icons';
+import { DeleteIcon } from './icons';
+import SmartSelect from './SmartSelect';
+import { useCrossModelData } from '../hooks/useCrossModelData';
 
 type SelectedItem = { type: 'node', data: GraphNode } | { type: 'link', data: Link } | { type: 'multi-node', data: GraphNode[] };
 
@@ -16,6 +18,7 @@ interface PropertiesPanelProps {
   onFocusHandled?: () => void;
   definitions?: { id: string; name: string }[];
   onAddDefinition?: (def: { name: string; type: string }) => string | void;
+  modelId: string | null;
 }
 
 const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
@@ -29,8 +32,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   focusOnRender,
   onFocusHandled,
   definitions,
-  onAddDefinition
+  onAddDefinition,
+  modelId
 }) => {
+  const { crossModelSlices, crossModelDefinitions } = useCrossModelData(modelId);
+
   if (!selectedItem) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8 text-center">
@@ -53,6 +59,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           onFocusHandled={onFocusHandled}
           definitions={definitions || []}
           onAddDefinition={onAddDefinition || (() => { })}
+          crossModelSlices={crossModelSlices}
+          crossModelDefinitions={crossModelDefinitions}
         />
       )}
       {selectedItem.type === 'link' && (
@@ -71,6 +79,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           onAddSlice={onAddSlice || (() => { })}
           definitions={definitions || []}
           onAddDefinition={onAddDefinition || (() => { })}
+          crossModelSlices={crossModelSlices}
+          crossModelDefinitions={crossModelDefinitions}
         />
       )}
     </div>
@@ -89,7 +99,9 @@ const NodeEditor: React.FC<{
   onFocusHandled?: () => void;
   definitions: { id: string; name: string }[];
   onAddDefinition: (def: { name: string; type: string }) => string | void;
-}> = ({ node, onUpdate, onDelete, slices, onAddSlice, focusOnRender, onFocusHandled, definitions, onAddDefinition }) => {
+  crossModelSlices: any[];
+  crossModelDefinitions: any[];
+}> = ({ node, onUpdate, onDelete, slices, onAddSlice, focusOnRender, onFocusHandled, definitions, onAddDefinition, crossModelSlices, crossModelDefinitions }) => {
 
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,8 +114,46 @@ const NodeEditor: React.FC<{
   }, [node.id, focusOnRender, onFocusHandled]);
 
   const handleSliceCreate = (label: string) => {
+    const normalizedLabel = label.trim().toLowerCase();
+    const existingSlice = slices.find(s => s.title?.toLowerCase() === normalizedLabel);
+    if (existingSlice) {
+      return existingSlice.id;
+    }
     return onAddSlice(label, slices.length);
   };
+
+  const sliceOptions = useMemo(() => {
+    const localOptions = slices.map(s => ({ id: s.id, label: s.title || 'Untitled', color: s.color }));
+    const localTitles = new Set(slices.map(s => s.title?.toLowerCase()));
+    const remoteOptions = crossModelSlices
+      .filter(s => !localTitles.has(s.label.toLowerCase()))
+      .map(s => ({
+        id: s.id,
+        label: s.label,
+        subLabel: `From ${s.modelName}`,
+        group: 'Suggestions'
+      }));
+    return [...localOptions, ...remoteOptions];
+  }, [slices, crossModelSlices]);
+
+  const entityOptions = useMemo(() => {
+    const currentIds = node.entityIds || [];
+    const localOptions = definitions
+      .filter(d => !currentIds.includes(d.id))
+      .map(d => ({ id: d.id, label: d.name }));
+
+    const localNames = new Set(definitions.map(d => d.name.toLowerCase()));
+    const remoteOptions = crossModelDefinitions
+      .filter(d => !localNames.has(d.label.toLowerCase()))
+      .map(d => ({
+        id: d.id,
+        label: d.label,
+        subLabel: `From ${d.modelName}`,
+        group: 'Suggestions',
+        originalData: d.originalData
+      }));
+    return [...localOptions, ...remoteOptions];
+  }, [definitions, node.entityIds, crossModelDefinitions]);
 
   return (
     <div className="space-y-4">
@@ -147,13 +197,29 @@ const NodeEditor: React.FC<{
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Slice</label>
         <SmartSelect
-          options={slices.map(s => ({ id: s.id, label: s.title || 'Untitled', color: s.color }))}
+          options={sliceOptions}
           value={node.sliceId}
-          onChange={(id) => onUpdate(node.id, 'sliceId', id)}
+          onChange={(id, option) => {
+            // If option has subLabel, it's remote. We need to create it locally first.
+            if (option?.subLabel) {
+              const normalizedLabel = option.label.toLowerCase();
+              const existingSlice = slices.find(s => s.title?.toLowerCase() === normalizedLabel);
+
+              if (existingSlice) {
+                onUpdate(node.id, 'sliceId', existingSlice.id);
+              } else {
+                const newId = onAddSlice(option.label, slices.length);
+                if (newId) onUpdate(node.id, 'sliceId', newId);
+              }
+            } else {
+              onUpdate(node.id, 'sliceId', id);
+            }
+          }}
           onCreate={handleSliceCreate}
           placeholder="Assign to Slice..."
         />
       </div>
+
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Entities</label>
@@ -184,12 +250,27 @@ const NodeEditor: React.FC<{
             </div>
           )}
           <SmartSelect
-            options={definitions.filter(d => !node.entityIds?.includes(d.id)).map(d => ({ id: d.id, label: d.name }))}
+            options={entityOptions}
             value={undefined}
-            onChange={(id) => {
+            onChange={(id, option) => {
               const currentIds = node.entityIds || [];
-              if (!currentIds.includes(id)) {
-                onUpdate(node.id, 'entityIds', [...currentIds, id]);
+              if (option?.subLabel) {
+                // Remote entity, import it first
+                // We need to add definition then use its new ID
+                // onAddDefinition returns void or string? The prop says string | void.
+                // But in App.tsx it calls addDefinition which returns string.
+                const data = (option as any).originalData;
+                const newId = onAddDefinition({
+                  name: option.label,
+                  type: data?.type || 'String'
+                });
+                if (newId && typeof newId === 'string') {
+                  onUpdate(node.id, 'entityIds', [...currentIds, newId]);
+                }
+              } else {
+                if (!currentIds.includes(id)) {
+                  onUpdate(node.id, 'entityIds', [...currentIds, id]);
+                }
               }
             }}
             onCreate={(name) => { return onAddDefinition({ name, type: 'String' }); }}
@@ -306,11 +387,27 @@ const MultiNodeEditor: React.FC<{
   onAddSlice: (title: string, order: number) => string | void;
   definitions: { id: string; name: string }[];
   onAddDefinition: (def: { name: string; type: string }) => string | void;
-}> = ({ nodes, onUpdateNode, onDeleteNode, slices, onAddSlice, definitions, onAddDefinition }) => {
+  crossModelSlices: any[];
+  crossModelDefinitions: any[];
+}> = ({ nodes, onUpdateNode, onDeleteNode, slices, onAddSlice, definitions, onAddDefinition, crossModelSlices, crossModelDefinitions }) => {
 
-  const handleSliceChange = (sliceId: string) => {
+  const handleSliceChange = (sliceId: string, option?: any) => {
+    let finalSliceId = sliceId;
+    if (option?.subLabel) {
+      const normalizedLabel = option.label.toLowerCase();
+      const existingSlice = slices.find(s => s.title?.toLowerCase() === normalizedLabel);
+
+      if (existingSlice) {
+        finalSliceId = existingSlice.id;
+      } else {
+        const newId = onAddSlice(option.label, slices.length);
+        if (newId && typeof newId === 'string') finalSliceId = newId;
+        else return; // Failed to create
+      }
+    }
+
     nodes.forEach(node => {
-      onUpdateNode(node.id, 'sliceId', sliceId);
+      onUpdateNode(node.id, 'sliceId', finalSliceId);
     });
   };
 
@@ -326,14 +423,57 @@ const MultiNodeEditor: React.FC<{
     });
   };
 
-  const handleAddEntity = (entityId: string) => {
+  const handleAddEntity = (entityId: string, option?: any) => {
+    let finalEntityId = entityId;
+    if (option?.subLabel) {
+      const data = (option as any).originalData;
+      const newId = onAddDefinition({
+        name: option.label,
+        type: data?.type || 'String'
+      });
+      if (newId && typeof newId === 'string') finalEntityId = newId;
+      else return;
+    }
+
     nodes.forEach(node => {
       const currentIds = node.entityIds || [];
-      if (!currentIds.includes(entityId)) {
-        onUpdateNode(node.id, 'entityIds', [...currentIds, entityId]);
+      if (!currentIds.includes(finalEntityId)) {
+        onUpdateNode(node.id, 'entityIds', [...currentIds, finalEntityId]);
       }
     });
   };
+
+  const sliceOptions = useMemo(() => {
+    const localOptions = slices.map(s => ({ id: s.id, label: s.title || 'Untitled', color: s.color }));
+    const localTitles = new Set(slices.map(s => s.title?.toLowerCase()));
+    const remoteOptions = crossModelSlices
+      .filter(s => !localTitles.has(s.label.toLowerCase()))
+      .map(s => ({
+        id: s.id,
+        label: s.label,
+        subLabel: `From ${s.modelName}`,
+        group: 'Suggestions'
+      }));
+    return [...localOptions, ...remoteOptions];
+  }, [slices, crossModelSlices]);
+
+  const entityOptions = useMemo(() => {
+    const localOptions = definitions
+      .filter(d => !allEntityIds.includes(d.id))
+      .map(d => ({ id: d.id, label: d.name }));
+
+    const localNames = new Set(definitions.map(d => d.name.toLowerCase()));
+    const remoteOptions = crossModelDefinitions
+      .filter(d => !localNames.has(d.label.toLowerCase()))
+      .map(d => ({
+        id: d.id,
+        label: d.label,
+        subLabel: `From ${d.modelName}`,
+        group: 'Suggestions',
+        originalData: d.originalData
+      }));
+    return [...localOptions, ...remoteOptions];
+  }, [definitions, allEntityIds, crossModelDefinitions]);
 
   return (
     <div className="space-y-4">
@@ -343,10 +483,17 @@ const MultiNodeEditor: React.FC<{
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Slice</label>
         <SmartSelect
-          options={slices.map(s => ({ id: s.id, label: s.title || 'Untitled', color: s.color }))}
+          options={sliceOptions}
           value={nodes[0]?.sliceId || ''} // Assuming all selected nodes have the same slice or taking the first one
           onChange={handleSliceChange}
-          onCreate={(title) => { return onAddSlice(title, slices.length); }}
+          onCreate={(title) => {
+            const normalizedTitle = title.trim().toLowerCase();
+            const existingSlice = slices.find(s => s.title?.toLowerCase() === normalizedTitle);
+            if (existingSlice) {
+              return existingSlice.id;
+            }
+            return onAddSlice(title, slices.length);
+          }}
           placeholder="Assign to Slice..."
         />
       </div>
@@ -377,7 +524,7 @@ const MultiNodeEditor: React.FC<{
             </div>
           )}
           <SmartSelect
-            options={definitions.filter(d => !allEntityIds.includes(d.id)).map(d => ({ id: d.id, label: d.name }))}
+            options={entityOptions}
             value={undefined}
             onChange={handleAddEntity}
             onCreate={(name) => { return onAddDefinition({ name, type: 'String' }); }}
@@ -395,168 +542,6 @@ const MultiNodeEditor: React.FC<{
           Delete Selected Nodes
         </button>
       </div>
-    </div>
-  );
-};
-
-// --- SmartSelect Component ---
-
-interface SmartSelectOption {
-  id: string;
-  label: string;
-  color?: string;
-}
-
-interface SmartSelectProps {
-  options: SmartSelectOption[];
-  value: string | undefined;
-  onChange: (id: string) => void;
-  onCreate?: (title: string) => string | void;
-  placeholder?: string;
-}
-
-const SmartSelect: React.FC<SmartSelectProps> = ({ options, value, onChange, onCreate, placeholder }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const selectedOption = options.find(option => option.id === value);
-
-  // Sync search with selected option when closed
-  useEffect(() => {
-    if (!isOpen) {
-      setSearch(selectedOption?.label || '');
-    }
-  }, [isOpen, selectedOption]);
-
-  const filteredOptions = options.filter(option =>
-    option.label.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleSelect = (option: SmartSelectOption) => {
-    onChange(option.id);
-    setSearch(option.label);
-    setIsOpen(false);
-    setSelectedIndex(-1);
-  };
-
-  const handleCreate = () => {
-    if (onCreate && search.trim()) {
-      const newId = onCreate(search.trim());
-      if (newId) {
-        onChange(newId);
-        // Search will be updated by the useEffect syncing with selectedOption
-      }
-      setIsOpen(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (!isOpen) {
-        setIsOpen(true);
-      } else {
-        setSelectedIndex(prev => (prev < filteredOptions.length - 1 ? prev + 1 : prev));
-      }
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (isOpen) {
-        setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
-      }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (!isOpen) {
-        setIsOpen(true);
-      } else if (selectedIndex >= 0 && filteredOptions[selectedIndex]) {
-        handleSelect(filteredOptions[selectedIndex]);
-      } else if (filteredOptions.length > 0) {
-        // Auto-select top result if nothing explicitly selected
-        handleSelect(filteredOptions[0]);
-      } else if (search.trim() && onCreate) {
-        handleCreate();
-      }
-    } else if (e.key === 'Escape') {
-      setIsOpen(false);
-      setSearch(selectedOption?.label || '');
-      inputRef.current?.blur();
-    }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={wrapperRef}>
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
-          placeholder={placeholder || 'Select...'}
-          value={isOpen ? search : (selectedOption?.label || '')}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            if (!isOpen) setIsOpen(true);
-            setSelectedIndex(-1); // Don't auto-highlight, let user navigate or hit enter for top result
-          }}
-          onFocus={(e) => e.target.select()}
-          onClick={() => {
-            if (!isOpen) setIsOpen(true);
-          }}
-          onKeyDown={handleKeyDown}
-        />
-        <div
-          className="absolute inset-y-0 right-0 flex items-center px-2 cursor-pointer"
-          onClick={() => {
-            setIsOpen(!isOpen);
-            if (!isOpen) {
-              setSearch(''); // Clear search on arrow click to show all
-              inputRef.current?.focus();
-            }
-          }}
-        >
-          <ChevronDownIcon className="text-gray-400" />
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
-          <ul className="max-h-60 overflow-auto">
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((option, index) => (
-                <li
-                  key={option.id}
-                  className={`px-3 py-2 cursor-pointer hover:bg-indigo-50 ${index === selectedIndex ? 'bg-indigo-100 text-indigo-900' : 'text-gray-900'}`}
-                  onMouseDown={() => handleSelect(option)}
-                >
-                  {option.label}
-                </li>
-              ))
-            ) : (
-              <li className="px-3 py-2 text-gray-500">No options</li>
-            )}
-            {onCreate && search.trim() && !filteredOptions.some(o => o.label.toLowerCase() === search.toLowerCase()) && (
-              <li
-                className={`px-3 py-2 cursor-pointer text-indigo-600 hover:bg-indigo-50 flex items-center ${selectedIndex === filteredOptions.length ? 'bg-indigo-100' : ''}`}
-                onMouseDown={handleCreate}
-              >
-                <PlusIcon className="text-base mr-2" />
-                Create "{search}"
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
     </div>
   );
 };

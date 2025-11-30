@@ -8,7 +8,7 @@ interface SidebarProps {
     children: React.ReactNode;
     activeTab?: string;
     onTabChange?: (tab: string) => void;
-    tabs?: { id: string; label: string }[];
+    tabs?: { id: string; label: string; title?: string }[];
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -82,6 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <button
                                     key={tab.id}
                                     onClick={() => onTabChange?.(tab.id)}
+                                    title={tab.title}
                                     className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === tab.id
                                         ? 'bg-white text-gray-900 shadow-sm'
                                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'

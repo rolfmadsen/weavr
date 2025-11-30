@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import gunService from '../services/gunService';
-import { Node, Link, ElementType, Slice } from '../types';
+import { Node, Link, ElementType, Slice, DataDefinition, DefinitionType } from '../types';
 
 
 export function useGunState(modelId: string | null) {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [links, setLinks] = useState<Link[]>([]);
     const [slices, setSlices] = useState<Slice[]>([]);
-    const [definitions, setDefinitions] = useState<{ id: string, name: string, type: string }[]>([]);
+    const [definitions, setDefinitions] = useState<DataDefinition[]>([]);
 
     const [isReady, setIsReady] = useState(false);
 
@@ -16,7 +16,7 @@ export function useGunState(modelId: string | null) {
     const tempNodesRef = useRef(new Map<string, Node>());
     const tempLinksRef = useRef(new Map<string, Link>());
     const tempSlicesRef = useRef(new Map<string, Slice>());
-    const tempDefinitionsRef = useRef(new Map<string, { id: string, name: string, type: string }>());
+    const tempDefinitionsRef = useRef(new Map<string, DataDefinition>());
 
     // We keep manual positions in a ref to avoid re-rendering on every drag frame,
     // but we also sync them to Gun.
@@ -32,7 +32,7 @@ export function useGunState(modelId: string | null) {
     const slicesRef = useRef<Slice[]>([]);
 
     // Ref to track current definitions state for merging partial updates
-    const definitionsRef = useRef<{ id: string, name: string, type: string }[]>([]);
+    const definitionsRef = useRef<DataDefinition[]>([]);
 
     // Sync nodesRef, linksRef, slicesRef, definitionsRef with state
     useEffect(() => {
@@ -197,10 +197,12 @@ export function useGunState(modelId: string | null) {
                 } else if (defData && typeof defData === 'object') {
                     const existingDef = tempDefinitionsRef.current.get(defId) || definitionsRef.current.find(d => d.id === defId);
 
-                    const newDef = {
+                    const newDef: DataDefinition = {
                         id: defId,
                         name: defData.name || existingDef?.name || defId,
-                        type: defData.type || existingDef?.type || 'String',
+                        type: (defData.type as DefinitionType) || existingDef?.type || DefinitionType.Entity,
+                        description: defData.description !== undefined ? defData.description : (existingDef?.description || ''),
+                        attributes: defData.attributes ? (typeof defData.attributes === 'string' ? JSON.parse(defData.attributes) : defData.attributes) : (existingDef?.attributes || []),
                     };
                     tempDefinitionsRef.current.set(defId, newDef);
                 }
@@ -427,13 +429,18 @@ export function useGunState(modelId: string | null) {
 
     // --- Definition Management ---
 
-    const addDefinition = useCallback((def: { name: string, type: string }) => {
+    const addDefinition = useCallback((def: Omit<DataDefinition, 'id'>) => {
         if (!modelId) return;
         // Use UUID for ID to allow renaming without breaking references
         const defId = uuidv4();
-        const newDefData = { name: def.name, type: def.type || 'String' };
+        const newDefData = {
+            name: def.name,
+            type: def.type || DefinitionType.Entity,
+            description: def.description || '',
+            attributes: JSON.stringify(def.attributes || [])
+        };
 
-        const newDef = { id: defId, ...newDefData };
+        const newDef: DataDefinition = { id: defId, ...def };
         setDefinitions(prev => [...prev, newDef]); // Optimistic update
         definitionsRef.current = [...definitionsRef.current, newDef]; // Immediate ref update
         tempDefinitionsRef.current.set(defId, newDef); // Immediate DB cache update
@@ -442,7 +449,7 @@ export function useGunState(modelId: string | null) {
         return defId;
     }, [modelId]);
 
-    const updateDefinition = useCallback((defId: string, updates: any) => {
+    const updateDefinition = useCallback((defId: string, updates: Partial<DataDefinition>) => {
         if (!modelId) return;
         setDefinitions(currentDefs => currentDefs.map(d => (d.id === defId ? { ...d, ...updates } : d)));
 
@@ -452,7 +459,18 @@ export function useGunState(modelId: string | null) {
             tempDefinitionsRef.current.set(defId, { ...existing, ...updates });
         }
 
-        gunService.getModel(modelId).get('definitions').get(defId).put(updates);
+        const sanitizedUpdates: any = {};
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value === undefined) {
+                sanitizedUpdates[key] = null;
+            } else if (key === 'attributes' && Array.isArray(value)) {
+                sanitizedUpdates[key] = JSON.stringify(value);
+            } else {
+                sanitizedUpdates[key] = value;
+            }
+        });
+
+        gunService.getModel(modelId).get('definitions').get(defId).put(sanitizedUpdates);
     }, [modelId]);
 
     const deleteDefinition = useCallback((defId: string) => {
