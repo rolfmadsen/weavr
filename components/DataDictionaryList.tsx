@@ -1,138 +1,120 @@
-import React, { useState, useMemo } from 'react';
-import { PlusIcon, DeleteIcon, EditIcon } from './icons';
+import React, { useState, useMemo, useEffect } from 'react';
+import { DataDefinition, DefinitionType } from '../types';
+import {
+    Delete as DeleteIcon,
+    Add as AddIcon,
+    Edit as EditIcon,
+    Check as CheckIcon,
+    Close as CloseIcon
+} from '@mui/icons-material';
 import SmartSelect from './SmartSelect';
 import { useCrossModelData } from '../hooks/useCrossModelData';
-import { DataDefinition, DefinitionType, Attribute, Slice } from '../types';
 
 interface DataDictionaryListProps {
     definitions: DataDefinition[];
-    slices: Slice[];
     onAddDefinition: (def: Omit<DataDefinition, 'id'>) => void;
-    onUpdateDefinition: (id: string, updates: Partial<DataDefinition>) => void;
-    onDeleteDefinition: (id: string) => void;
+    onUpdateDefinition: (id: string, def: Partial<DataDefinition>) => void;
+    onRemoveDefinition: (id: string) => void;
     modelId: string | null;
 }
 
 const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     definitions,
-    slices,
     onAddDefinition,
     onUpdateDefinition,
-    onDeleteDefinition,
+    onRemoveDefinition,
     modelId
 }) => {
-    const [isAdding, setIsAdding] = useState(true);
-
+    const [isAdding, setIsAdding] = useState(false);
+    const [newEntityName, setNewEntityName] = useState('');
     const [newDef, setNewDef] = useState<Omit<DataDefinition, 'id'>>({
         name: '',
-        description: '',
         type: DefinitionType.Entity,
+        description: '',
         attributes: []
     });
-
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editDef, setEditDef] = useState<Partial<DataDefinition>>({});
+    const [focusTrigger, setFocusTrigger] = useState(0);
 
-    const { crossModelDefinitions, isLoading } = useCrossModelData(modelId);
+    const { crossModelDefinitions } = useCrossModelData(modelId);
 
     // Refs for auto-focus
     const newAttributeRefs = React.useRef<(HTMLInputElement | null)[]>([]);
     const editAttributeRefs = React.useRef<(HTMLInputElement | null)[]>([]);
-    const prevNewAttributesLength = React.useRef(0);
-    const prevEditAttributesLength = React.useRef(0);
 
-    React.useEffect(() => {
-        setIsAdding(true);
-    }, []);
-
-    // Auto-focus new attribute in "Add" mode
-    React.useEffect(() => {
-        const currentLength = newDef.attributes?.length || 0;
-        if (currentLength > prevNewAttributesLength.current) {
-            const lastIndex = currentLength - 1;
-            newAttributeRefs.current[lastIndex]?.focus();
+    useEffect(() => {
+        if (isAdding) {
+            setFocusTrigger(prev => prev + 1);
         }
-        prevNewAttributesLength.current = currentLength;
-    }, [newDef.attributes?.length]);
+    }, [isAdding]);
 
-    // Auto-focus new attribute in "Edit" mode
-    React.useEffect(() => {
-        const currentLength = editDef.attributes?.length || 0;
-        if (currentLength > prevEditAttributesLength.current) {
-            const lastIndex = currentLength - 1;
-            editAttributeRefs.current[lastIndex]?.focus();
-        }
-        prevEditAttributesLength.current = currentLength;
-    }, [editDef.attributes?.length]);
-
-
-    const [focusTrigger, setFocusTrigger] = useState(0);
-
-    const handleAdd = () => {
-        if (newDef.name.trim()) {
-            const normalizedName = newDef.name.trim().toLowerCase();
-            if (definitions.some(d => d.name.toLowerCase() === normalizedName)) {
-                alert('Entity with this name already exists.');
-                return;
-            }
-            if (slices.some(s => s.title?.toLowerCase() === normalizedName)) {
-                alert('A Slice with this name already exists. Names must be unique across Slices and Entities.');
-                return;
-            }
-            onAddDefinition(newDef);
-            setNewDef({ name: '', description: '', type: DefinitionType.Entity, attributes: [] });
-            setFocusTrigger(prev => prev + 1); // Trigger re-focus
-        }
-    };
-
-    const startEditing = (def: DataDefinition) => {
-        setEditingId(def.id);
-        setEditDef(JSON.parse(JSON.stringify(def))); // Deep copy to avoid mutating state directly
-        prevEditAttributesLength.current = def.attributes?.length || 0;
-    };
-
-    const saveEdit = () => {
-        if (editingId && editDef.name?.trim()) {
-            onUpdateDefinition(editingId, editDef);
-            setEditingId(null);
-        }
-    };
-
-    const options = useMemo(() => {
-        const currentNames = new Set(definitions.map(d => d.name.toLowerCase()));
+    const remoteDefinitionOptions = useMemo(() => {
+        const localNames = new Set(definitions.map(d => d.name.toLowerCase()));
         return crossModelDefinitions
-            .filter(d => !currentNames.has(d.label.toLowerCase()))
+            .filter(d => !localNames.has(d.label.toLowerCase()))
             .map(d => ({
                 id: d.id,
                 label: d.label,
                 subLabel: `From ${d.modelName}`,
                 group: 'Suggestions',
-                originalData: d.originalData
+                originalData: d
             }));
     }, [crossModelDefinitions, definitions]);
 
-    const handleSelectSuggestion = (_id: string, option: any) => {
-        if (option) {
-            // Check if this definition already exists in the current model
-            const existingDef = definitions.find(d => d.name.toLowerCase() === option.label.toLowerCase());
-            if (existingDef) {
-                // If it exists, switch to edit mode
-                startEditing(existingDef);
-                setIsAdding(false); // Hide add form
-            } else {
-                // Otherwise, populate the add form (import/copy behavior)
-                const data = option.originalData;
-                setNewDef({
-                    name: option.label,
-                    type: (data.type as DefinitionType) || DefinitionType.Entity,
-                    description: data.description || '',
-                    attributes: data.attributes ? (typeof data.attributes === 'string' ? JSON.parse(data.attributes) : data.attributes) : []
-                });
-            }
+    const handleAddDefinition = (idOrName: string, option?: any) => {
+        if (option && option.originalData) {
+            // Import remote definition
+            const remoteDef = option.originalData;
+            const data = remoteDef.originalData;
+            setNewDef({
+                name: remoteDef.label,
+                type: data.type || DefinitionType.Entity,
+                description: data.description,
+                attributes: data.attributes || []
+            });
+            setNewEntityName(remoteDef.label);
+        } else if (idOrName) {
+            // Create new definition
+            setNewDef(prev => ({ ...prev, name: idOrName }));
+            setNewEntityName(idOrName);
         }
     };
 
-    // Helper to manage attributes in new/edit forms
+    const attributeTypeOptions = useMemo(() => {
+        const standardTypes = ['String', 'Number', 'Boolean', 'Date', 'UUID'];
+        const entityTypes = definitions.map(d => d.name);
+        return [...standardTypes, ...entityTypes];
+    }, [definitions]);
+
+    const handleSaveNew = () => {
+        if (newDef.name.trim()) {
+            onAddDefinition(newDef);
+            setIsAdding(false);
+            setNewDef({
+                name: '',
+                type: DefinitionType.Entity,
+                description: '',
+                attributes: []
+            });
+            setNewEntityName('');
+        }
+    };
+
+    const startEditing = (def: DataDefinition) => {
+        setEditingId(def.id);
+        setEditDef(def);
+    };
+
+    const saveEditing = () => {
+        if (editingId && editDef.name) {
+            onUpdateDefinition(editingId, editDef);
+            setEditingId(null);
+            setEditDef({});
+        }
+    };
+
+    // --- Attribute Handlers (New) ---
     const addAttributeNew = () => {
         setNewDef(prev => ({
             ...prev,
@@ -140,22 +122,22 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
         }));
     };
 
-    const updateAttributeNew = (index: number, field: keyof Attribute, value: string) => {
+    const updateAttributeNew = (index: number, field: 'name' | 'type', value: string) => {
         setNewDef(prev => {
-            const currentAttributes = [...(prev.attributes || [])];
-            currentAttributes[index] = { ...currentAttributes[index], [field]: value };
-            return { ...prev, attributes: currentAttributes };
+            const newAttributes = [...(prev.attributes || [])];
+            newAttributes[index] = { ...newAttributes[index], [field]: value };
+            return { ...prev, attributes: newAttributes };
         });
     };
 
     const removeAttributeNew = (index: number) => {
-        setNewDef(prev => {
-            const currentAttributes = [...(prev.attributes || [])];
-            currentAttributes.splice(index, 1);
-            return { ...prev, attributes: currentAttributes };
-        });
+        setNewDef(prev => ({
+            ...prev,
+            attributes: (prev.attributes || []).filter((_, i) => i !== index)
+        }));
     };
 
+    // --- Attribute Handlers (Edit) ---
     const addAttributeEdit = () => {
         setEditDef(prev => ({
             ...prev,
@@ -163,51 +145,44 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
         }));
     };
 
-    const updateAttributeEdit = (index: number, field: keyof Attribute, value: string) => {
+    const updateAttributeEdit = (index: number, field: 'name' | 'type', value: string) => {
         setEditDef(prev => {
-            const currentAttributes = [...(prev.attributes || [])];
-            currentAttributes[index] = { ...currentAttributes[index], [field]: value };
-            return { ...prev, attributes: currentAttributes };
+            const newAttributes = [...(prev.attributes || [])];
+            newAttributes[index] = { ...newAttributes[index], [field]: value };
+            return { ...prev, attributes: newAttributes };
         });
     };
 
     const removeAttributeEdit = (index: number) => {
-        setEditDef(prev => {
-            const currentAttributes = [...(prev.attributes || [])];
-            currentAttributes.splice(index, 1);
-            return { ...prev, attributes: currentAttributes };
-        });
+        setEditDef(prev => ({
+            ...prev,
+            attributes: (prev.attributes || []).filter((_, i) => i !== index)
+        }));
     };
-
-    const attributeTypeOptions = useMemo(() => {
-        const standardTypes = ['String', 'Number', 'Boolean', 'Date', 'UUID'];
-        const entityTypes = definitions.map(d => d.name);
-        return [...standardTypes, ...entityTypes].sort();
-    }, [definitions]);
 
     return (
         <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
-            <datalist id="attribute-types">
-                {attributeTypeOptions.map(type => (
-                    <option key={type} value={type} />
-                ))}
-            </datalist>
+            <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium text-gray-900">Data Dictionary</h3>
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="p-1 rounded-full hover:bg-gray-100 text-gray-600"
+                    title="Add Definition"
+                >
+                    <AddIcon className="w-5 h-5" />
+                </button>
+            </div>
 
             {/* Add Form */}
-            {isAdding ? (
+            {isAdding && (
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
                     <SmartSelect
-                        options={options}
-                        value={newDef.name}
-                        onChange={handleSelectSuggestion}
-                        onCreate={(name) => {
-                            setNewDef({ ...newDef, name });
-                        }}
-                        onSearchChange={(name) => {
-                            setNewDef({ ...newDef, name });
-                        }}
-                        placeholder={isLoading ? "Loading suggestions..." : "Name (e.g. User)"}
-                        autoFocus={true}
+                        options={remoteDefinitionOptions}
+                        value={newEntityName}
+                        onChange={handleAddDefinition}
+                        onCreate={handleAddDefinition}
+                        onSearchChange={setNewEntityName}
+                        placeholder="Add or import entity..."
                         allowCustomValue={true}
                         focusTrigger={focusTrigger}
                     />
@@ -216,52 +191,38 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                         <select
                             value={newDef.type}
                             onChange={(e) => setNewDef({ ...newDef, type: e.target.value as DefinitionType })}
-                            className="w-1/3 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                            onKeyDown={(e) => { if (!e.altKey && e.key !== 'Tab') e.stopPropagation(); }}
+                            className="block w-1/3 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            onKeyDown={(e) => e.stopPropagation()}
                         >
-                            {Object.values(DefinitionType).sort().map(type => (
-                                <option key={type} value={type}>{type}</option>
-                            ))}
+                            <option value={DefinitionType.Entity}>Entity</option>
+                            <option value={DefinitionType.ValueObject}>Value Object</option>
+                            <option value={DefinitionType.Enum}>Enum</option>
                         </select>
                         <input
                             type="text"
-                            placeholder="Description..."
-                            value={newDef.description}
+                            value={newDef.description || ''}
                             onChange={(e) => setNewDef({ ...newDef, description: e.target.value })}
-                            className="w-2/3 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            onKeyDown={(e) => { if (!e.altKey && e.key !== 'Tab') e.stopPropagation(); }}
+                            placeholder="Description"
+                            className="block w-2/3 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
+                            onKeyDown={(e) => e.stopPropagation()}
                         />
                     </div>
 
-                    {/* Attributes Section */}
+                    {/* Attributes (New) */}
                     <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Attributes</label>
-                            <button
-                                onClick={addAttributeNew}
-                                className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        addAttributeNew();
-                                    }
-                                }}
-                            >+ Add Attribute</button>
-                        </div>
-                        {newDef.attributes?.map((attr, idx) => (
-                            <div key={idx} className="flex gap-2 items-center">
+                        <div className="text-xs font-medium text-gray-500 uppercase">Attributes</div>
+                        {newDef.attributes?.map((attr, index) => (
+                            <div key={index} className="flex gap-2 items-center">
                                 <input
-                                    ref={el => { newAttributeRefs.current[idx] = el; }}
+                                    ref={el => { newAttributeRefs.current[index] = el; }}
                                     type="text"
-                                    placeholder="Name"
                                     value={attr.name}
-                                    onChange={(e) => updateAttributeNew(idx, 'name', e.target.value)}
-                                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    onChange={(e) => updateAttributeNew(index, 'name', e.target.value)}
+                                    placeholder="Name"
+                                    className="block w-1/2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
                                     onKeyDown={(e) => {
-                                        if (!e.altKey && e.key !== 'Tab') e.stopPropagation();
+                                        e.stopPropagation();
                                         if (e.key === 'Enter') {
-                                            e.preventDefault();
                                             addAttributeNew();
                                         }
                                     }}
@@ -269,128 +230,104 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                 <input
                                     type="text"
                                     list="attribute-types"
-                                    placeholder="Type"
                                     value={attr.type}
-                                    onChange={(e) => updateAttributeNew(idx, 'type', e.target.value)}
-                                    className="w-1/3 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    onChange={(e) => updateAttributeNew(index, 'type', e.target.value)}
+                                    placeholder="Type"
+                                    className="block w-1/3 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
                                     onKeyDown={(e) => {
-                                        if (!e.altKey && e.key !== 'Tab') e.stopPropagation();
+                                        e.stopPropagation();
                                         if (e.key === 'Enter') {
-                                            e.preventDefault();
                                             addAttributeNew();
                                         }
                                     }}
                                 />
-                                <button onClick={() => removeAttributeNew(idx)} className="text-gray-400 hover:text-red-500">
-                                    <DeleteIcon className="text-sm" />
+                                <datalist id="attribute-types">
+                                    {attributeTypeOptions.map(type => (
+                                        <option key={type} value={type} />
+                                    ))}
+                                </datalist>
+                                <button
+                                    onClick={() => removeAttributeNew(index)}
+                                    className="text-red-500 hover:text-red-700"
+                                >
+                                    <CloseIcon className="w-4 h-4" />
                                 </button>
                             </div>
                         ))}
+                        <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); addAttributeNew(); }}
+                            className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center"
+                        >
+                            <AddIcon className="w-3 h-3 mr-1" /> Add Attribute
+                        </button>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">
                         <button
                             onClick={() => setIsAdding(false)}
-                            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded"
+                            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
                         >
                             Cancel
                         </button>
                         <button
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleAdd();
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleAdd();
-                                }
-                            }}
-                            disabled={!newDef.name.trim()}
-                            className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+                            onClick={handleSaveNew}
+                            className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
                         >
-                            Add
+                            Save
                         </button>
                     </div>
                 </div>
-            ) : (
-                <button
-                    onClick={() => setIsAdding(true)}
-                    className="w-full py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-indigo-500 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
-                >
-                    <PlusIcon className="text-base" />
-                    Add New Entity
-                </button>
             )}
 
             {/* List */}
-            <div className="space-y-3">
-                {definitions.map((def) => (
-                    <div
-                        key={def.id}
-                        className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-indigo-200 transition-colors group"
-                    >
+            <div className="space-y-2">
+                {definitions.map(def => (
+                    <div key={def.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                         {editingId === def.id ? (
                             <div className="space-y-3">
-                                <input
-                                    type="text"
-                                    value={editDef.name}
-                                    onChange={(e) => setEditDef({ ...editDef, name: e.target.value })}
-                                    className="w-full px-2 py-1 text-sm border border-indigo-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
-                                    onKeyDown={(e) => { if (!e.altKey && e.key !== 'Tab') e.stopPropagation(); }}
-                                />
                                 <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={editDef.name || ''}
+                                        onChange={(e) => setEditDef({ ...editDef, name: e.target.value })}
+                                        className="block w-1/3 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
+                                        onKeyDown={(e) => e.stopPropagation()}
+                                    />
                                     <select
                                         value={editDef.type}
                                         onChange={(e) => setEditDef({ ...editDef, type: e.target.value as DefinitionType })}
-                                        className="w-1/3 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
-                                        onKeyDown={(e) => { if (!e.altKey && e.key !== 'Tab') e.stopPropagation(); }}
+                                        className="block w-1/3 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                        onKeyDown={(e) => e.stopPropagation()}
                                     >
-                                        {Object.values(DefinitionType).sort().map(type => (
-                                            <option key={type} value={type}>{type}</option>
-                                        ))}
+                                        <option value={DefinitionType.Entity}>Entity</option>
+                                        <option value={DefinitionType.ValueObject}>Value Object</option>
+                                        <option value={DefinitionType.Enum}>Enum</option>
                                     </select>
-                                    <input
-                                        type="text"
-                                        value={editDef.description}
-                                        onChange={(e) => setEditDef({ ...editDef, description: e.target.value })}
-                                        className="w-2/3 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        placeholder="Description"
-                                        onKeyDown={(e) => { if (!e.altKey && e.key !== 'Tab') e.stopPropagation(); }}
-                                    />
                                 </div>
+                                <input
+                                    type="text"
+                                    value={editDef.description || ''}
+                                    onChange={(e) => setEditDef({ ...editDef, description: e.target.value })}
+                                    placeholder="Description"
+                                    className="block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                />
 
-                                {/* Edit Attributes */}
-                                <div className="space-y-2 bg-gray-50 p-2 rounded">
-                                    <div className="flex justify-between items-center">
-                                        <label className="text-xs font-semibold text-gray-500 uppercase">Attributes</label>
-                                        <button
-                                            onClick={addAttributeEdit}
-                                            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    addAttributeEdit();
-                                                }
-                                            }}
-                                        >+ Add</button>
-                                    </div>
-                                    {editDef.attributes?.map((attr, idx) => (
-                                        <div key={idx} className="flex gap-2 items-center">
+                                {/* Attributes (Edit) */}
+                                <div className="space-y-2">
+                                    <div className="text-xs font-medium text-gray-500 uppercase">Attributes</div>
+                                    {editDef.attributes?.map((attr, index) => (
+                                        <div key={index} className="flex gap-2 items-center">
                                             <input
-                                                ref={el => { editAttributeRefs.current[idx] = el; }}
+                                                ref={el => { editAttributeRefs.current[index] = el; }}
                                                 type="text"
                                                 value={attr.name}
-                                                onChange={(e) => updateAttributeEdit(idx, 'name', e.target.value)}
-                                                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                onChange={(e) => updateAttributeEdit(index, 'name', e.target.value)}
                                                 placeholder="Name"
+                                                className="block w-1/2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
                                                 onKeyDown={(e) => {
-                                                    if (!e.altKey && e.key !== 'Tab') e.stopPropagation();
+                                                    e.stopPropagation();
                                                     if (e.key === 'Enter') {
-                                                        e.preventDefault();
                                                         addAttributeEdit();
                                                     }
                                                 }}
@@ -399,53 +336,83 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                 type="text"
                                                 list="attribute-types"
                                                 value={attr.type}
-                                                onChange={(e) => updateAttributeEdit(idx, 'type', e.target.value)}
-                                                className="w-1/3 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                onChange={(e) => updateAttributeEdit(index, 'type', e.target.value)}
                                                 placeholder="Type"
+                                                className="block w-1/3 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
                                                 onKeyDown={(e) => {
-                                                    if (!e.altKey && e.key !== 'Tab') e.stopPropagation();
+                                                    e.stopPropagation();
                                                     if (e.key === 'Enter') {
-                                                        e.preventDefault();
                                                         addAttributeEdit();
                                                     }
                                                 }}
                                             />
-                                            <button onClick={() => removeAttributeEdit(idx)} className="text-gray-400 hover:text-red-500">
-                                                <DeleteIcon className="text-xs" />
+                                            <button
+                                                onClick={() => removeAttributeEdit(index)}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                <CloseIcon className="w-4 h-4" />
                                             </button>
                                         </div>
                                     ))}
+                                    <button
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); addAttributeEdit(); }}
+                                        className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center"
+                                    >
+                                        <AddIcon className="w-3 h-3 mr-1" /> Add Attribute
+                                    </button>
                                 </div>
 
                                 <div className="flex justify-end gap-2">
-                                    <button onClick={() => setEditingId(null)} className="text-gray-500 hover:text-gray-700 text-sm">Cancel</button>
-                                    <button onClick={saveEdit} className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">Save</button>
+                                    <button
+                                        onClick={() => setEditingId(null)}
+                                        className="p-1 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <CloseIcon className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={saveEditing}
+                                        className="p-1 text-green-600 hover:text-green-800"
+                                    >
+                                        <CheckIcon className="w-5 h-5" />
+                                    </button>
                                 </div>
                             </div>
                         ) : (
                             <div>
-                                <div className="flex justify-between items-start mb-1">
+                                <div className="flex justify-between items-start">
                                     <div>
-                                        <h4 className="text-sm font-semibold text-gray-900">{def.name}</h4>
-                                        <span className={`text-xs px-1.5 py-0.5 rounded ${def.type === DefinitionType.Entity ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
-                                            {def.type}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-gray-900">{def.name}</span>
+                                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${def.type === DefinitionType.Entity ? 'bg-blue-100 text-blue-800' :
+                                                def.type === DefinitionType.ValueObject ? 'bg-green-100 text-green-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {def.type}
+                                            </span>
+                                        </div>
+                                        {def.description && (
+                                            <p className="text-sm text-gray-500 mt-1">{def.description}</p>
+                                        )}
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => startEditing(def)} className="p-1 text-gray-400 hover:text-indigo-600">
-                                            <EditIcon className="text-base" />
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={() => startEditing(def)}
+                                            className="p-1 text-gray-400 hover:text-indigo-600"
+                                        >
+                                            <EditIcon className="w-4 h-4" />
                                         </button>
-                                        <button onClick={() => onDeleteDefinition(def.id)} className="p-1 text-gray-400 hover:text-red-600">
-                                            <DeleteIcon className="text-base" />
+                                        <button
+                                            onClick={() => onRemoveDefinition(def.id)}
+                                            className="p-1 text-gray-400 hover:text-red-600"
+                                        >
+                                            <DeleteIcon className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
-                                {def.description && <p className="text-sm text-gray-600 mb-2">{def.description}</p>}
-
                                 {def.attributes && def.attributes.length > 0 && (
                                     <div className="mt-2 space-y-1">
                                         {def.attributes.map((attr, i) => (
-                                            <div key={i} className="flex justify-between text-xs text-gray-500 border-b border-gray-100 last:border-0 py-0.5">
+                                            <div key={i} className="text-xs text-gray-600 flex justify-between border-b border-gray-100 last:border-0 py-1">
                                                 <span>{attr.name}</span>
                                                 <span className="font-mono text-gray-400">{attr.type}</span>
                                             </div>
@@ -456,11 +423,6 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                         )}
                     </div>
                 ))}
-                {definitions.length === 0 && !isAdding && (
-                    <div className="text-center py-8 text-gray-400 text-sm">
-                        No entities yet.
-                    </div>
-                )}
             </div>
         </div>
     );

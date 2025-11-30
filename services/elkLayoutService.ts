@@ -2,9 +2,20 @@ import { Node, Link } from '../types';
 import { NODE_WIDTH } from '../constants';
 import { calculateNodeHeight } from '../utils/textUtils';
 
+// Singleton worker instance
+let layoutWorker: Worker | null = null;
+
+const getWorker = () => {
+    if (!layoutWorker) {
+        layoutWorker = new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' });
+    }
+    return layoutWorker;
+};
+
 export const calculateElkLayout = async (
     nodes: Node[],
-    links: Link[]
+    links: Link[],
+    options: any = {}
 ): Promise<Map<string, { x: number; y: number }>> => {
 
     return new Promise((resolve, reject) => {
@@ -12,7 +23,9 @@ export const calculateElkLayout = async (
         const workerNodes = nodes.map(node => ({
             id: node.id,
             width: NODE_WIDTH, // Fixed width
-            computedHeight: calculateNodeHeight(node.name)
+            computedHeight: calculateNodeHeight(node.name),
+            // Pass type for potential partitioning logic in worker
+            type: node.type
         }));
 
         // 2. Prepare Edges
@@ -22,12 +35,15 @@ export const calculateElkLayout = async (
             target: link.target
         }));
 
-        // 3. Initialize Worker
-        const worker = new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' });
+        // 3. Get Worker Instance
+        const worker = getWorker();
 
         // 4. Handle Worker Messages
-        worker.onmessage = (event: MessageEvent) => {
+        const handleMessage = (event: MessageEvent) => {
             const { type, positions, message } = event.data;
+
+            // Clean up listener to avoid memory leaks
+            worker.removeEventListener('message', handleMessage);
 
             if (type === 'SUCCESS') {
                 const positionMap = new Map<string, { x: number; y: number }>();
@@ -38,25 +54,18 @@ export const calculateElkLayout = async (
             } else if (type === 'ERROR') {
                 console.error("ELK Worker Error:", message);
                 reject(new Error(message));
-                worker.terminate();
             }
         };
 
-        worker.onerror = (error: ErrorEvent) => {
-            const errorMessage = error ? (error.message || String(error)) : 'Unknown worker error';
-            const errorFilename = error ? error.filename : 'N/A';
-            console.error("ELK Worker Script Error:", error);
-            reject(new Error(`Worker error: ${errorMessage} in ${errorFilename}`));
-            worker.terminate();
-        };
+        worker.addEventListener('message', handleMessage);
 
         // 5. Send Data to Worker
-        // We are not passing slices for now as per previous logic
         worker.postMessage({
             nodes: workerNodes,
             links: workerLinks,
-            slices: [],
-            direction: 'DOWN'
+            slices: [], // We might want to pass slices if we use them for partitioning
+            direction: 'DOWN',
+            globalOptions: options
         });
     });
 };

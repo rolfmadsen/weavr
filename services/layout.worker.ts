@@ -10,6 +10,8 @@ interface WorkerNode {
     x?: number;
     y?: number;
     computedHeight?: number; // Pre-calculated in main thread
+    type?: string; // For potential partitioning
+    layoutOptions?: any;
 }
 
 interface WorkerLink {
@@ -33,14 +35,15 @@ const elk = new ELK({
 });
 
 self.onmessage = async (e: MessageEvent) => {
-    console.log("ELK Worker received layout request", e.data);
+    // console.log("ELK Worker received layout request", e.data);
 
     // Destructure with default direction
-    const { nodes, links, slices, direction = 'DOWN' } = e.data as {
+    const { nodes, links, slices, direction = 'DOWN', globalOptions = {} } = e.data as {
         nodes: WorkerNode[],
         links: WorkerLink[],
         slices: WorkerSlice[],
-        direction?: string
+        direction?: string,
+        globalOptions?: any
     };
 
     try {
@@ -65,28 +68,47 @@ self.onmessage = async (e: MessageEvent) => {
             const parentSlice = slices.find(s => s.nodeIds.includes(node.id));
             const partitionIndex = parentSlice ? sliceIndexMap.get(parentSlice.id) : 0;
 
+            const isVertical = direction === 'DOWN';
+
+            // Dynamic Port Configuration
+            const ports: ElkPort[] = isVertical ? [
+                {
+                    id: `${node.id}_in`,
+                    width: 0, height: 0,
+                    x: width / 2, y: 0, // Top center
+                    layoutOptions: { 'elk.port.side': 'NORTH' }
+                },
+                {
+                    id: `${node.id}_out`,
+                    width: 0, height: 0,
+                    x: width / 2, y: height, // Bottom center
+                    layoutOptions: { 'elk.port.side': 'SOUTH' }
+                }
+            ] : [
+                {
+                    id: `${node.id}_in`,
+                    width: 0, height: 0,
+                    x: 0, y: height / 2, // Left center
+                    layoutOptions: { 'elk.port.side': 'WEST' }
+                },
+                {
+                    id: `${node.id}_out`,
+                    width: 0, height: 0,
+                    x: width, y: height / 2, // Right center
+                    layoutOptions: { 'elk.port.side': 'EAST' }
+                }
+            ];
+
             return {
                 id: node.id,
                 width: width,
                 height: height,
                 layoutOptions: {
                     'org.eclipse.elk.partitioning.partition': partitionIndex?.toString() || "0",
-                    'elk.portConstraints': 'FIXED_SIDE'
+                    'elk.portConstraints': 'FIXED_POS',
+                    ...node.layoutOptions
                 },
-                ports: [
-                    {
-                        id: `${node.id}_in`,
-                        width: 0, height: 0,
-                        x: 0, y: height / 2,
-                        layoutOptions: { 'elk.port.side': 'WEST' }
-                    } as ElkPort,
-                    {
-                        id: `${node.id}_out`,
-                        width: 0, height: 0,
-                        x: NODE_WIDTH, y: height / 2,
-                        layoutOptions: { 'elk.port.side': 'EAST' }
-                    } as ElkPort
-                ]
+                ports: ports
             };
         };
 
@@ -109,21 +131,32 @@ self.onmessage = async (e: MessageEvent) => {
             });
         });
 
-        // 6. Define Root Graph
+        // 6. Define Root Graph Options (Gold Standard)
+        const defaultOptions = {
+            'elk.algorithm': 'layered',
+            'elk.direction': direction,
+            'org.eclipse.elk.partitioning.activate': 'true',
+
+            // Spacing (The "Air" in the graph)
+            'elk.spacing.nodeNode': '40', // Horizontal gap
+            'elk.layered.spacing.nodeNodeBetweenLayers': '60', // Vertical gap
+            'elk.spacing.edgeNode': '20',
+
+            'elk.edgeRouting': 'ORTHOGONAL',
+            'elk.layered.mergeEdges': 'false',
+            'elk.layered.crossingMinimization.strategy': 'INTERACTIVE',
+
+            'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+            'elk.layered.nodePlacement.bk.edgeStraightening': 'MAXIMIZE_STRAIGHTNESS',
+            'elk.layered.nodePlacement.favorStraightEdges': 'true',
+            'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED'
+        };
+
+        const finalOptions = { ...defaultOptions, ...globalOptions };
+
         const rootGraph: ElkNode = {
             id: 'root',
-            layoutOptions: {
-                'elk.algorithm': 'layered',
-                'elk.direction': direction,
-                'org.eclipse.elk.partitioning.activate': 'true',
-                'elk.spacing.nodeNode': '80',
-                'elk.layered.spacing.nodeNodeBetweenLayers': '100',
-                'elk.edgeRouting': 'ORTHOGONAL',
-                'elk.layered.mergeEdges': 'true',
-                'elk.layered.crossingMinimization.strategy': 'INTERACTIVE',
-                // This fixes the "Staircase" effect
-                'elk.layered.nodePlacement.strategy': 'LINEAR_SEGMENTS'
-            },
+            layoutOptions: finalOptions,
             children: elkChildren,
             edges: elkEdges
         };

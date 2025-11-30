@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Slice, DataDefinition } from '../types';
-import { DeleteIcon, EditIcon, CheckIcon, CloseIcon } from './icons';
+import {
+    Delete as DeleteIcon,
+    Edit as EditIcon,
+    Check as CheckIcon,
+    Close as CloseIcon
+} from '@mui/icons-material';
 import SmartSelect from './SmartSelect';
 import { useCrossModelData } from '../hooks/useCrossModelData';
 
@@ -24,7 +29,7 @@ const SliceList: React.FC<SliceListProps> = ({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
-    const { crossModelSlices, isLoading } = useCrossModelData(modelId);
+    const { crossModelSlices } = useCrossModelData(modelId);
 
     const handleAdd = (title: string) => {
         if (title.trim()) {
@@ -60,35 +65,41 @@ const SliceList: React.FC<SliceListProps> = ({
         setEditName('');
     };
 
-    const options = useMemo(() => {
-        // Filter out slices that are already in the current model
-        const currentTitles = new Set(slices.map(s => s.title?.toLowerCase()));
+    const remoteSliceOptions = useMemo(() => {
+        const localTitles = new Set(slices.map(s => (s.title || '').toLowerCase()));
         return crossModelSlices
-            .filter(s => !currentTitles.has(s.label.toLowerCase()))
+            .filter(s => !localTitles.has(s.label.toLowerCase()))
             .map(s => ({
                 id: s.id,
                 label: s.label,
                 subLabel: `From ${s.modelName}`,
-                group: 'Suggestions'
+                group: 'Suggestions',
+                originalData: s
             }));
     }, [crossModelSlices, slices]);
+
+    const handleAddSlice = (idOrName: string, option?: any) => {
+        if (option) {
+            // Selected an existing option (remote slice)
+            handleAdd(option.label);
+        } else if (idOrName) {
+            // Created a new custom value
+            handleAdd(idOrName);
+        }
+    };
 
     return (
         <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
             {/* Add New Slice */}
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
                 <div className="flex-1">
                     <SmartSelect
-                        options={options}
-                        value={undefined}
-                        onChange={(_id, option) => {
-                            if (option) {
-                                handleAdd(option.label);
-                            }
-                        }}
-                        onCreate={handleAdd}
-                        placeholder={isLoading ? "Loading suggestions..." : "New Slice Name..."}
-                        autoFocus={true}
+                        options={remoteSliceOptions}
+                        value=""
+                        onChange={handleAddSlice}
+                        onCreate={(name) => handleAdd(name)}
+                        placeholder="Add or import slice..."
+                        allowCustomValue={false}
                     />
                 </div>
             </div>
@@ -108,6 +119,7 @@ const SliceList: React.FC<SliceListProps> = ({
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
                                         onKeyDown={(e) => {
+                                            e.stopPropagation();
                                             if (e.key === 'Enter') saveEdit();
                                             if (e.key === 'Escape') cancelEdit();
                                         }}

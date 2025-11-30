@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import GraphCanvasKonva from './components/GraphCanvasKonva';
+import SliceFilter from './components/SliceFilter';
 import Toolbar from './components/Toolbar';
 import Sidebar from './components/Sidebar';
 import SliceList from './components/SliceList';
@@ -12,7 +13,11 @@ import HelpModal from './components/HelpModal';
 import WelcomeModal from './components/WelcomeModal';
 import ModelListModal from './components/ModelListModal';
 
-import { Node, Link, ElementType, ModelData } from './types';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from './src/theme';
+
+import { Node, Link, ElementType, DataDefinition, ModelData } from './types';
 import validationService from './services/validationService';
 import gunService from './services/gunService';
 import { useGunState } from './hooks/useGunState';
@@ -37,6 +42,7 @@ const App: React.FC = () => {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [isModelListOpen, setIsModelListOpen] = useState(false);
+  const [filteredSliceIds, setFilteredSliceIds] = useState<string[]>([]);
 
   // --- Sidebar Management ---
   const [sidebarView, setSidebarView] = useState<'properties' | 'slices' | 'dictionary' | null>(null);
@@ -96,10 +102,10 @@ const App: React.FC = () => {
     return definitions;
   }, [definitions]);
 
-  const handleAddDefinition = (def: any) => {
-    return addDefinition(def);
+  const handleAddDefinition = (def: Omit<DataDefinition, 'id'>) => {
+    const newDefId = addDefinition(def);
+    return newDefId || '';
   };
-
   const handleUpdateDefinition = (id: string, updates: any) => {
     updateDefinition(id, updates);
   };
@@ -534,10 +540,10 @@ const App: React.FC = () => {
     return selectedLinkId ? [...selectedNodeIdsArray, selectedLinkId] : selectedNodeIdsArray;
   }, [selectedNodeIdsArray, selectedLinkId]);
 
-  const handleAddSlice = useCallback((title: string) => {
-    return addSlice(title, slices.length);
-  }, [addSlice, slices.length]);
-
+  const handleAddSlice = (title: string) => {
+    const newSliceId = addSlice(title, slices.length);
+    return newSliceId || '';
+  };
 
 
   const handleCloseSidebar = () => {
@@ -546,107 +552,129 @@ const App: React.FC = () => {
     selectLink(''); // Assuming selectLink expects a string, passing empty string to clear
   };
 
+  // --- Filtering Logic ---
+  const filteredNodes = useMemo(() => {
+    if (filteredSliceIds.length === 0) return nodes;
+
+    // Filter nodes based on node.sliceId matching one of the filteredSliceIds
+    return nodes.filter(node => node.sliceId && filteredSliceIds.includes(node.sliceId));
+  }, [nodes, filteredSliceIds]);
+
+  const filteredLinks = useMemo(() => {
+    if (filteredSliceIds.length === 0) return links;
+    const nodeIds = new Set(filteredNodes.map(n => n.id));
+    return links.filter(link => nodeIds.has(link.source) && nodeIds.has(link.target));
+  }, [links, filteredNodes, filteredSliceIds]);
+
   // --- Render ---
   return (
-    <div className="w-screen h-[100dvh] overflow-hidden relative font-sans">
-      <Header
-        onImport={handleImport}
-        onExport={handleExport}
-        onOpenHelp={() => setIsHelpModalOpen(true)}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={undo}
-        onRedo={redo}
-        onAutoLayout={handleAutoLayout}
-        onOpenModelList={() => setIsModelListOpen(true)}
-        currentModelName={currentModelName}
-        onRenameModel={handleRenameModel}
-      />
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div className="w-screen h-[100dvh] overflow-hidden relative font-sans bg-gray-50">
+        <Header
+          onImport={handleImport}
+          onExport={handleExport}
+          onOpenHelp={() => setIsHelpModalOpen(true)}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          onAutoLayout={handleAutoLayout}
+          onOpenModelList={() => setIsModelListOpen(true)}
+          currentModelName={currentModelName}
+          onRenameModel={handleRenameModel}
+        />
 
+        <div className={isLayoutLoading ? 'cursor-wait' : ''}></div>
 
-      <div className={isLayoutLoading ? 'cursor-wait' : ''}></div>
-      <GraphCanvasKonva
-        nodes={nodes}
-        links={links}
-        selectedIds={selectedIds}
-        edgeRoutes={autoLayoutEdges}
-        onNodeClick={handleNodeClick}
-        onLinkClick={handleLinkClick}
-        onNodeDoubleClick={handleNodeDoubleClick}
-        onLinkDoubleClick={handleLinkDoubleClick}
-        onNodesDrag={handleNodesDrag}
-        onAddLink={handleAddLink}
-        onCanvasClick={handleCanvasClick}
-        onMarqueeSelect={handleMarqueeSelect}
-        onValidateConnection={handleValidateConnection}
-        onViewChange={setViewState}
-        ref={graphRef}
-      />
+        <SliceFilter
+          slices={slices}
+          selectedSliceIds={filteredSliceIds}
+          onChange={setFilteredSliceIds}
+        />
 
-      <Toolbar
-        onAddNode={handleAddNode}
-        disabled={!isReady}
-        isMenuOpen={isToolbarOpen}
-        onToggleMenu={() => setIsToolbarOpen(prev => !prev)}
-      />
+        <GraphCanvasKonva
+          nodes={filteredNodes}
+          links={filteredLinks}
+          selectedIds={selectedIds}
+          edgeRoutes={autoLayoutEdges}
+          onNodeClick={handleNodeClick}
+          onLinkClick={handleLinkClick}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          onLinkDoubleClick={handleLinkDoubleClick}
+          onNodesDrag={handleNodesDrag}
+          onAddLink={handleAddLink}
+          onCanvasClick={handleCanvasClick}
+          onMarqueeSelect={handleMarqueeSelect}
+          onValidateConnection={handleValidateConnection}
+          onViewChange={setViewState}
+          ref={graphRef}
+        />
 
-      <Sidebar
-        isOpen={!!sidebarView}
-        onClose={handleCloseSidebar}
-        title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
-        activeTab={sidebarView || 'properties'}
-        onTabChange={(tab) => setSidebarView(tab as any)}
-        tabs={[
-          { id: 'properties', label: 'Properties', title: 'Alt + P' },
-          { id: 'slices', label: 'Slices', title: 'Alt + S' },
-          { id: 'dictionary', label: 'Dictionary', title: 'Alt + D' }
-        ]}
-      >
-        {sidebarView === 'properties' && (
-          <PropertiesPanel
-            selectedItem={selectedItemData}
-            onUpdateNode={handleUpdateNode}
-            onUpdateLink={handleUpdateLink}
-            onDeleteLink={handleDeleteLink}
-            onDeleteNode={handleDeleteNode}
-            slices={slices}
-            onAddSlice={handleAddSlice}
-            focusOnRender={focusOnRender}
-            onFocusHandled={handleFocusHandled}
-            definitions={definitionsArray}
-            onAddDefinition={handleAddDefinition}
-            modelId={modelId}
-          />
-        )}
-        {sidebarView === 'slices' && (
-          <SliceList
-            slices={slices}
-            definitions={definitionsArray}
-            onAddSlice={addSlice}
-            onUpdateSlice={updateSlice}
-            onDeleteSlice={deleteSlice}
-            modelId={modelId}
-          />
-        )}
-        {sidebarView === 'dictionary' && (
-          <DataDictionaryList
-            definitions={definitionsArray}
-            slices={slices}
-            onAddDefinition={handleAddDefinition}
-            onUpdateDefinition={handleUpdateDefinition}
-            onDeleteDefinition={handleDeleteDefinition}
-            modelId={modelId}
-          />
-        )}
-      </Sidebar>
+        <Toolbar
+          onAddNode={handleAddNode}
+          disabled={!isReady}
+          isMenuOpen={isToolbarOpen}
+          onToggleMenu={() => setIsToolbarOpen(prev => !prev)}
+        />
 
-      <WelcomeModal isOpen={isWelcomeModalOpen} onClose={handleCloseWelcomeModal} />
-      <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
-      <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
+        <Sidebar
+          isOpen={!!sidebarView}
+          onClose={handleCloseSidebar}
+          title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
+          activeTab={sidebarView || 'properties'}
+          onTabChange={(tab) => setSidebarView(tab as any)}
+          tabs={[
+            { id: 'properties', label: 'Properties', title: 'Alt + P' },
+            { id: 'slices', label: 'Slices', title: 'Alt + S' },
+            { id: 'dictionary', label: 'Dictionary', title: 'Alt + D' }
+          ]}
+        >
+          {sidebarView === 'properties' && (
+            <PropertiesPanel
+              selectedItem={selectedItemData}
+              onUpdateNode={handleUpdateNode}
+              onUpdateLink={handleUpdateLink}
+              onDeleteLink={handleDeleteLink}
+              onDeleteNode={handleDeleteNode}
+              slices={slices}
+              onAddSlice={handleAddSlice}
+              focusOnRender={focusOnRender}
+              onFocusHandled={handleFocusHandled}
+              definitions={definitionsArray}
+              onAddDefinition={handleAddDefinition}
+              modelId={modelId}
+            />
+          )}
+          {sidebarView === 'slices' && (
+            <SliceList
+              slices={slices}
+              definitions={definitionsArray}
+              onAddSlice={addSlice}
+              onUpdateSlice={updateSlice}
+              onDeleteSlice={deleteSlice}
+              modelId={modelId}
+            />
+          )}
+          {sidebarView === 'dictionary' && (
+            <DataDictionaryList
+              definitions={definitions}
+              onAddDefinition={handleAddDefinition}
+              onUpdateDefinition={handleUpdateDefinition}
+              onRemoveDefinition={handleDeleteDefinition}
+              modelId={modelId}
+            />
+          )}
+        </Sidebar>
 
-      <Footer />
-    </div >
+        <WelcomeModal isOpen={isWelcomeModalOpen} onClose={handleCloseWelcomeModal} />
+        <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
+        <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
+
+        <Footer />
+      </div>
+    </ThemeProvider>
   );
-};
+}
 
 export default App;

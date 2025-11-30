@@ -68,7 +68,7 @@ function calculatePoints(sNode: { x: number, y: number, h?: number }, tNode: { x
         p1 = { x: sx, y: sy + Math.sign(dy) * sourceH2 };
         p4 = { x: tx, y: ty - Math.sign(dy) * targetH2 };
         const gridSize = GRID_SIZE || 20;
-        const midY = Math.round((sy + dy / 2) / gridSize) * gridSize;
+        const midY = Math.round(((p1.y + p4.y) / 2) / gridSize) * gridSize;
         p2 = { x: p1.x, y: midY };
         p3 = { x: p4.x, y: midY };
     }

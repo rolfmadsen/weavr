@@ -1,5 +1,14 @@
-import React, { useEffect, useRef } from 'react';
-import { CloseIcon } from './icons';
+import React, { useEffect } from 'react';
+import {
+    Drawer,
+    Box,
+    IconButton,
+    Tabs,
+    Tab,
+    Typography,
+    useTheme
+} from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -20,12 +29,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     onTabChange,
     tabs
 }) => {
+    const theme = useTheme();
 
-
-    const sidebarRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLDivElement>(null);
-
-    // Close on ESC key
+    // Close on ESC key (Drawer handles this by default for 'temporary' variant, but we use 'persistent')
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && isOpen) {
@@ -37,78 +43,71 @@ const Sidebar: React.FC<SidebarProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
-    // Strict Focus Cycling
-    useEffect(() => {
-        const handleTabKey = (e: KeyboardEvent) => {
-            if (!isOpen || e.key !== 'Tab' || !contentRef.current) return;
-
-            const focusableElements = Array.from(contentRef.current.querySelectorAll(
-                'button:not([tabindex="-1"]), [href]:not([tabindex="-1"]), input:not([tabindex="-1"]), select:not([tabindex="-1"]), textarea:not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])'
-            )) as HTMLElement[];
-
-            if (focusableElements.length === 0) return;
-
-            e.preventDefault(); // Always prevent default to keep focus strictly inside
-
-            const activeElement = document.activeElement as HTMLElement;
-            const currentIndex = focusableElements.indexOf(activeElement);
-
-            let nextIndex;
-            if (e.shiftKey) {
-                // Shift + Tab: Previous element
-                nextIndex = currentIndex > 0 ? currentIndex - 1 : focusableElements.length - 1;
-            } else {
-                // Tab: Next element
-                nextIndex = currentIndex < focusableElements.length - 1 ? currentIndex + 1 : 0;
-            }
-
-            focusableElements[nextIndex].focus();
-        };
-
-        window.addEventListener('keydown', handleTabKey);
-        return () => window.removeEventListener('keydown', handleTabKey);
-    }, [isOpen]);
-
-    if (!isOpen) return null;
+    const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
+        onTabChange?.(newValue);
+    };
 
     return (
-        <div ref={sidebarRef} className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col border-l border-gray-200">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                <div className="flex items-center space-x-4">
+        <Drawer
+            anchor="right"
+            variant="persistent"
+            open={isOpen}
+            sx={{
+                width: 384,
+                flexShrink: 0,
+                '& .MuiDrawer-paper': {
+                    width: 384,
+                    boxSizing: 'border-box',
+                    boxShadow: theme.shadows[4],
+                    borderLeft: `1px solid ${theme.palette.divider}`
+                },
+            }}
+        >
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                {/* Header */}
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 2,
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper'
+                }}>
                     {tabs && tabs.length > 0 ? (
-                        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                        <Tabs
+                            value={activeTab}
+                            onChange={handleTabChange}
+                            variant="scrollable"
+                            scrollButtons="auto"
+                            sx={{ minHeight: 48 }}
+                        >
                             {tabs.map(tab => (
-                                <button
+                                <Tab
                                     key={tab.id}
-                                    onClick={() => onTabChange?.(tab.id)}
+                                    value={tab.id}
+                                    label={tab.label}
                                     title={tab.title}
-                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === tab.id
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    {tab.label}
-                                </button>
+                                    sx={{ minHeight: 48, textTransform: 'none', fontWeight: 500 }}
+                                />
                             ))}
-                        </div>
+                        </Tabs>
                     ) : (
-                        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            {title}
+                        </Typography>
                     )}
-                </div>
-                <button
-                    onClick={onClose}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                    <CloseIcon className="text-xl" />
-                </button>
-            </div>
+                    <IconButton onClick={onClose} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
 
-            {/* Content */}
-            <div ref={contentRef} className="flex-1 overflow-y-auto p-4">
-                {children}
-            </div>
-        </div>
+                {/* Content */}
+                <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+                    {children}
+                </Box>
+            </Box>
+        </Drawer>
     );
 };
 
