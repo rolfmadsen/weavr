@@ -161,10 +161,19 @@ const App: React.FC = () => {
 
   // --- Handlers ---
 
+  const lastFocusedElementRef = React.useRef<HTMLElement | null>(null);
+
   const handleClosePanel = useCallback(() => {
-    if (document.activeElement) {
-      (document.activeElement as HTMLElement).blur();
+    // Restore focus
+    if (lastFocusedElementRef.current && document.body.contains(lastFocusedElementRef.current)) {
+      lastFocusedElementRef.current.focus();
+    } else {
+      // Fallback: blur active element if we can't restore
+      if (document.activeElement) {
+        (document.activeElement as HTMLElement).blur();
+      }
     }
+    lastFocusedElementRef.current = null;
 
     setSidebarView(null);
   }, []);
@@ -189,6 +198,12 @@ const App: React.FC = () => {
       addToHistory({ type: 'ADD_NODE', payload: { id, type, x: manualX, y: manualY }, undoPayload: { id } });
       selectNode(id);
       selectNode(id);
+
+      // Capture focus before opening
+      if (document.activeElement instanceof HTMLElement) {
+        lastFocusedElementRef.current = document.activeElement;
+      }
+
       setSidebarView('properties');
       setFocusOnRender(true);
       setIsToolbarOpen(false);
@@ -275,8 +290,13 @@ const App: React.FC = () => {
     }
     selectNode(node.id);
 
+    // Capture focus (if not already open/captured)
+    if (!sidebarView && document.activeElement instanceof HTMLElement) {
+      lastFocusedElementRef.current = document.activeElement;
+    }
+
     setIsToolbarOpen(false);
-  }, [selectedNodeIds, selectNode]);
+  }, [selectedNodeIds, selectNode, sidebarView]);
 
   const handleFocusNode = useCallback(() => {
     if (selectedNodeIds.length === 1 && graphRef.current) {
@@ -350,11 +370,24 @@ const App: React.FC = () => {
     onClosePanel: handleClosePanel,
     onToggleToolbar: () => setIsToolbarOpen(prev => !prev),
     onOpenPropertiesPanel: () => {
+      if (!sidebarView && document.activeElement instanceof HTMLElement) {
+        lastFocusedElementRef.current = document.activeElement;
+      }
       setSidebarView('properties');
       setFocusOnRender(true);
     },
-    onOpenSlices: () => setSidebarView('slices'),
-    onOpenDictionary: () => setSidebarView('dictionary'),
+    onOpenSlices: () => {
+      if (!sidebarView && document.activeElement instanceof HTMLElement) {
+        lastFocusedElementRef.current = document.activeElement;
+      }
+      setSidebarView('slices');
+    },
+    onOpenDictionary: () => {
+      if (!sidebarView && document.activeElement instanceof HTMLElement) {
+        lastFocusedElementRef.current = document.activeElement;
+      }
+      setSidebarView('dictionary');
+    },
     onSelectNode: handleNodeClick,
     onAddNode: handleAddNode,
     onMoveNodes: (updates) => {
@@ -377,23 +410,41 @@ const App: React.FC = () => {
   const handleLinkClick = useCallback((link: Link) => {
     selectLink(link.id);
 
+    // Capture focus
+    if (!sidebarView && document.activeElement instanceof HTMLElement) {
+      lastFocusedElementRef.current = document.activeElement;
+    }
+
     setIsToolbarOpen(false);
-  }, [selectLink]);
+  }, [selectLink, sidebarView]);
 
   const handleNodeDoubleClick = useCallback((node: Node) => {
     selectNode(node.id);
+
+    if (document.activeElement instanceof HTMLElement) {
+      lastFocusedElementRef.current = document.activeElement;
+    }
+
     setSidebarView('properties');
     setFocusOnRender(true);
   }, [selectNode]);
 
   const handleLinkDoubleClick = useCallback((link: Link) => {
     selectLink(link.id);
+
+    if (document.activeElement instanceof HTMLElement) {
+      lastFocusedElementRef.current = document.activeElement;
+    }
+
     setSidebarView('properties');
   }, [selectLink]);
 
   const handleMarqueeSelect = useCallback((nodeIds: string[]) => {
     setSelection(nodeIds);
     if (nodeIds.length > 0) {
+      if (!sidebarView && document.activeElement instanceof HTMLElement) {
+        lastFocusedElementRef.current = document.activeElement;
+      }
       setSidebarView('properties');
 
     } else {
@@ -423,6 +474,11 @@ const App: React.FC = () => {
         undoPayload: { id }
       });
       selectLink(id);
+
+      if (document.activeElement instanceof HTMLElement) {
+        lastFocusedElementRef.current = document.activeElement;
+      }
+
       setSidebarView('properties');
     }
   }, [nodes, links, modelId, gunAddLink, addToHistory, selectLink]);

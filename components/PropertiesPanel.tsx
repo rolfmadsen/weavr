@@ -206,7 +206,10 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
           margin="normal"
           size="small"
           inputRef={nameInputRef}
-          onKeyDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') return;
+            e.stopPropagation();
+          }}
         />
         <TextField
           label="Description"
@@ -217,7 +220,10 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
           size="small"
           multiline
           rows={3}
-          onKeyDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') return;
+            e.stopPropagation();
+          }}
         />
 
         <FormControl fullWidth margin="normal" size="small">
@@ -325,7 +331,10 @@ const LinkProperties: React.FC<LinkPropertiesProps> = ({ link, onUpdateLink, onD
           margin="normal"
           size="small"
           inputRef={nameInputRef}
-          onKeyDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') return;
+            e.stopPropagation();
+          }}
         />
       </Box>
 
@@ -480,6 +489,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   useEffect(() => {
     if (focusOnRender && nameInputRef.current) {
       nameInputRef.current.focus();
+      nameInputRef.current.select();
       onFocusHandled?.();
     }
   }, [focusOnRender, onFocusHandled, selectedItem]);

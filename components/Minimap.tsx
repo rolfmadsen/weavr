@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Stage, Layer, Rect, Group } from 'react-konva';
-import Konva from 'konva';
 import { Node, Slice } from '../types';
 import { NODE_WIDTH, MIN_NODE_HEIGHT } from '../constants';
 
@@ -32,7 +31,7 @@ const Minimap: React.FC<MinimapProps> = ({
     const padding = 30;
 
     // 1. Beregn grænser, skala og viewport i én samlet operation
-    const { scale, minX, minY, contentWidth, contentHeight, viewport } = useMemo(() => {
+    const { scale, minX, minY, contentWidth, contentHeight, viewport, isAllVisible } = useMemo(() => {
         // Beregn Viewport i 'World Coordinates'
         const vx = -stagePos.x / stageScale;
         const vy = -stagePos.y / stageScale;
@@ -41,6 +40,36 @@ const Minimap: React.FC<MinimapProps> = ({
 
         const currentViewport = { x: vx, y: vy, width: vw, height: vh };
 
+        // Calculate node bounds separately to check visibility
+        let nodesMinX = Infinity;
+        let nodesMinY = Infinity;
+        let nodesMaxX = -Infinity;
+        let nodesMaxY = -Infinity;
+        let hasNodes = false;
+
+        if (nodes.length > 0) {
+            hasNodes = true;
+            nodes.forEach(node => {
+                const pos = showSlices
+                    ? swimlanePositions.get(node.id) || { x: node.x || 0, y: node.y || 0 }
+                    : { x: node.fx ?? node.x ?? 0, y: node.fy ?? node.y ?? 0 };
+
+                nodesMinX = Math.min(nodesMinX, pos.x);
+                nodesMinY = Math.min(nodesMinY, pos.y);
+                nodesMaxX = Math.max(nodesMaxX, pos.x + NODE_WIDTH);
+                nodesMaxY = Math.max(nodesMaxY, pos.y + MIN_NODE_HEIGHT);
+            });
+        }
+
+        // Check visibility BEFORE expanding bounds with viewport
+        // If no nodes, we consider them "all visible" (nothing to scroll to)
+        const isAllVisible = !hasNodes || (
+            nodesMinX >= vx &&
+            nodesMinY >= vy &&
+            nodesMaxX <= (vx + vw) &&
+            nodesMaxY <= (vy + vh)
+        );
+
         // Start grænserne med viewporten (så den altid er synlig)
         let minX = vx;
         let minY = vy;
@@ -48,17 +77,11 @@ const Minimap: React.FC<MinimapProps> = ({
         let maxY = vy + vh;
 
         // Udvid grænserne med noderne
-        if (nodes.length > 0) {
-            nodes.forEach(node => {
-                const pos = showSlices
-                    ? swimlanePositions.get(node.id) || { x: node.x || 0, y: node.y || 0 }
-                    : { x: node.fx ?? node.x ?? 0, y: node.fy ?? node.y ?? 0 };
-
-                minX = Math.min(minX, pos.x);
-                minY = Math.min(minY, pos.y);
-                maxX = Math.max(maxX, pos.x + NODE_WIDTH);
-                maxY = Math.max(maxY, pos.y + MIN_NODE_HEIGHT);
-            });
+        if (hasNodes) {
+            minX = Math.min(minX, nodesMinX);
+            minY = Math.min(minY, nodesMinY);
+            maxX = Math.max(maxX, nodesMaxX);
+            maxY = Math.max(maxY, nodesMaxY);
         }
 
         // Tilføj padding
@@ -73,7 +96,7 @@ const Minimap: React.FC<MinimapProps> = ({
         const safeHeight = Math.max(contentHeight, 1);
         const scale = Math.min(width / safeWidth, height / safeHeight);
 
-        return { scale, minX, minY, contentWidth, contentHeight, viewport: currentViewport };
+        return { scale, minX, minY, contentWidth, contentHeight, viewport: currentViewport, isAllVisible };
     }, [nodes, showSlices, swimlanePositions, stageScale, stagePos, viewportWidth, viewportHeight]);
 
     // Håndter klik på baggrunden (hop til punkt)
@@ -98,27 +121,11 @@ const Minimap: React.FC<MinimapProps> = ({
         onNavigate(newX, newY);
     };
 
-    // 2. Håndter drag af det blå rektangel
-    const handleViewportDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
-        e.cancelBubble = true;
-
-        // e.target.x() er den nye 'world x' position inden i gruppen
-        const newWorldX = e.target.x();
-        const newWorldY = e.target.y();
-
-        // Omregn world coordinates tilbage til stage position
-        // viewport.x = -stageX / k  =>  stageX = -viewport.x * k
-        const newStageX = -newWorldX * stageScale;
-        const newStageY = -newWorldY * stageScale;
-
-        onNavigate(newStageX, newStageY);
-    };
-
     const tx = (width - contentWidth * scale) / 2;
     const ty = (height - contentHeight * scale) / 2;
 
     return (
-        <div className="absolute bottom-20 left-8 bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-xl rounded-xl overflow-hidden z-10 w-[240px] h-[160px] hidden md:block transition-all duration-300 hover:shadow-2xl hover:border-indigo-200">
+        <div className="absolute bottom-24 left-8 bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-xl rounded-xl overflow-hidden z-10 w-[240px] h-[160px] hidden md:block transition-all duration-300 hover:shadow-2xl hover:border-indigo-200">
             <Stage width={width} height={height} onClick={handleStageClick}>
                 <Layer>
                     <Group
@@ -162,30 +169,20 @@ const Minimap: React.FC<MinimapProps> = ({
                             );
                         })}
 
-                        {/* Viewport Indicator (Nu draggable) */}
-                        <Rect
-                            x={viewport.x}
-                            y={viewport.y}
-                            width={viewport.width}
-                            height={viewport.height}
-                            stroke="#6366f1"
-                            strokeWidth={2 / scale}
-                            fill="rgba(99, 102, 241, 0.1)" // Tilføjet svag baggrundsfarve for at gøre den lettere at ramme
-                            cornerRadius={Math.min(4 / scale, viewport.width / 2, viewport.height / 2)}
-
-                            draggable
-                            onDragMove={handleViewportDragMove}
-
-                            // Skift cursor når man holder over
-                            onMouseEnter={(e) => {
-                                const container = e.target.getStage()?.container();
-                                if (container) container.style.cursor = 'move';
-                            }}
-                            onMouseLeave={(e) => {
-                                const container = e.target.getStage()?.container();
-                                if (container) container.style.cursor = 'default';
-                            }}
-                        />
+                        {/* Viewport Indicator (Ikke længere draggable) */}
+                        {!isAllVisible && (
+                            <Rect
+                                x={viewport.x}
+                                y={viewport.y}
+                                width={viewport.width}
+                                height={viewport.height}
+                                stroke="#6366f1"
+                                strokeWidth={2 / scale}
+                                fill="rgba(99, 102, 241, 0.1)"
+                                cornerRadius={Math.min(4 / scale, viewport.width / 2, viewport.height / 2)}
+                                listening={false} // Gør at klik går igennem til Stage (så man kan klikke "på" viewporten for at centrere den der)
+                            />
+                        )}
                     </Group>
                 </Layer>
             </Stage>

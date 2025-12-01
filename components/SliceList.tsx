@@ -100,6 +100,7 @@ const SliceList: React.FC<SliceListProps> = ({
                         onCreate={(name) => handleAdd(name)}
                         placeholder="Add or import slice..."
                         allowCustomValue={false}
+                        autoFocus
                     />
                 </div>
             </div>

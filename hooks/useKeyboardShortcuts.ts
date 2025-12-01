@@ -60,8 +60,15 @@ export function useKeyboardShortcuts({
             }
 
             // Allow Alt+Key shortcuts to work even in inputs
-            if ((event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) && !event.altKey) {
-                return;
+            // Also allow Escape to work in inputs (unless prevented by the input itself)
+            if ((event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)) {
+                if (event.key === 'Escape') {
+                    // If the input handled it (e.g. cleared text), it should have prevented default.
+                    // If not, we let it bubble to our handler below.
+                    if (event.defaultPrevented) return;
+                } else if (!event.altKey) {
+                    return;
+                }
             }
 
             let shouldPreventDefault = false;

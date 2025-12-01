@@ -6,7 +6,8 @@ import {
     Tabs,
     Tab,
     Typography,
-    useTheme
+    useTheme,
+    Unstable_TrapFocus as FocusTrap
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 
@@ -34,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     // Close on ESC key (Drawer handles this by default for 'temporary' variant, but we use 'persistent')
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isOpen) {
+            if (e.key === 'Escape' && isOpen && !e.defaultPrevented) {
                 onClose();
             }
         };
@@ -63,50 +64,57 @@ const Sidebar: React.FC<SidebarProps> = ({
                 },
             }}
         >
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                {/* Header */}
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 2,
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                    bgcolor: 'background.paper'
-                }}>
-                    {tabs && tabs.length > 0 ? (
-                        <Tabs
-                            value={activeTab}
-                            onChange={handleTabChange}
-                            variant="scrollable"
-                            scrollButtons="auto"
-                            sx={{ minHeight: 48 }}
-                        >
-                            {tabs.map(tab => (
-                                <Tab
-                                    key={tab.id}
-                                    value={tab.id}
-                                    label={tab.label}
-                                    title={tab.title}
-                                    sx={{ minHeight: 48, textTransform: 'none', fontWeight: 500 }}
-                                />
-                            ))}
-                        </Tabs>
-                    ) : (
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {title}
-                        </Typography>
-                    )}
-                    <IconButton onClick={onClose} size="small">
-                        <CloseIcon />
-                    </IconButton>
-                </Box>
+            <FocusTrap
+                open={isOpen}
+                disableEnforceFocus
+                disableAutoFocus
+                disableRestoreFocus
+            >
+                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', outline: 'none' }} tabIndex={-1}>
+                    {/* Header */}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        p: 2,
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        bgcolor: 'background.paper'
+                    }}>
+                        {tabs && tabs.length > 0 ? (
+                            <Tabs
+                                value={activeTab}
+                                onChange={handleTabChange}
+                                variant="scrollable"
+                                scrollButtons="auto"
+                                sx={{ minHeight: 48 }}
+                            >
+                                {tabs.map(tab => (
+                                    <Tab
+                                        key={tab.id}
+                                        value={tab.id}
+                                        label={tab.label}
+                                        title={tab.title}
+                                        sx={{ minHeight: 48, textTransform: 'none', fontWeight: 500 }}
+                                    />
+                                ))}
+                            </Tabs>
+                        ) : (
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                {title}
+                            </Typography>
+                        )}
+                        <IconButton onClick={onClose} size="small">
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
 
-                {/* Content */}
-                <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
-                    {children}
+                    {/* Content */}
+                    <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+                        {children}
+                    </Box>
                 </Box>
-            </Box>
+            </FocusTrap>
         </Drawer>
     );
 };

@@ -26,6 +26,7 @@ interface SmartSelectProps {
     allowCustomValue?: boolean;
     onSearchChange?: (value: string) => void;
     focusTrigger?: number;
+    autoFocus?: boolean;
 }
 
 const filter = createFilterOptions<Option>();
@@ -38,7 +39,8 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
     placeholder,
     allowCustomValue = false,
     onSearchChange,
-    focusTrigger
+    focusTrigger,
+    autoFocus
 }) => {
     const [inputValue, setInputValue] = useState('');
 
@@ -50,10 +52,13 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
     // Handle focus trigger from parent
     const inputRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
-        if (focusTrigger && focusTrigger > 0) {
-            inputRef.current?.focus();
+        if ((focusTrigger && focusTrigger > 0) || autoFocus) {
+            // Small timeout to ensure element is ready
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 10);
         }
-    }, [focusTrigger]);
+    }, [focusTrigger, autoFocus]);
 
     return (
         <Autocomplete

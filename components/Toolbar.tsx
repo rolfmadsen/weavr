@@ -24,12 +24,12 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
   };
 
   return (
-    <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-20 flex flex-col items-center gap-4">
+    <div className="absolute bottom-8 right-4 md:bottom-12 md:right-8 z-20 flex flex-col items-center gap-4">
       {isMenuOpen && !disabled && (
         <div className="flex flex-col items-center gap-3 bg-white/80 backdrop-blur-sm shadow-lg rounded-full p-2">
           {tools.map((tool, index) => (
             <div key={tool.type} className="flex items-center gap-3 w-full justify-end">
-               <span className="hidden md:flex items-center gap-2 text-sm font-medium bg-gray-700 text-white py-1 px-3 rounded-md shadow-sm transition-opacity duration-300">
+              <span className="hidden md:flex items-center gap-2 text-sm font-medium bg-gray-700 text-white py-1 px-3 rounded-md shadow-sm transition-opacity duration-300">
                 {tool.label}
                 <kbd className="text-xs bg-gray-600 rounded px-1.5 py-0.5 border border-gray-500">{tool.shortcut}</kbd>
               </span>
@@ -48,15 +48,14 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
       <button
         onClick={onToggleMenu}
         disabled={disabled}
-        className={`w-14 h-14 md:w-16 md:h-16 text-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ease-in-out ${
-          disabled
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-110'
-        }`}
+        className={`w-14 h-14 md:w-16 md:h-16 text-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ease-in-out ${disabled
+          ? 'bg-gray-400 cursor-not-allowed'
+          : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-110'
+          }`}
         title={disabled ? 'Connecting...' : (isMenuOpen ? 'Close (Esc)' : 'Add Element (A/N)')}
       >
-        <div className={`transform transition-transform duration-300 ${isMenuOpen && !disabled ? 'rotate-45' : 'rotate-0'}`}>
-            <AddIcon className="text-3xl md:text-4xl" />
+        <div className={`flex items-center justify-center transform transition-transform duration-300 ${isMenuOpen && !disabled ? 'rotate-45' : 'rotate-0'}`}>
+          <AddIcon className="text-3xl md:text-4xl leading-none translate-y-px" />
         </div>
       </button>
     </div>

@@ -35,7 +35,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
 
     const handleDelete = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to remove this model from your list? The data will remain in the database but will be inaccessible without the ID.')) {
+        if (window.confirm('Are you sure you want to remove this model from your list?')) {
             removeModel(id);
         }
     };
@@ -124,8 +124,8 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                                     key={model.id}
                                     onClick={() => handleSwitch(model.id)}
                                     className={`group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${model.id === currentModelId
-                                            ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-200'
-                                            : 'bg-white border-gray-100 hover:border-gray-300 hover:shadow-sm'
+                                        ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-200'
+                                        : 'bg-white border-gray-100 hover:border-gray-300 hover:shadow-sm'
                                         }`}
                                 >
                                     <div className="flex-1 min-w-0 mr-4">
