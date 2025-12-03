@@ -1,5 +1,5 @@
 {
   "name": "Copy of Weavr - Event Modelling (IndexedDB)",
-  "description": "A visual editor for event modeling, allowing users to design and document business processes using commands, events, and views on an interactive graph canvas.",
+  "description": "A visual editor for event modeling, allowing users to collaborate on the design and documentation of business processes using commands, events, and views on an interactive graph canvas.",
   "requestFramePermissions": []
 }

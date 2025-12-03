@@ -4,7 +4,10 @@
   "title": "Weavr Project Specification",
   "description": "A container format for Event Modeling projects that includes a strict event model, a layout sidecar, and a shared data dictionary.",
   "type": "object",
-  "required": ["meta", "eventModel"],
+  "required": [
+    "meta",
+    "eventModel"
+  ],
   "additionalProperties": false,
   "properties": {
     "meta": {
@@ -27,34 +30,70 @@
     "Meta": {
       "type": "object",
       "properties": {
-        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
-        "generator": { "type": "string", "const": "Weavr" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "projectId": { "type": "string", "format": "uuid" },
-        "projectName": { "type": "string" }
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "generator": {
+          "type": "string",
+          "const": "Weavr"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "projectId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "projectName": {
+          "type": "string"
+        }
       },
-      "required": ["version", "generator", "updatedAt"]
+      "required": [
+        "version",
+        "generator",
+        "updatedAt"
+      ]
     },
-
     "LayoutSidecar": {
       "type": "object",
       "description": "Map of Element IDs to visual properties.",
       "additionalProperties": {
         "type": "object",
         "properties": {
-          "x": { "type": "number" },
-          "y": { "type": "number" },
-          "dataRef": { 
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Flat array of coordinates [x1, y1, x2, y2, ...] for edge routing."
+          },
+          "dataRef": {
             "type": "string",
-            "description": "A JSON pointer to a definition in the dataDictionary (e.g., '#/dataDictionary/definitions/Customer')." 
+            "description": "A JSON pointer to a definition in the dataDictionary (e.g., '#/dataDictionary/definitions/Customer')."
           }
         },
-        "required": ["x", "y"],
+        "required": [
+          "x",
+          "y"
+        ],
         "additionalProperties": false
       }
     },
-
     "DataDictionary": {
       "type": "object",
       "properties": {
@@ -67,198 +106,564 @@
       },
       "additionalProperties": false
     },
-
     "DataSchema": {
       "type": "object",
       "description": "Recursive JSON Schema definition for data shapes.",
       "properties": {
-        "type": { "type": "string", "enum": ["object", "array", "string", "number", "integer", "boolean"] },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "object",
+            "array",
+            "string",
+            "number",
+            "integer",
+            "boolean"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
         "properties": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/definitions/DataSchema" }
+          "additionalProperties": {
+            "$ref": "#/definitions/DataSchema"
+          }
         },
-        "items": { "$ref": "#/definitions/DataSchema" },
-        "required": { "type": "array", "items": { "type": "string" } },
-        "format": { "type": "string" },
-        "enum": { "type": "array" },
-        "$ref": { "type": "string" }
+        "items": {
+          "$ref": "#/definitions/DataSchema"
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "format": {
+          "type": "string"
+        },
+        "enum": {
+          "type": "array"
+        },
+        "$ref": {
+          "type": "string"
+        }
       },
-      "required": ["type"]
+      "required": [
+        "type"
+      ]
     },
-
     "EventModel": {
       "type": "object",
       "properties": {
         "slices": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Slice" }
+          "items": {
+            "$ref": "#/definitions/Slice"
+          }
         }
       },
-      "required": ["slices"],
+      "required": [
+        "slices"
+      ],
       "additionalProperties": false
     },
-
     "Slice": {
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "status": { "type": "string", "enum": ["Created", "Done", "InProgress"] },
-        "index": { "type": "integer" },
-        "title": { "type": "string" },
-        "context": { "type": "string" },
-        "sliceType": { "type": "string", "enum": ["STATE_CHANGE", "STATE_VIEW", "AUTOMATION"] },
-        "commands": { "type": "array", "items": { "$ref": "#/definitions/Element" } },
-        "events": { "type": "array", "items": { "$ref": "#/definitions/Element" } },
-        "readmodels": { "type": "array", "items": { "$ref": "#/definitions/Element" } },
-        "screens": { "type": "array", "items": { "$ref": "#/definitions/Element" } },
-        "screenImages": { "type": "array", "items": { "$ref": "#/definitions/ScreenImage" } },
-        "processors": { "type": "array", "items": { "$ref": "#/definitions/Element" } },
-        "tables": { "type": "array", "items": { "$ref": "#/definitions/Table" } },
-        "specifications": { "type": "array", "items": { "$ref": "#/definitions/Specification" } },
-        "actors": { "type": "array", "items": { "$ref": "#/definitions/Actor" } },
-        "aggregates": { "type": "array", "items": { "type": "string" } }
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Created",
+            "Done",
+            "InProgress"
+          ]
+        },
+        "index": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        },
+        "sliceType": {
+          "type": "string",
+          "enum": [
+            "STATE_CHANGE",
+            "STATE_VIEW",
+            "AUTOMATION"
+          ]
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Element"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Element"
+          }
+        },
+        "readmodels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Element"
+          }
+        },
+        "screens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Element"
+          }
+        },
+        "screenImages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScreenImage"
+          }
+        },
+        "processors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Element"
+          }
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Table"
+          }
+        },
+        "specifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Specification"
+          }
+        },
+        "actors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Actor"
+          }
+        },
+        "aggregates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       },
-      "required": ["id", "title", "sliceType", "commands", "events", "readmodels", "screens", "processors", "tables", "specifications"],
+      "required": [
+        "id",
+        "title",
+        "sliceType",
+        "commands",
+        "events",
+        "readmodels",
+        "screens",
+        "processors",
+        "tables",
+        "specifications"
+      ],
       "additionalProperties": false
     },
-
     "Element": {
       "type": "object",
       "description": "Standard Event Modeling Element. STRICT: No custom properties allowed here.",
       "properties": {
-        "groupId": { "type": "string" },
-        "id": { "type": "string" },
-        "tags": { "type": "array", "items": { "type": "string" } },
-        "domain": { "type": "string" },
-        "modelContext": { "type": "string" },
-        "context": { "type": "string", "enum": ["INTERNAL", "EXTERNAL"] },
-        "slice": { "type": "string" },
-        "title": { "type": "string" },
-        "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
-        "type": { "type": "string", "enum": ["COMMAND", "EVENT", "READMODEL", "SCREEN", "AUTOMATION"] },
-        "description": { "type": "string" },
-        "aggregate": { "type": "string" },
-        "aggregateDependencies": { "type": "array", "items": { "type": "string" } },
-        "dependencies": { "type": "array", "items": { "$ref": "#/definitions/Dependency" } },
-        "apiEndpoint": { "type": "string" },
-        "service": { "type": ["string", "null"] },
-        "createsAggregate": { "type": "boolean" },
-        "triggers": { "type": "array", "items": { "type": "string" } },
-        "sketched": { "type": "boolean" },
-        "prototype": { "type": "object" },
-        "listElement": { "type": "boolean" }
+        "groupId": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "domain": {
+          "type": "string"
+        },
+        "modelContext": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string",
+          "enum": [
+            "INTERNAL",
+            "EXTERNAL"
+          ]
+        },
+        "slice": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Field"
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "COMMAND",
+            "EVENT",
+            "READMODEL",
+            "SCREEN",
+            "AUTOMATION"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "aggregate": {
+          "type": "string"
+        },
+        "aggregateDependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Dependency"
+          }
+        },
+        "apiEndpoint": {
+          "type": "string"
+        },
+        "service": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createsAggregate": {
+          "type": "boolean"
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sketched": {
+          "type": "boolean"
+        },
+        "prototype": {
+          "type": "object"
+        },
+        "listElement": {
+          "type": "boolean"
+        }
       },
-      "required": ["id", "title", "fields", "type", "dependencies"],
+      "required": [
+        "id",
+        "title",
+        "fields",
+        "type",
+        "dependencies"
+      ],
       "additionalProperties": false
     },
-
     "ScreenImage": {
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "url": { "type": "string" }
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       },
-      "required": ["id", "title"],
+      "required": [
+        "id",
+        "title"
+      ],
       "additionalProperties": false
     },
-
     "Table": {
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } }
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Field"
+          }
+        }
       },
-      "required": ["id", "title", "fields"],
+      "required": [
+        "id",
+        "title",
+        "fields"
+      ],
       "additionalProperties": false
     },
-
     "Specification": {
       "type": "object",
       "properties": {
-        "vertical": { "type": "boolean" },
-        "id": { "type": "string" },
-        "sliceName": { "type": "string" },
-        "title": { "type": "string" },
-        "given": { "type": "array", "items": { "$ref": "#/definitions/SpecificationStep" } },
-        "when": { "type": "array", "items": { "$ref": "#/definitions/SpecificationStep" } },
-        "then": { "type": "array", "items": { "$ref": "#/definitions/SpecificationStep" } },
-        "comments": { "type": "array", "items": { "$ref": "#/definitions/Comment" } },
-        "linkedId": { "type": "string" }
+        "vertical": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "sliceName": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "given": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SpecificationStep"
+          }
+        },
+        "when": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SpecificationStep"
+          }
+        },
+        "then": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SpecificationStep"
+          }
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Comment"
+          }
+        },
+        "linkedId": {
+          "type": "string"
+        }
       },
-      "required": ["id", "title", "given", "when", "then", "linkedId"],
+      "required": [
+        "id",
+        "title",
+        "given",
+        "when",
+        "then",
+        "linkedId"
+      ],
       "additionalProperties": false
     },
-
     "SpecificationStep": {
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "tags": { "type": "array", "items": { "type": "string" } },
-        "examples": { "type": "array", "items": { "type": "object" } },
-        "id": { "type": "string" },
-        "index": { "type": "integer" },
-        "specRow": { "type": "integer" },
-        "type": { "type": "string", "enum": ["SPEC_EVENT", "SPEC_COMMAND", "SPEC_READMODEL", "SPEC_ERROR"] },
-        "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
-        "linkedId": { "type": "string" },
-        "expectEmptyList": { "type": "boolean" }
+        "title": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "specRow": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "SPEC_EVENT",
+            "SPEC_COMMAND",
+            "SPEC_READMODEL",
+            "SPEC_ERROR"
+          ]
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Field"
+          }
+        },
+        "linkedId": {
+          "type": "string"
+        },
+        "expectEmptyList": {
+          "type": "boolean"
+        }
       },
-      "required": ["title", "id", "type"],
+      "required": [
+        "title",
+        "id",
+        "type"
+      ],
       "additionalProperties": false
     },
-
     "Comment": {
       "type": "object",
-      "properties": { "description": { "type": "string" } },
-      "required": ["description"],
+      "properties": {
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "description"
+      ],
       "additionalProperties": false
     },
-
     "Actor": {
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "authRequired": { "type": "boolean" }
+        "name": {
+          "type": "string"
+        },
+        "authRequired": {
+          "type": "boolean"
+        }
       },
-      "required": ["name", "authRequired"],
+      "required": [
+        "name",
+        "authRequired"
+      ],
       "additionalProperties": false
     },
-
     "Dependency": {
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "type": { "type": "string", "enum": ["INBOUND", "OUTBOUND"] },
-        "title": { "type": "string" },
-        "elementType": { "type": "string", "enum": ["EVENT", "COMMAND", "READMODEL", "SCREEN", "AUTOMATION"] }
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "INBOUND",
+            "OUTBOUND"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "elementType": {
+          "type": "string",
+          "enum": [
+            "EVENT",
+            "COMMAND",
+            "READMODEL",
+            "SCREEN",
+            "AUTOMATION"
+          ]
+        }
       },
-      "required": ["id", "type", "title", "elementType"],
+      "required": [
+        "id",
+        "type",
+        "title",
+        "elementType"
+      ],
       "additionalProperties": false
     },
-
     "Field": {
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
         "type": {
           "type": "string",
-          "enum": ["String", "Boolean", "Double", "Decimal", "Long", "Custom", "Date", "DateTime", "UUID", "Int"]
+          "enum": [
+            "String",
+            "Boolean",
+            "Double",
+            "Decimal",
+            "Long",
+            "Custom",
+            "Date",
+            "DateTime",
+            "UUID",
+            "Int"
+          ]
         },
-        "example": { "oneOf": [{ "type": "string" }, { "type": "object" }] },
-        "subfields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
-        "mapping": { "type": "string" },
-        "optional": { "type": "boolean" },
-        "technicalAttribute": { "type": "boolean" },
-        "generated": { "type": "boolean" },
-        "idAttribute": { "type": "boolean" },
-        "schema": { "type": "string" },
-        "cardinality": { "type": "string", "enum": ["List", "Single"] }
+        "example": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "subfields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Field"
+          }
+        },
+        "mapping": {
+          "type": "string"
+        },
+        "optional": {
+          "type": "boolean"
+        },
+        "technicalAttribute": {
+          "type": "boolean"
+        },
+        "generated": {
+          "type": "boolean"
+        },
+        "idAttribute": {
+          "type": "boolean"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "cardinality": {
+          "type": "string",
+          "enum": [
+            "List",
+            "Single"
+          ]
+        }
       },
-      "required": ["name", "type"],
+      "required": [
+        "name",
+        "type"
+      ],
       "additionalProperties": false
     }
   }
