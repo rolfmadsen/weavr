@@ -53,11 +53,11 @@ const IntroductionContent = () => (
     </div>
 
     <div>
-      <h3 className="text-lg font-bold text-gray-800 mb-2">Event Model Patterns</h3>
+      <h3 className="text-lg font-bold text-gray-800 mb-2">4 Event Model Patterns</h3>
       <div className="space-y-6">
         <div>
           <h4 className="font-bold text-gray-800 flex items-center gap-2 mb-1">
-            State Change Pattern (Command)
+            State Change Pattern
           </h4>
           <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
             <span className="font-semibold text-gray-800">Trigger</span> →
@@ -65,20 +65,20 @@ const IntroductionContent = () => (
             <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event(s)</span>
           </div>
           <p className="text-gray-600 text-sm">
-            The Command Pattern describes a state change and its way from the start (what is the trigger?) to the end (what is the state change?). It starts with a white box (Trigger), followed by a blue box (Command) and then one or multiple yellow boxes (Event). At first each box should be given a name in order to give the use case a meaning in the context of the business.
+            State Change Pattern describes a state change and its way from the start (what is the trigger?) to the end (what is the state change?). It starts with a white box (Screen), followed by a blue box (Command) and then one or multiple yellow boxes (Event). At first each box should be given a name in order to give the use case a meaning in the context of the business.
           </p>
         </div>
 
         <div>
           <h4 className="font-bold text-gray-800 flex items-center gap-2 mb-1">
-            State View Pattern (View)
+            State View Pattern
           </h4>
           <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
             <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event(s)</span> →
             <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>View</span>
           </div>
           <p className="text-gray-600 text-sm">
-            The View Pattern connects existing events from the board to a green “View” box. That leads to a quick overview of what information will be used by it. On the other hand that means that only information that already exists can be interpreted and presented in the view. So it should be noticed quickly if anything is missing or forgotton.
+            State View Pattern connects existing events from the board to a green “Read Model (View)” box. That leads to a quick overview of what information will be used by it. On the other hand that means that only information that already exists can be interpreted and presented in the view. So it should be noticed quickly if anything is missing or forgotton.
           </p>
         </div>
 
@@ -94,13 +94,16 @@ const IntroductionContent = () => (
             <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event(s)</span>
           </div>
           <p className="text-gray-600 text-sm">
-            Use this pattern whenever the system should do something automatically. If you look at the chain of the pattern, you see that it´s nearly the same as a combined form of a Command and View Pattern. With a robot sitting in the middle. You could describe the same thing, replacing only the triggering robot by a user.
+            Use this pattern whenever the system should do something automatically.
+            If you look at the chain of the pattern, you see that it´s nearly the same as a combined
+            form of a Command and View Pattern. With a robot sitting in the middle.
+            You could describe the same thing, replacing only the triggering robot by a user.
           </p>
         </div>
 
         <div>
           <h4 className="font-bold text-gray-800 flex items-center gap-2 mb-1">
-            Translation Pattern
+            Translation Pattern (System integration)
           </h4>
           <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
             <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_EXTERNAL.textColor }}>Event(s) (source)</span> →
@@ -113,6 +116,7 @@ const IntroductionContent = () => (
             The chain of building blocks looks the same as with the automation pattern in the first place. That´s because it is the same thing. The only difference in this pattern is, that the translation pattern is used for transferring knowledge from one system into another system. Whenever you have to tell another system that something happened, use this pattern.
           </p>
         </div>
+
       </div>
     </div>
   </div >
