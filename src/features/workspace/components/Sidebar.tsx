@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
     Drawer,
     Box,
@@ -21,6 +21,10 @@ interface SidebarProps {
     tabs?: { id: string; label: string; title?: string }[];
 }
 
+const MIN_WIDTH = 300;
+const MAX_WIDTH = 800;
+const DEFAULT_WIDTH = 384;
+
 const Sidebar: React.FC<SidebarProps> = ({
     isOpen,
     onClose,
@@ -31,6 +35,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     tabs
 }) => {
     const theme = useTheme();
+    const [width, setWidth] = useState(DEFAULT_WIDTH);
+    const [isResizing, setIsResizing] = useState(false);
+    const sidebarRef = useRef<HTMLDivElement>(null);
 
     // Close on ESC key (Drawer handles this by default for 'temporary' variant, but we use 'persistent')
     useEffect(() => {
@@ -48,29 +55,80 @@ const Sidebar: React.FC<SidebarProps> = ({
         onTabChange?.(newValue);
     };
 
+    const startResizing = useCallback((e: React.MouseEvent) => {
+        setIsResizing(true);
+        e.preventDefault();
+    }, []);
+
+    const stopResizing = useCallback(() => {
+        setIsResizing(false);
+    }, []);
+
+    const resize = useCallback((e: MouseEvent) => {
+        if (isResizing) {
+            const newWidth = window.innerWidth - e.clientX;
+            if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
+                setWidth(newWidth);
+            }
+        }
+    }, [isResizing]);
+
+    useEffect(() => {
+        if (isResizing) {
+            window.addEventListener('mousemove', resize);
+            window.addEventListener('mouseup', stopResizing);
+        } else {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        }
+        return () => {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        };
+    }, [isResizing, resize, stopResizing]);
+
     return (
         <Drawer
             anchor="right"
             variant="persistent"
             open={isOpen}
             sx={{
-                width: 384,
+                width: width,
                 flexShrink: 0,
                 '& .MuiDrawer-paper': {
-                    width: 384,
+                    width: width,
                     boxSizing: 'border-box',
                     boxShadow: theme.shadows[4],
-                    borderLeft: `1px solid ${theme.palette.divider}`
+                    borderLeft: `1px solid ${theme.palette.divider}`,
+                    overflow: 'visible' // Allow resize handle to be visible
                 },
             }}
+            ref={sidebarRef}
         >
+            {/* Resize Handle */}
+            <Box
+                onMouseDown={startResizing}
+                sx={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: -5,
+                    width: 10,
+                    cursor: 'ew-resize',
+                    zIndex: 1201, // Above drawer content
+                    '&:hover': {
+                        background: 'rgba(0, 0, 0, 0.1)', // Visual cue
+                    }
+                }}
+            />
+
             <FocusTrap
                 open={isOpen}
                 disableEnforceFocus
                 disableAutoFocus
                 disableRestoreFocus
             >
-                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', outline: 'none' }} tabIndex={-1}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     {/* Header */}
                     <Box sx={{
                         display: 'flex',

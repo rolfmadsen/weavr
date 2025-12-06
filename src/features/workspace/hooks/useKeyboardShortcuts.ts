@@ -79,8 +79,14 @@ export function useKeyboardShortcuts({
 
             switch (event.key) {
                 case 'Enter':
+                    // Don't trigger if the user is focused on an interactive element
+                    if (event.target instanceof HTMLElement && event.target.matches('button, a, summary, [role="button"], [role="link"], [role="tab"], input, textarea, select')) {
+                        break;
+                    }
+
                     if (selectedNodeIds.length === 1 || selectedLinkId) {
                         onOpenPropertiesPanel();
+                        // Only prevent default if we actually handled it (i.e., we are not on an interactive element)
                         shouldPreventDefault = true;
                     }
                     break;
@@ -211,11 +217,14 @@ export function useKeyboardShortcuts({
                 }
             }
 
-            if (shouldPreventDefault) event.preventDefault();
+            if (shouldPreventDefault) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
         };
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', handleKeyDown, { capture: true });
+        return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
     }, [
         nodes, selectedNodeIds, selectedLinkId, isPanelOpen, isToolbarOpen, isReady,
         showSlices, swimlanePositions, onDeleteSelection, onClosePanel, onToggleToolbar,

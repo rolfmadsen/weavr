@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import gunClient from '../services/gunClient';
-import { Node, Link, ElementType, Slice, DataDefinition, DefinitionType } from '../../modeling';
+import { Node, Link, ElementType, Slice, DataDefinition, DefinitionType, SliceType } from '../../modeling';
 
 
 export function useGraphSync(modelId: string | null) {
@@ -100,6 +100,11 @@ export function useGraphSync(modelId: string | null) {
                             sliceId: nodeData.sliceId !== undefined ? nodeData.sliceId : existingNode?.sliceId,
                             schemaBinding: nodeData.schemaBinding !== undefined ? nodeData.schemaBinding : existingNode?.schemaBinding,
                             entityIds: nodeData.entityIds ? (typeof nodeData.entityIds === 'string' ? JSON.parse(nodeData.entityIds) : nodeData.entityIds) : (existingNode?.entityIds || []),
+                            // Strict Mode Properties
+                            service: nodeData.service !== undefined ? nodeData.service : existingNode?.service,
+                            aggregate: nodeData.aggregate !== undefined ? nodeData.aggregate : existingNode?.aggregate,
+                            technicalTimestamp: nodeData.technicalTimestamp !== undefined ? nodeData.technicalTimestamp : existingNode?.technicalTimestamp,
+                            externalSystem: nodeData.externalSystem !== undefined ? nodeData.externalSystem : existingNode?.externalSystem,
                         };
 
                         // Only set if we have the critical fields
@@ -173,6 +178,9 @@ export function useGraphSync(modelId: string | null) {
                         order: typeof sliceData.order === 'number' ? sliceData.order : (existingSlice?.order || 0),
                         nodeIds: new Set(), // Will be populated by App.tsx or derived
                         color: sliceData.color || existingSlice?.color || '#e5e7eb', // Default gray
+                        sliceType: sliceData.sliceType || existingSlice?.sliceType,
+                        context: sliceData.context || existingSlice?.context,
+                        specifications: sliceData.specifications ? (typeof sliceData.specifications === 'string' ? JSON.parse(sliceData.specifications) : sliceData.specifications) : (existingSlice?.specifications || []),
                     };
                     tempSlicesRef.current.set(sliceId, newSlice);
                 }
@@ -373,10 +381,16 @@ export function useGraphSync(modelId: string | null) {
 
     // --- Slice Management ---
 
-    const addSlice = useCallback((title: string, order: number) => {
+    const addSlice = useCallback((title: string, order: number, type?: SliceType, context?: string) => {
         if (!modelId) return;
         const sliceId = uuidv4();
-        const newSliceData = { title: title || 'Untitled', order: order || 0, color: '#e5e7eb' }; // Default color
+        const newSliceData = {
+            title: title || 'Untitled',
+            order: order || 0,
+            color: '#e5e7eb',
+            sliceType: type,
+            context: context
+        }; // Default color
 
         const newSlice: Slice = { id: sliceId, ...newSliceData, nodeIds: new Set() };
         setSlices(prev => [...prev, newSlice].sort((a, b) => (a.order || 0) - (b.order || 0))); // Optimistic update
@@ -406,6 +420,8 @@ export function useGraphSync(modelId: string | null) {
         Object.entries(storageUpdates).forEach(([key, value]) => {
             if (value === undefined) {
                 sanitizedUpdates[key] = null;
+            } else if (key === 'specifications' && Array.isArray(value)) {
+                sanitizedUpdates[key] = JSON.stringify(value);
             } else {
                 sanitizedUpdates[key] = value;
             }

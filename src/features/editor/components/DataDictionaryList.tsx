@@ -201,7 +201,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                 {/* Attributes (Edit) */}
                                 <div className="space-y-2">
                                     <div className="text-xs font-medium text-gray-500 uppercase">Attributes</div>
-                                    {editDef.attributes?.map((attr, index) => (
+                                    {Array.isArray(editDef.attributes) && editDef.attributes.map((attr, index) => (
                                         <div key={index} className="flex gap-2 items-center">
                                             <input
                                                 ref={el => { editAttributeRefs.current[index] = el; }}
@@ -294,7 +294,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                         </button>
                                     </div>
                                 </div>
-                                {def.attributes && def.attributes.length > 0 && (
+                                {Array.isArray(def.attributes) && def.attributes.length > 0 && (
                                     <div className="mt-2 space-y-1">
                                         {def.attributes.map((attr, i) => (
                                             <div key={i} className="text-xs text-gray-600 flex justify-between border-b border-gray-100 last:border-0 py-1">

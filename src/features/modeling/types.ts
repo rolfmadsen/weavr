@@ -20,6 +20,11 @@ export interface Node {
   sliceId?: string;
   schemaBinding?: string;
   entityIds?: string[];
+  // Strict Mode Properties
+  service?: string;
+  aggregate?: string;
+  technicalTimestamp?: boolean;
+  externalSystem?: string; // For External Events/Systems
 }
 
 
@@ -55,6 +60,12 @@ export interface ModelData {
 }
 
 
+export enum SliceType {
+  StateChange = 'STATE_CHANGE',
+  StateView = 'STATE_VIEW',
+  Automation = 'AUTOMATION'
+}
+
 export interface Slice {
   id: string;
   nodeIds: Set<string>;
@@ -66,6 +77,33 @@ export interface Slice {
   height?: number;
   order?: number; // Added for Strict Mode
   title?: string; // Added for Strict Mode
+  // Strict Mode Properties
+  sliceType?: SliceType;
+  context?: string;
+  actors?: string[];
+  aggregates?: string[];
+  specifications?: Specification[];
+}
+
+export interface SpecificationStep {
+  id: string;
+  title: string;
+  comments?: string[];
+  conjunction?: 'AND' | 'OR';
+}
+
+export interface SpecificationExample {
+  headers: string[];
+  rows: string[][];
+}
+
+export interface Specification {
+  id: string;
+  title: string;
+  given: SpecificationStep[];
+  when: SpecificationStep[];
+  then: SpecificationStep[];
+  examples?: SpecificationExample;
 }
 
 export interface StrictSlice {

@@ -22,8 +22,10 @@ import {
   PropertiesPanel,
   SliceFilter,
   SliceList,
-  DataDictionaryList
+  DataDictionaryList,
+  SliceManagerModal
 } from './features/editor';
+
 import {
   Header,
   Footer,
@@ -55,6 +57,9 @@ const App: React.FC = () => {
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [isModelListOpen, setIsModelListOpen] = useState(false);
   const [filteredSliceIds, setFilteredSliceIds] = useState<string[]>([]);
+
+  const [isSliceManagerOpen, setIsSliceManagerOpen] = useState(false);
+  const [sliceManagerInitialId, setSliceManagerInitialId] = useState<string | null>(null);
 
   // --- Sidebar Management ---
   const [sidebarView, setSidebarView] = useState<'properties' | 'slices' | 'dictionary' | null>(null);
@@ -730,6 +735,8 @@ const App: React.FC = () => {
     return links.filter(link => nodeIds.has(link.source) && nodeIds.has(link.target));
   }, [links, filteredNodes, filteredSliceIds]);
 
+
+
   // --- Render ---
   return (
     <ThemeProvider theme={theme}>
@@ -792,8 +799,8 @@ const App: React.FC = () => {
           onTabChange={(tab) => setSidebarView(tab as any)}
           tabs={[
             { id: 'properties', label: 'Properties', title: 'Alt + P' },
-            { id: 'slices', label: 'Slices', title: 'Alt + S' },
-            { id: 'dictionary', label: 'Dictionary', title: 'Alt + D' }
+            { id: 'dictionary', label: 'Data', title: 'Alt + D' },
+            { id: 'slices', label: 'Slices', title: 'Alt + S' }
           ]}
         >
           {sidebarView === 'properties' && (
@@ -819,6 +826,10 @@ const App: React.FC = () => {
               onAddSlice={addSlice}
               onUpdateSlice={updateSlice}
               onDeleteSlice={deleteSlice}
+              onManageSlice={(id) => {
+                setSliceManagerInitialId(id);
+                setIsSliceManagerOpen(true);
+              }}
               modelId={modelId}
             />
           )}
@@ -836,6 +847,21 @@ const App: React.FC = () => {
         <WelcomeModal isOpen={isWelcomeModalOpen} onClose={handleCloseWelcomeModal} />
         <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
         <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
+
+
+
+        <SliceManagerModal
+          isOpen={isSliceManagerOpen}
+          onClose={() => {
+            setIsSliceManagerOpen(false);
+            setSliceManagerInitialId(null);
+          }}
+          slices={slices}
+          onAddSlice={addSlice}
+          onUpdateSlice={updateSlice}
+          onDeleteSlice={deleteSlice}
+          initialViewingSpecsId={sliceManagerInitialId}
+        />
 
         <Footer />
       </div>

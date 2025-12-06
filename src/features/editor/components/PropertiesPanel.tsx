@@ -245,6 +245,40 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             <MenuItem value="POLICY">Policy</MenuItem>
           </Select>
         </FormControl>
+
+        <TextField
+          label="Service / App"
+          value={node.service || ''}
+          onChange={(e) => onUpdateNode(node.id, 'service', e.target.value)}
+          fullWidth
+          margin="normal"
+          size="small"
+          placeholder="e.g. IdentityService"
+        />
+
+        {node.type === 'COMMAND' && (
+          <TextField
+            label="Aggregate"
+            value={node.aggregate || ''}
+            onChange={(e) => onUpdateNode(node.id, 'aggregate', e.target.value)}
+            fullWidth
+            margin="normal"
+            size="small"
+            placeholder="e.g. UserAccount"
+          />
+        )}
+
+        {node.type === 'EVENT_EXTERNAL' && (
+          <TextField
+            label="External System"
+            value={node.externalSystem || ''}
+            onChange={(e) => onUpdateNode(node.id, 'externalSystem', e.target.value)}
+            fullWidth
+            margin="normal"
+            size="small"
+            placeholder="e.g. Stripe, Auth0"
+          />
+        )}
       </Box>
 
       <Divider />
@@ -307,7 +341,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
           Delete Node
         </Button>
       </Box>
-    </Box>
+    </Box >
   );
 };
 

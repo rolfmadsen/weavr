@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useModelList } from '../../modeling';
 import { CloseIcon, PlusIcon, DeleteIcon } from '../../../shared/components/icons';
+import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 
 interface ModelListModalProps {
     isOpen: boolean;
@@ -15,6 +16,10 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
     const [newModelName, setNewModelName] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
+
+    const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
+    const [deleteModelId, setDeleteModelId] = useState<string | null>(null);
+
 
     if (!isOpen) return null;
 
@@ -35,8 +40,15 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
 
     const handleDelete = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to remove this model from your list?')) {
-            removeModel(id);
+        setDeleteModelId(id);
+        setDeleteAnchorEl(e.currentTarget as HTMLElement);
+    };
+
+    const confirmDelete = () => {
+        if (deleteModelId) {
+            removeModel(deleteModelId);
+            setDeleteModelId(null);
+            setDeleteAnchorEl(null);
         }
     };
 
@@ -174,6 +186,14 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                     </div>
                 </div>
             </div>
+
+            <ConfirmMenu
+                anchorEl={deleteAnchorEl}
+                open={Boolean(deleteAnchorEl)}
+                onClose={() => setDeleteAnchorEl(null)}
+                onConfirm={confirmDelete}
+                message="Are you sure you want to remove this model from your list?"
+            />
         </div>
     );
 };
