@@ -4,7 +4,9 @@ import {
     Delete as DeleteIcon,
     ExpandMore as ExpandMoreIcon,
     Add as AddIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    ArrowUpward,
+    ArrowDownward
 } from '@mui/icons-material';
 import {
     Accordion,
@@ -19,7 +21,8 @@ import {
     Box,
     Button,
     Divider,
-    Stack
+    Stack,
+    IconButton
 } from '@mui/material';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
@@ -449,7 +452,7 @@ const SliceList: React.FC<SliceListProps> = ({
 
             {/* List */}
             <div>
-                {slices.map((slice) => (
+                {slices.map((slice, index) => (
                     <Accordion
                         key={slice.id}
                         disableGutters
@@ -479,9 +482,45 @@ const SliceList: React.FC<SliceListProps> = ({
                                     flexShrink: 0
                                 }}
                             />
-                            <Typography sx={{ fontWeight: 500, fontSize: '0.9rem' }}>
+                            <Typography sx={{ fontWeight: 500, fontSize: '0.9rem', flex: 1 }}>
                                 {slice.title || 'Untitled Slice'}
                             </Typography>
+
+                            {/* Reordering Buttons */}
+                            <Stack direction="row" spacing={0} sx={{ mr: 1 }} onClick={(e) => e.stopPropagation()}>
+                                <IconButton
+                                    size="small"
+                                    disabled={index === 0}
+                                    onClick={() => {
+                                        const prevSlice = slices[index - 1];
+                                        const currentOrder = slice.order ?? index;
+                                        const prevOrder = prevSlice.order ?? (index - 1);
+
+                                        // Swap orders
+                                        onUpdateSlice(slice.id, { order: prevOrder });
+                                        onUpdateSlice(prevSlice.id, { order: currentOrder });
+                                    }}
+                                    sx={{ p: 0.5, opacity: 0.6, '&:hover': { opacity: 1 } }}
+                                >
+                                    <ArrowUpward fontSize="small" sx={{ fontSize: 16 }} />
+                                </IconButton>
+                                <IconButton
+                                    size="small"
+                                    disabled={index === slices.length - 1}
+                                    onClick={() => {
+                                        const nextSlice = slices[index + 1];
+                                        const currentOrder = slice.order ?? index;
+                                        const nextOrder = nextSlice.order ?? (index + 1);
+
+                                        // Swap orders
+                                        onUpdateSlice(slice.id, { order: nextOrder });
+                                        onUpdateSlice(nextSlice.id, { order: currentOrder });
+                                    }}
+                                    sx={{ p: 0.5, opacity: 0.6, '&:hover': { opacity: 1 } }}
+                                >
+                                    <ArrowDownward fontSize="small" sx={{ fontSize: 16 }} />
+                                </IconButton>
+                            </Stack>
                         </AccordionSummary>
 
                         <AccordionDetails sx={{ p: 2 }}>

@@ -18,11 +18,15 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, selectedSliceIds, onC
     const [searchTerm, setSearchTerm] = useState('');
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    // Filter slices based on search
+    // Filter slices based on search AND sort by order
     const displayedSlices = useMemo(() => {
-        if (!searchTerm.trim()) return slices;
-        const lower = searchTerm.toLowerCase();
-        return slices.filter(s => (s.title || 'Untitled').toLowerCase().includes(lower));
+        let result = slices;
+        if (searchTerm.trim()) {
+            const lower = searchTerm.toLowerCase();
+            result = slices.filter(s => (s.title || 'Untitled').toLowerCase().includes(lower));
+        }
+        // Explicitly sort by order (although source might be sorted, this ensures filter preserves/enforces it)
+        return [...result].sort((a, b) => (a.order || 0) - (b.order || 0));
     }, [slices, searchTerm]);
 
     const handleToggleSlice = (id: string) => {
