@@ -6,4 +6,4 @@ export { default as HelpModal } from './components/HelpModal';
 export { default as WelcomeModal } from './components/WelcomeModal';
 export { default as ModelListModal } from './components/ModelListModal';
 export * from './hooks/useKeyboardShortcuts';
-export * from '../migration'; // Export migration hook for App usage
+

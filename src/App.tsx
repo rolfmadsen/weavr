@@ -27,7 +27,7 @@ import {
   DataDictionaryList,
   SliceManagerModal
 } from './features/editor';
-
+import { useDataMigration } from './features/migration';
 import {
   Header,
   Footer,
@@ -36,8 +36,7 @@ import {
   HelpModal,
   WelcomeModal,
   ModelListModal,
-  useKeyboardShortcuts,
-  useDataMigration // Import hook
+  useKeyboardShortcuts
 } from './features/workspace';
 
 
@@ -805,7 +804,7 @@ const App: React.FC = () => {
         <GraphCanvas
           nodes={filteredNodes}
           links={filteredLinks}
-          slices={slices}
+
           selectedIds={selectedIds}
           edgeRoutes={autoLayoutEdges}
           onNodeClick={handleNodeClick}

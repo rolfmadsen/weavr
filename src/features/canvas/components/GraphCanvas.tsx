@@ -41,7 +41,7 @@ interface GraphCanvasKonvaProps {
     onMarqueeSelect: (nodeIds: string[]) => void;
     onValidateConnection?: (source: Node, target: Node) => boolean;
     onViewChange?: (view: { x: number, y: number, scale: number }) => void;
-    slices: { id: string, nodeIds: Set<string> | string[] }[]; // Add slices prop
+
 }
 
 
