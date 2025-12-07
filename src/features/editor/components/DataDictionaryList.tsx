@@ -2,12 +2,29 @@ import React, { useState, useMemo } from 'react';
 import { DataDefinition, DefinitionType } from '../../modeling';
 import {
     Delete as DeleteIcon,
+    ExpandMore as ExpandMoreIcon,
     Add as AddIcon,
-    Edit as EditIcon,
-    Check as CheckIcon,
     Close as CloseIcon
 } from '@mui/icons-material';
+import {
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    Typography,
+    TextField,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
+    Box,
+    Button,
+    Divider,
+    Stack,
+    IconButton,
+    Autocomplete
+} from '@mui/material';
 import SmartSelect from '../../../shared/components/SmartSelect';
+import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 import { useCrossModelData } from '../../modeling';
 
 interface DataDictionaryListProps {
@@ -18,6 +35,20 @@ interface DataDictionaryListProps {
     modelId: string | null;
 }
 
+// Primitives allowed by Weavr Schema
+const PRIMITIVE_TYPES = [
+    'String', 'Boolean', 'Int', 'Double', 'Decimal', 'Long', 'Date', 'DateTime', 'UUID'
+];
+
+const getTypeColor = (type: DefinitionType) => {
+    switch (type) {
+        case DefinitionType.Entity: return '#3b82f6'; // Blue
+        case DefinitionType.ValueObject: return '#22c55e'; // Green
+        case DefinitionType.Enum: return '#f59e0b'; // Amber
+        default: return '#9ca3af'; // Gray
+    }
+};
+
 const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     definitions,
     onAddDefinition,
@@ -25,15 +56,22 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     onRemoveDefinition,
     modelId
 }) => {
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [editDef, setEditDef] = useState<Partial<DataDefinition>>({});
-
-    // We don't need isAdding anymore as we use SmartSelect
-    // const [isAdding, setIsAdding] = useState(false);
-
     const { crossModelDefinitions } = useCrossModelData(modelId);
-    const editAttributeRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 
+    // State for deleting definitions
+    const [deleteDefInfo, setDeleteDefInfo] = useState<{ id: string, anchorEl: HTMLElement } | null>(null);
+
+    // Calculate available types for suggestions (Primitives + Value Objects + Enums)
+    // We exclude Entities because in DDD, Entities are typically referenced by ID, not embedded.
+    const typeSuggestions = useMemo(() => {
+        const validDefNames = definitions
+            .filter(d => d.type === DefinitionType.ValueObject || d.type === DefinitionType.Enum)
+            .map(d => d.name)
+            .sort();
+        return [...PRIMITIVE_TYPES, ...validDefNames];
+    }, [definitions]);
+
+    // Filter suggestions for adding new definitions
     const remoteDefinitionOptions = useMemo(() => {
         const localNames = new Set(definitions.map(d => d.name.toLowerCase()));
         return crossModelDefinitions
@@ -47,7 +85,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
             }));
     }, [crossModelDefinitions, definitions]);
 
-    const handleAddDefinition = (idOrName: string, option?: any) => {
+    const handleAdd = (idOrName: string, option?: any) => {
         let newDefinition: Omit<DataDefinition, 'id'>;
 
         if (option && option.originalData) {
@@ -72,244 +110,227 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
             return;
         }
 
-        // We can't get the ID back synchronously from onAddDefinition usually if it's void,
-        // but in App.tsx it returns the ID. We need to change the prop type if we want to use it.
-        // However, we can just add it, and then find it? Or assume it will be added.
-        // The prompt says: "Create the definition immediately... Automatically set editingId".
-        // Since onAddDefinition in App.tsx returns string, let's cast it or update the interface.
-        // But the interface says void. Let's assume we can't get it easily without changing types.
-        // Wait, App.tsx: const handleAddDefinition = (def) => { const newDefId = addDefinition(def); return newDefId || ''; };
-        // So we can change the interface.
+        onAddDefinition(newDefinition);
+    };
 
-        // @ts-ignore - We know it returns a string in App.tsx
-        const newId = onAddDefinition(newDefinition);
+    // Attribute Handlers
+    const handleAddAttribute = (def: DataDefinition) => {
+        const currentAttributes = def.attributes || [];
+        const newAttrs = [...currentAttributes, { name: '', type: 'String' }];
+        onUpdateDefinition(def.id, { attributes: newAttrs });
+    };
 
-        if (newId) {
-            setEditingId(newId);
-            setEditDef(newDefinition);
+    const handleUpdateAttribute = (def: DataDefinition, index: number, field: 'name' | 'type', value: string) => {
+        const currentAttributes = [...(def.attributes || [])];
+        if (currentAttributes[index]) {
+            currentAttributes[index] = { ...currentAttributes[index], [field]: value };
+            onUpdateDefinition(def.id, { attributes: currentAttributes });
         }
     };
 
-
-
-    const startEditing = (def: DataDefinition) => {
-        setEditingId(def.id);
-        setEditDef(def);
-    };
-
-    const saveEditing = () => {
-        if (editingId && editDef.name) {
-            onUpdateDefinition(editingId, editDef);
-            setEditingId(null);
-            setEditDef({});
-        }
-    };
-
-    const cancelEditing = () => {
-        setEditingId(null);
-        setEditDef({});
-    };
-
-    // --- Attribute Handlers (Edit) ---
-    const addAttributeEdit = () => {
-        setEditDef(prev => ({
-            ...prev,
-            attributes: [...(prev.attributes || []), { name: '', type: 'String' }]
-        }));
-    };
-
-    const updateAttributeEdit = (index: number, field: 'name' | 'type', value: string) => {
-        setEditDef(prev => {
-            const newAttributes = [...(prev.attributes || [])];
-            newAttributes[index] = { ...newAttributes[index], [field]: value };
-            return { ...prev, attributes: newAttributes };
-        });
-    };
-
-    const removeAttributeEdit = (index: number) => {
-        setEditDef(prev => ({
-            ...prev,
-            attributes: (prev.attributes || []).filter((_, i) => i !== index)
-        }));
+    const handleDeleteAttribute = (def: DataDefinition, index: number) => {
+        const currentAttributes = [...(def.attributes || [])];
+        currentAttributes.splice(index, 1);
+        onUpdateDefinition(def.id, { attributes: currentAttributes });
     };
 
     return (
-        <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
-            {/* Add New Definition (SmartSelect) */}
-            <div className="flex items-center gap-2">
-                <div className="flex-1">
-                    <SmartSelect
-                        options={remoteDefinitionOptions}
-                        value=""
-                        onChange={handleAddDefinition}
-                        onCreate={(name) => handleAddDefinition(name)}
-                        placeholder="Add or import entity..."
-                        allowCustomValue={true}
-                        autoFocus={true}
-                    />
-                </div>
-            </div>
+        <Box sx={{ pb: 10 }}>
+            {/* Add New Definition */}
+            <Box sx={{ mb: 2 }}>
+                <SmartSelect
+                    options={remoteDefinitionOptions}
+                    value=""
+                    onChange={(val, opt) => handleAdd(val, opt)}
+                    onCreate={(name) => handleAdd(name)}
+                    placeholder="Add or import entity..."
+                    allowCustomValue={true}
+                />
+            </Box>
 
             {/* List */}
-            <div className="space-y-2">
-                {definitions.map(def => (
-                    <div key={def.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                        {editingId === def.id ? (
-                            <div className="space-y-3">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={editDef.name || ''}
-                                        onChange={(e) => setEditDef({ ...editDef, name: e.target.value })}
-                                        className="block w-1/3 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Tab') return;
-                                            e.stopPropagation();
-                                            if (e.key === 'Enter') saveEditing();
-                                            if (e.key === 'Escape') cancelEditing();
-                                        }}
-                                        autoFocus
-                                    />
-                                    <select
-                                        value={editDef.type}
-                                        onChange={(e) => setEditDef({ ...editDef, type: e.target.value as DefinitionType })}
-                                        className="block min-w-fit pl-3 pr-8 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Tab') return;
-                                            e.stopPropagation();
-                                        }}
-                                    >
-                                        <option value={DefinitionType.Entity}>Entity</option>
-                                        <option value={DefinitionType.ValueObject}>Value Object</option>
-                                        <option value={DefinitionType.Enum}>Enum</option>
-                                    </select>
-                                </div>
-                                <input
-                                    type="text"
-                                    value={editDef.description || ''}
-                                    onChange={(e) => setEditDef({ ...editDef, description: e.target.value })}
-                                    placeholder="Description"
-                                    className="block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Tab') return;
-                                        e.stopPropagation();
-                                        if (e.key === 'Enter') saveEditing();
-                                        if (e.key === 'Escape') cancelEditing();
-                                    }}
+            <Box>
+                {definitions.map((def) => (
+                    <Accordion
+                        key={def.id}
+                        disableGutters
+                        elevation={0}
+                        sx={{
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            '&:not(:last-child)': { borderBottom: 0 },
+                            '&:before': { display: 'none' },
+                        }}
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            sx={{
+                                backgroundColor: 'rgba(0, 0, 0, .03)',
+                                flexDirection: 'row-reverse',
+                                '& .MuiAccordionSummary-content': { ml: 1, alignItems: 'center' },
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    bgcolor: getTypeColor(def.type),
+                                    mr: 1.5,
+                                    flexShrink: 0
+                                }}
+                            />
+                            <Typography sx={{ fontWeight: 500, fontSize: '0.9rem', flex: 1 }}>
+                                {def.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', mr: 2 }}>
+                                {def.type}
+                            </Typography>
+                        </AccordionSummary>
+
+                        <AccordionDetails sx={{ p: 2 }}>
+                            <Stack spacing={2} sx={{ mb: 3 }}>
+                                <TextField
+                                    label="Name"
+                                    size="small"
+                                    fullWidth
+                                    value={def.name || ''}
+                                    onChange={(e) => onUpdateDefinition(def.id, { name: e.target.value })}
                                 />
 
-                                {/* Attributes (Edit) */}
-                                <div className="space-y-2">
-                                    <div className="text-xs font-medium text-gray-500 uppercase">Attributes</div>
-                                    {Array.isArray(editDef.attributes) && editDef.attributes.map((attr, index) => (
-                                        <div key={index} className="flex gap-2 items-center">
-                                            <input
-                                                ref={el => { editAttributeRefs.current[index] = el; }}
-                                                type="text"
-                                                value={attr.name}
-                                                onChange={(e) => updateAttributeEdit(index, 'name', e.target.value)}
-                                                placeholder="Name"
-                                                className="block w-1/2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
-                                                onKeyDown={(e) => {
-                                                    e.stopPropagation();
-                                                    if (e.key === 'Enter') {
-                                                        addAttributeEdit();
-                                                    }
-                                                }}
-                                            />
-                                            <input
-                                                type="text"
-                                                list="attribute-types"
-                                                value={attr.type}
-                                                onChange={(e) => updateAttributeEdit(index, 'type', e.target.value)}
-                                                placeholder="Type"
-                                                className="block w-1/3 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
-                                                onKeyDown={(e) => {
-                                                    e.stopPropagation();
-                                                    if (e.key === 'Enter') {
-                                                        addAttributeEdit();
-                                                    }
-                                                }}
-                                            />
-                                            <button
-                                                onClick={() => removeAttributeEdit(index)}
-                                                className="text-red-500 hover:text-red-700"
-                                            >
-                                                <CloseIcon className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                    <button
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); addAttributeEdit(); }}
-                                        className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center"
-                                    >
-                                        <AddIcon className="w-3 h-3 mr-1" /> Add Attribute
-                                    </button>
-                                </div>
+                                <Stack direction="row" spacing={2}>
+                                    <FormControl size="small" fullWidth>
+                                        <InputLabel>Type</InputLabel>
+                                        <Select
+                                            value={def.type}
+                                            label="Type"
+                                            onChange={(e) => onUpdateDefinition(def.id, { type: e.target.value as DefinitionType })}
+                                        >
+                                            <MenuItem value={DefinitionType.Entity}>Entity</MenuItem>
+                                            <MenuItem value={DefinitionType.ValueObject}>Value Object</MenuItem>
+                                            <MenuItem value={DefinitionType.Enum}>Enum</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Stack>
 
-                                <div className="flex justify-end gap-2">
-                                    <button
-                                        onClick={cancelEditing}
-                                        className="p-1 text-gray-400 hover:text-gray-600"
+                                <TextField
+                                    label="Description"
+                                    size="small"
+                                    fullWidth
+                                    multiline
+                                    rows={2}
+                                    value={def.description || ''}
+                                    onChange={(e) => onUpdateDefinition(def.id, { description: e.target.value })}
+                                />
+
+                                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    <Button
+                                        size="small"
+                                        color="error"
+                                        startIcon={<DeleteIcon />}
+                                        onClick={(e) => {
+                                            setDeleteDefInfo({ id: def.id, anchorEl: e.currentTarget });
+                                        }}
                                     >
-                                        <CloseIcon className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                        onClick={saveEditing}
-                                        className="p-1 text-green-600 hover:text-green-800"
+                                        Delete Definition
+                                    </Button>
+                                </Box>
+                            </Stack>
+
+                            <Divider sx={{ mb: 2 }} />
+
+                            {/* Attributes Section */}
+                            <Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography variant="overline" color="text.secondary">
+                                        Attributes
+                                    </Typography>
+                                    <Button
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={() => handleAddAttribute(def)}
+                                        sx={{ textTransform: 'none' }}
                                     >
-                                        <CheckIcon className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-gray-900">{def.name}</span>
-                                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${def.type === DefinitionType.Entity ? 'bg-blue-100 text-blue-800' :
-                                                def.type === DefinitionType.ValueObject ? 'bg-green-100 text-green-800' :
-                                                    'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                {def.type}
-                                            </span>
-                                        </div>
-                                        {def.description && (
-                                            <p className="text-sm text-gray-500 mt-1">{def.description}</p>
-                                        )}
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => startEditing(def)}
-                                            className="p-1 text-gray-400 hover:text-indigo-600"
-                                        >
-                                            <EditIcon className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => onRemoveDefinition(def.id)}
-                                            className="p-1 text-gray-400 hover:text-red-600"
-                                        >
-                                            <DeleteIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                                {Array.isArray(def.attributes) && def.attributes.length > 0 && (
-                                    <div className="mt-2 space-y-1">
-                                        {def.attributes.map((attr, i) => (
-                                            <div key={i} className="text-xs text-gray-600 flex justify-between border-b border-gray-100 last:border-0 py-1">
-                                                <span>{attr.name}</span>
-                                                <span className="font-mono text-gray-400">{attr.type}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                        Add Attribute
+                                    </Button>
+                                </Box>
+
+                                <Stack spacing={1}>
+                                    {(Array.isArray(def.attributes) ? def.attributes : []).map((attr, index) => (
+                                        <Box key={index} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                            <TextField
+                                                placeholder="Name"
+                                                size="small"
+                                                value={attr.name}
+                                                onChange={(e) => handleUpdateAttribute(def, index, 'name', e.target.value)}
+                                                sx={{ flex: 1 }}
+                                                inputProps={{ style: { fontSize: '0.85rem' } }}
+                                            />
+                                            {/* Autocomplete for Type */}
+                                            <Autocomplete
+                                                freeSolo
+                                                options={typeSuggestions}
+                                                value={attr.type}
+                                                onChange={(_, newValue) => {
+                                                    // Handle selection
+                                                    if (newValue) {
+                                                        handleUpdateAttribute(def, index, 'type', newValue);
+                                                    }
+                                                }}
+                                                onInputChange={(_, newInputValue) => {
+                                                    // Handle raw input
+                                                    handleUpdateAttribute(def, index, 'type', newInputValue);
+                                                }}
+                                                renderInput={(params) => (
+                                                    <TextField
+                                                        {...params}
+                                                        placeholder="Type"
+                                                        size="small"
+                                                        inputProps={{ ...params.inputProps, style: { fontSize: '0.85rem' } }}
+                                                    />
+                                                )}
+                                                sx={{ width: 140 }}
+                                            />
+                                            <IconButton
+                                                size="small"
+                                                color="default"
+                                                onClick={() => handleDeleteAttribute(def, index)}
+                                            >
+                                                <CloseIcon fontSize="small" />
+                                            </IconButton>
+                                        </Box>
+                                    ))}
+                                    {(def.attributes || []).length === 0 && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', py: 1 }}>
+                                            No attributes defined.
+                                        </Typography>
+                                    )}
+                                </Stack>
+                            </Box>
+                        </AccordionDetails>
+                    </Accordion>
                 ))}
-            </div>
-        </div>
+
+                {definitions.length === 0 && (
+                    <Typography color="text.secondary" align="center" sx={{ mt: 4, fontStyle: 'italic' }}>
+                        No definitions created yet.
+                    </Typography>
+                )}
+            </Box>
+
+            {/* Confirm Deletion Menu */}
+            <ConfirmMenu
+                open={Boolean(deleteDefInfo)}
+                anchorEl={deleteDefInfo?.anchorEl || null}
+                onClose={() => setDeleteDefInfo(null)}
+                onConfirm={() => {
+                    if (deleteDefInfo) {
+                        onRemoveDefinition(deleteDefInfo.id);
+                    }
+                }}
+                message="Delete this definition?"
+            />
+        </Box>
     );
 };
 

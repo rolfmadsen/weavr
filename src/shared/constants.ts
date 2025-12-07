@@ -3,10 +3,13 @@ import { ElementType } from '../features/modeling';
 export const ELEMENT_STYLE: Record<ElementType, { color: string; textColor: string; shape: 'rect' | 'circle' | 'diamond' | 'beveled-rect' }> = {
   [ElementType.Screen]: { color: '#e5e7eb', textColor: '#1f2937', shape: 'rect' }, // Light Gray
   [ElementType.Command]: { color: '#3b82f6', textColor: '#ffffff', shape: 'rect' }, // Blue
-  [ElementType.EventInternal]: { color: '#f97316', textColor: '#ffffff', shape: 'circle' }, // Orange
+  [ElementType.DomainEvent]: { color: '#f97316', textColor: '#ffffff', shape: 'circle' }, // Orange
   [ElementType.ReadModel]: { color: '#22c55e', textColor: '#ffffff', shape: 'rect' }, // Green
-  [ElementType.EventExternal]: { color: '#facc15', textColor: '#1f2937', shape: 'beveled-rect' }, // Yellow with dark text
+  [ElementType.IntegrationEvent]: { color: '#facc15', textColor: '#1f2937', shape: 'beveled-rect' }, // Yellow with dark text
   [ElementType.Automation]: { color: '#14b8a6', textColor: '#ffffff', shape: 'rect' }, // Teal
+  // Legacy Types Support
+  ['EVENT_INTERNAL' as any]: { color: '#f97316', textColor: '#ffffff', shape: 'circle' },
+  ['EVENT_EXTERNAL' as any]: { color: '#facc15', textColor: '#1f2937', shape: 'beveled-rect' },
 };
 
 export const NODE_WIDTH = 160;

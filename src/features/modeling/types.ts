@@ -1,9 +1,9 @@
 export enum ElementType {
   Screen = 'SCREEN',
   Command = 'COMMAND',
-  EventInternal = 'EVENT_INTERNAL',
+  DomainEvent = 'DOMAIN_EVENT',
   ReadModel = 'READ_MODEL',
-  EventExternal = 'EVENT_EXTERNAL',
+  IntegrationEvent = 'INTEGRATION_EVENT',
   Automation = 'AUTOMATION',
 }
 
@@ -57,6 +57,7 @@ export interface ModelData {
   links: Link[];
   slices?: Record<string, Slice>; // Added for Strict Mode Storage
   nodeSliceMap?: Record<string, string>;
+  definitions?: DataDefinition[];
 }
 
 

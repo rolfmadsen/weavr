@@ -5,9 +5,9 @@ import {
   CloseIcon,
   ScreenIcon,
   CommandIcon,
-  EventInternalIcon,
+  DomainEventIcon,
   ReadModelIcon,
-  EventExternalIcon,
+  IntegrationEventIcon,
   AutomationIcon
 } from '../../../shared/components/icons';
 
@@ -23,9 +23,9 @@ const Kbd: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> = {
   [ElementType.Screen]: { name: 'User Interface', icon: <ScreenIcon /> },
   [ElementType.Command]: { name: 'Command', icon: <CommandIcon /> },
-  [ElementType.EventInternal]: { name: 'Internal Event', icon: <EventInternalIcon /> },
+  [ElementType.DomainEvent]: { name: 'Domain Event', icon: <DomainEventIcon /> },
   [ElementType.ReadModel]: { name: 'Read Model', icon: <ReadModelIcon /> },
-  [ElementType.EventExternal]: { name: 'External Event', icon: <EventExternalIcon /> },
+  [ElementType.IntegrationEvent]: { name: 'Integration Event', icon: <IntegrationEventIcon /> },
   [ElementType.Automation]: { name: 'Automation', icon: <AutomationIcon /> },
 };
 
@@ -61,8 +61,8 @@ const IntroductionContent = () => (
           </h4>
           <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
             <span className="font-semibold text-gray-800">Trigger</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.COMMAND.color }}>Command</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event(s)</span>
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event(s)</span>
           </div>
           <p className="text-gray-600 text-sm">
             State Change Pattern describes a state change and its way from the start (what is the trigger?) to the end (what is the state change?). It starts with a white box (Screen), followed by a blue box (Command) and then one or multiple yellow boxes (Event). At first each box should be given a name in order to give the use case a meaning in the context of the business.
@@ -74,7 +74,7 @@ const IntroductionContent = () => (
             State View Pattern
           </h4>
           <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event(s)</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event(s)</span> →
             <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>View</span>
           </div>
           <p className="text-gray-600 text-sm">
@@ -87,11 +87,11 @@ const IntroductionContent = () => (
             Automation Pattern
           </h4>
           <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event(s)</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>View</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.AUTOMATION.color }}>Automated Trigger</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.COMMAND.color }}>Command</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Event(s)</span>
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event(s)</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>View</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>Automated Trigger</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event(s)</span>
           </div>
           <p className="text-gray-600 text-sm">
             Use this pattern whenever the system should do something automatically.
@@ -106,11 +106,11 @@ const IntroductionContent = () => (
             Translation Pattern (System integration)
           </h4>
           <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_EXTERNAL.textColor }}>Event(s) (source)</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>View</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.AUTOMATION.color }}>Automated Trigger</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.COMMAND.color }}>Command</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_EXTERNAL.textColor }}>Event(s) (other)</span>
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Event(s) (source)</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>View</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>Automated Trigger</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Event(s) (other)</span>
           </div>
           <p className="text-gray-600 text-sm">
             The chain of building blocks looks the same as with the automation pattern in the first place. That´s because it is the same thing. The only difference in this pattern is, that the translation pattern is used for transferring knowledge from one system into another system. Whenever you have to tell another system that something happened, use this pattern.

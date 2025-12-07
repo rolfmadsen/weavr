@@ -1,6 +1,6 @@
 import React from 'react';
 import { ElementType } from '../../modeling';
-import { AddIcon, CommandIcon, EventInternalIcon, ReadModelIcon, ScreenIcon, EventExternalIcon, AutomationIcon } from '../../../shared/components/icons';
+import { AddIcon, CommandIcon, DomainEventIcon, ReadModelIcon, ScreenIcon, IntegrationEventIcon, AutomationIcon } from '../../../shared/components/icons';
 
 interface ToolbarProps {
   onAddNode: (type: ElementType) => void;
@@ -13,9 +13,9 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
   const tools = [
     { type: ElementType.Screen, label: 'Screen', icon: <ScreenIcon />, shortcut: '1' },
     { type: ElementType.Command, label: 'Command', icon: <CommandIcon />, shortcut: '2' },
-    { type: ElementType.EventInternal, label: 'Internal Event', icon: <EventInternalIcon />, shortcut: '3' },
+    { type: ElementType.DomainEvent, label: 'Domain Event', icon: <DomainEventIcon />, shortcut: '3' },
     { type: ElementType.ReadModel, label: 'Read Model', icon: <ReadModelIcon />, shortcut: '4' },
-    { type: ElementType.EventExternal, label: 'External Event', icon: <EventExternalIcon />, shortcut: '5' },
+    { type: ElementType.IntegrationEvent, label: 'Integration Event', icon: <IntegrationEventIcon />, shortcut: '5' },
     { type: ElementType.Automation, label: 'Automation', icon: <AutomationIcon />, shortcut: '6' },
   ];
 

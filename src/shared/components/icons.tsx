@@ -5,10 +5,10 @@ const MaterialIcon: React.FC<{ icon: string; className?: string }> = ({ icon, cl
 );
 
 export const CommandIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="dynamic_form" className={className} />;
-export const EventInternalIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="flash_on" className={className} />;
+export const DomainEventIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="flash_on" className={className} />;
 export const ReadModelIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="visibility" className={className} />;
 export const ScreenIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="desktop_windows" className={className} />;
-export const EventExternalIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="public" className={className} />;
+export const IntegrationEventIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="public" className={className} />;
 export const AutomationIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="settings" className={className} />;
 
 export const AddIcon: React.FC<{ className?: string }> = ({ className }) => <MaterialIcon icon="add" className={className} />;

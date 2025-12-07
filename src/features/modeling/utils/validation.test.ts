@@ -19,14 +19,14 @@ describe('ValidationService', () => {
             expect(validationService.isValidConnection(source, target)).toBe(true);
         });
 
-        it('should validate Command -> EventInternal', () => {
+        it('should validate Command -> DomainEvent', () => {
             const source = createNode(ElementType.Command);
-            const target = createNode(ElementType.EventInternal);
+            const target = createNode(ElementType.DomainEvent);
             expect(validationService.isValidConnection(source, target)).toBe(true);
         });
 
-        it('should validate EventInternal -> ReadModel', () => {
-            const source = createNode(ElementType.EventInternal);
+        it('should validate DomainEvent -> ReadModel', () => {
+            const source = createNode(ElementType.DomainEvent);
             const target = createNode(ElementType.ReadModel);
             expect(validationService.isValidConnection(source, target)).toBe(true);
         });

@@ -1,4 +1,4 @@
-import { Node, Link, Slice, ElementType, ModelData } from '../types';
+import { Node, Link, Slice, ElementType, ModelData, DataDefinition, DefinitionType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Helper to get current ISO date
@@ -8,8 +8,8 @@ const now = () => new Date().toISOString();
 const mapTypeToSchema = (type: ElementType): string => {
     switch (type) {
         case ElementType.ReadModel: return 'READMODEL';
-        case ElementType.EventInternal: return 'EVENT';
-        case ElementType.EventExternal: return 'EVENT';
+        case ElementType.DomainEvent: return 'EVENT';
+        case ElementType.IntegrationEvent: return 'EVENT';
         case ElementType.Command: return 'COMMAND';
         case ElementType.Screen: return 'SCREEN';
         case ElementType.Automation: return 'AUTOMATION';
@@ -21,7 +21,7 @@ const mapTypeToSchema = (type: ElementType): string => {
 const mapSchemaToType = (type: string, context?: string): ElementType => {
     switch (type) {
         case 'READMODEL': return ElementType.ReadModel;
-        case 'EVENT': return context === 'EXTERNAL' ? ElementType.EventExternal : ElementType.EventInternal;
+        case 'EVENT': return context === 'EXTERNAL' ? ElementType.IntegrationEvent : ElementType.DomainEvent;
         case 'COMMAND': return ElementType.Command;
         case 'SCREEN': return ElementType.Screen;
         case 'AUTOMATION': return ElementType.Automation;
@@ -36,7 +36,8 @@ export const exportWeavrProject = (
     edgeRoutes: Map<string, number[]>,
     modelId: string,
     projectName: string = 'Untitled Project',
-    format: 'WEAVR' | 'STANDARD' = 'WEAVR'
+    format: 'WEAVR' | 'STANDARD' = 'WEAVR',
+    definitions: DataDefinition[] = []
 ): any => {
     // 1. Meta
     const meta = {
@@ -71,6 +72,53 @@ export const exportWeavrProject = (
         });
     });
 
+    // 3. Data Dictionary
+    const dictionary: Record<string, any> = {};
+
+    definitions.forEach(def => {
+        if (def.type === DefinitionType.Enum) {
+            // Map Enum to String with Enum restriction
+            // We assume attributes contain the enum values as 'name'
+            const enumValues = (def.attributes || []).map(attr => attr.name);
+            dictionary[def.name] = {
+                type: 'string',
+                title: def.name,
+                description: def.description || '',
+                enum: enumValues
+            };
+        } else {
+            // Map Entity/ValueObject to Object
+            const properties: Record<string, any> = {};
+            // const required: string[] = [];
+
+            (def.attributes || []).forEach(attr => {
+                // Determine JSON Schema type
+                let schemaType = 'string'; // Default
+                switch (attr.type) {
+                    case 'Boolean': schemaType = 'boolean'; break;
+                    case 'Int': schemaType = 'integer'; break;
+                    case 'Double':
+                    case 'Decimal':
+                    case 'Long':
+                    case 'Number': schemaType = 'number'; break;
+                    // String, Date, DateTime, UUID, Custom stay as string (or could be refined)
+                }
+
+                properties[attr.name] = {
+                    type: schemaType
+                };
+            });
+
+            dictionary[def.name] = {
+                type: 'object',
+                title: def.name,
+                description: def.description || '',
+                properties,
+                // required // We don't track required yet
+            };
+        }
+    });
+
     const layout: Record<string, any> = {};
 
     // Map Nodes
@@ -98,8 +146,8 @@ export const exportWeavrProject = (
             const slice = sliceMap.get(sId);
             switch (node.type) {
                 case ElementType.Command: slice.commands.push(element); break;
-                case ElementType.EventInternal:
-                case ElementType.EventExternal: slice.events.push(element); break;
+                case ElementType.DomainEvent:
+                case ElementType.IntegrationEvent: slice.events.push(element); break;
                 case ElementType.ReadModel: slice.readmodels.push(element); break;
                 case ElementType.Screen: slice.screens.push(element); break;
                 case ElementType.Automation: slice.processors.push(element); break;
@@ -169,15 +217,61 @@ export const exportWeavrProject = (
         eventModel: {
             slices: Array.from(sliceMap.values())
         },
-        layout
+        layout,
+        dataDictionary: {
+            definitions: dictionary
+        }
     };
 };
 
-export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record<string, number[]> } => {
+export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record<string, number[]>, definitions?: DataDefinition[] } => {
     const nodes: Node[] = [];
     const links: Link[] = [];
     const edgeRoutes: Record<string, number[]> = {};
     const slices: Slice[] = [];
+    const definitions: DataDefinition[] = [];
+
+    // Import Data Dictionary
+    if (json.dataDictionary && json.dataDictionary.definitions) {
+        Object.keys(json.dataDictionary.definitions).forEach(key => {
+            const schema = json.dataDictionary.definitions[key];
+            const isEnum = schema.type === 'string' && Array.isArray(schema.enum);
+            const isObject = schema.type === 'object';
+
+            let type = DefinitionType.Entity;
+            if (isEnum) type = DefinitionType.Enum;
+            // We can't distinguish ValueObject from Entity purely by schema easily without extra metadata, 
+            // so default to Entity unless we add metadata later.
+            // Or if we check the name? 
+
+            const attributes: any[] = [];
+
+            if (isEnum) {
+                (schema.enum || []).forEach((val: string) => {
+                    attributes.push({ name: val, type: 'String' });
+                });
+            } else if (isObject && schema.properties) {
+                Object.keys(schema.properties).forEach(propKey => {
+                    const prop = schema.properties[propKey];
+                    // Reverse map type
+                    let myType = 'String';
+                    if (prop.type === 'boolean') myType = 'Boolean';
+                    if (prop.type === 'integer') myType = 'Int';
+                    if (prop.type === 'number') myType = 'Double';
+
+                    attributes.push({ name: propKey, type: myType });
+                });
+            }
+
+            definitions.push({
+                id: uuidv4(),
+                name: schema.title || key,
+                type,
+                description: schema.description,
+                attributes
+            });
+        });
+    }
 
     // Determine source of slices
     let sourceSlices: any[] = [];
@@ -265,6 +359,7 @@ export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record
         nodes,
         links,
         slices: slicesRecord,
-        edgeRoutes
+        edgeRoutes,
+        definitions
     };
 };

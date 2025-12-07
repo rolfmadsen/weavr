@@ -13,14 +13,85 @@ import {
   Stack
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
-import { Node, Link, Slice, DataDefinition, DefinitionType } from '../../modeling';
+import { Node, Link, Slice, DataDefinition, DefinitionType, ElementType } from '../../modeling';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import { useCrossModelData } from '../../modeling';
+
+import { InfoOutlined } from '@mui/icons-material';
+
+const ELEMENT_DESCRIPTIONS: Partial<Record<ElementType, { title: string; purpose: string; uses: string }>> = {
+  [ElementType.Screen]: {
+    title: 'User Interface (Screen/Mockup)',
+    purpose: 'Visualizes how users interact with the system or view information.',
+    uses: 'Shows where commands originate (e.g., button clicks) and where read models are displayed. Helps clarify data requirements and user flow.'
+  },
+  [ElementType.Command]: {
+    title: 'Command',
+    purpose: 'Represents an intention or instruction for the system to perform an action.',
+    uses: 'Triggered by user interaction (via a User Interface) or an Automation. A successful command results in one or more Events.'
+  },
+  [ElementType.DomainEvent]: {
+    title: 'Domain Event',
+    purpose: 'Represents a significant fact that has occurred in the system and resulted in persisted data. Written in the past tense.',
+    uses: 'Forms the system\'s history and source of truth. Events are used to build Read Models and can trigger Automations.'
+  },
+  [ElementType.ReadModel]: {
+    title: 'Read Model / Query',
+    purpose: 'Represents a specific query or view of the system\'s state, derived from past Events.',
+    uses: 'Provides the data needed to populate a User Interface or feed information into an Automation. Defines how data is presented or accessed.'
+  },
+  [ElementType.IntegrationEvent]: {
+    title: 'Integration Event (External Event)',
+    purpose: 'Represents a point of integration with external systems or other slices.',
+    uses: 'Used for both *Incoming* data (feeding Read Models or Automations) and *Outgoing* data (exposed from the slice via Commands or Read Models).'
+  },
+  [ElementType.Automation]: {
+    title: 'Automation',
+    purpose: 'Represents an automated background process or job (not a direct user action).',
+    uses: 'Is triggered by an Event (Internal or External). It queries a Read Model (optional) for data and issues a Command to complete its task.'
+  }
+};
+
+const ElementHelp: React.FC<{ type: ElementType }> = ({ type }) => {
+  const info = ELEMENT_DESCRIPTIONS[type];
+  if (!info) return null;
+
+  return (
+    <Box sx={{
+      mt: 2,
+      p: 2,
+      backgroundColor: 'info.light',
+      color: 'info.contrastText',
+      borderRadius: 1,
+      fontSize: '0.875rem',
+      opacity: 0.95
+    }}>
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1.5 }}>
+        <InfoOutlined fontSize="small" />
+        <Typography variant="subtitle2" component="div" fontWeight="bold">
+          {info.title}
+        </Typography>
+      </Box>
+
+      <Box sx={{ mb: 1.5 }}>
+        <Typography variant="caption" display="block" fontWeight="bold" sx={{ mb: 0.5 }}>Purpose</Typography>
+        <Typography variant="caption" display="block" sx={{ lineHeight: 1.5 }}>{info.purpose}</Typography>
+      </Box>
+
+      <Box>
+        <Typography variant="caption" display="block" fontWeight="bold" sx={{ mb: 0.5 }}>Uses</Typography>
+        <Typography variant="caption" display="block" sx={{ lineHeight: 1.5 }}>{info.uses}</Typography>
+      </Box>
+    </Box>
+  );
+};
+
 
 interface PropertiesPanelProps {
   selectedItem: { type: 'node' | 'link' | 'multi-node'; data: any } | null;
   onUpdateNode: (id: string, key: string, value: any) => void;
   onUpdateLink: (id: string, key: string, value: any) => void;
+
   onDeleteLink: (id: string) => void;
   onDeleteNode: (id: string) => void;
   slices: Slice[];
@@ -236,13 +307,12 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             disabled
           >
             <MenuItem value="COMMAND">Command</MenuItem>
-            <MenuItem value="EVENT_INTERNAL">Event (Internal)</MenuItem>
-            <MenuItem value="EVENT_EXTERNAL">Event (External)</MenuItem>
+            <MenuItem value="DOMAIN_EVENT">Domain Event</MenuItem>
+            <MenuItem value="INTEGRATION_EVENT">Integration Event</MenuItem>
             <MenuItem value="AGGREGATE">Aggregate</MenuItem>
             <MenuItem value="READ_MODEL">Read Model</MenuItem>
             <MenuItem value="SCREEN">Screen</MenuItem>
             <MenuItem value="AUTOMATION">Automation</MenuItem>
-            <MenuItem value="POLICY">Policy</MenuItem>
           </Select>
         </FormControl>
 
@@ -268,7 +338,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
           />
         )}
 
-        {node.type === 'EVENT_EXTERNAL' && (
+        {node.type === 'INTEGRATION_EVENT' && (
           <TextField
             label="External System"
             value={node.externalSystem || ''}
@@ -340,6 +410,12 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
         >
           Delete Node
         </Button>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box>
+          <ElementHelp type={node.type} />
+        </Box>
       </Box>
     </Box >
   );

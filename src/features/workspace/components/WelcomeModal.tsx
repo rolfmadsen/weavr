@@ -5,9 +5,9 @@ import {
   CloseIcon,
   ScreenIcon,
   CommandIcon,
-  EventInternalIcon,
+  DomainEventIcon,
   ReadModelIcon,
-  EventExternalIcon,
+  IntegrationEventIcon,
   AutomationIcon
 } from '../../../shared/components/icons';
 
@@ -19,9 +19,9 @@ interface WelcomeModalProps {
 const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> = {
   [ElementType.Screen]: { name: 'User Interface', icon: <ScreenIcon /> },
   [ElementType.Command]: { name: 'Command', icon: <CommandIcon /> },
-  [ElementType.EventInternal]: { name: 'Internal Event', icon: <EventInternalIcon /> },
+  [ElementType.DomainEvent]: { name: 'Domain Event', icon: <DomainEventIcon /> },
   [ElementType.ReadModel]: { name: 'Read Model', icon: <ReadModelIcon /> },
-  [ElementType.EventExternal]: { name: 'External Event', icon: <EventExternalIcon /> },
+  [ElementType.IntegrationEvent]: { name: 'Integration Event', icon: <IntegrationEventIcon /> },
   [ElementType.Automation]: { name: 'Automation', icon: <AutomationIcon /> },
 };
 
@@ -67,13 +67,13 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) => {
             <h3 className="text-lg font-bold text-gray-800 mb-2">Getting Started (The Workflow)</h3>
             <ol className="list-decimal list-inside space-y-3 text-gray-600">
               <li>
-                <strong>Model the Core User Flow:</strong> Start with the user's perspective. An action begins on a <span className="font-semibold text-gray-800">User Interface</span>, which triggers a <span className="font-semibold" style={{ color: ELEMENT_STYLE.COMMAND.color }}>Command</span> (the intent). A successful command creates an <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_INTERNAL.color }}>Internal Event</span> (the fact). This event then updates a <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>Read Model</span>, providing feedback to the user on a <span className="font-semibold text-gray-800">User Interface</span>.
+                <strong>Model the Core User Flow:</strong> Start with the user's perspective. An action begins on a <span className="font-semibold text-gray-800">User Interface</span>, which triggers a <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> (the intent). A successful command creates a <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Domain Event</span> (the fact). This event then updates a <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>Read Model</span>, providing feedback to the user on a <span className="font-semibold text-gray-800">User Interface</span>.
               </li>
               <li>
-                <strong>Add System Reactions:</strong> Does an Event trigger an automatic process? Use an <span className="font-semibold" style={{ color: ELEMENT_STYLE.AUTOMATION.color }}>Automation</span> element. It listens for an event and issues a new command.
+                <strong>Add System Reactions:</strong> Does an Event trigger an automatic process? Use an <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>Automation</span> element. It listens for an event and issues a new command.
               </li>
               <li>
-                <strong>Integrate External Systems:</strong> When data enters your system from an outside source, use an <span className="font-semibold" style={{ color: ELEMENT_STYLE.EVENT_EXTERNAL.textColor }}>External Event</span>. It can either update a Read Model directly or trigger an Automation to translate it into an internal command.
+                <strong>Integrate External Systems:</strong> When data enters your system from an outside source, use an <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event</span>. It can either update a Read Model directly or trigger an Automation to translate it into an internal command.
               </li>
             </ol>
           </div>

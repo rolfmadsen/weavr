@@ -311,7 +311,7 @@ const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, on
 
     const renderShape = () => {
         switch (style.shape) {
-            case 'circle': return <Rect {...shapeProps} cornerRadius={height / 2} />;
+            case 'circle': return <Rect {...shapeProps} cornerRadius={Math.min(height / 2, 24)} />;
             case 'diamond': return <Path data={`M ${width / 2} 0 L ${width} ${height / 2} L ${width / 2} ${height} L 0 ${height / 2} Z`} {...shapeProps} />;
             case 'beveled-rect':
                 const c = 12;

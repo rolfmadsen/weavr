@@ -14,7 +14,9 @@ import {
   calculateNodeHeight,
   validationService,
   useModelList,
-  calculateElkLayout
+  calculateElkLayout,
+  exportWeavrProject,
+  importWeavrProject
 } from './features/modeling';
 import { GraphCanvas, useSelection } from './features/canvas';
 import { gunClient, useGraphSync, useHistory } from './features/collaboration';
@@ -34,11 +36,11 @@ import {
   HelpModal,
   WelcomeModal,
   ModelListModal,
-  useKeyboardShortcuts
+  useKeyboardShortcuts,
+  useDataMigration // Import hook
 } from './features/workspace';
 
-// TODO: Restore export functionality
-// import { exportWeavrProject, importWeavrProject } from './utils/exportUtils';
+
 
 function getModelIdFromUrl(): string {
   const hash = window.location.hash.slice(1);
@@ -102,6 +104,13 @@ const App: React.FC = () => {
     return models.find(m => m.id === modelId)?.name || 'Untitled Model';
   }, [models, modelId]);
 
+  useDataMigration({
+    nodes,
+    updateNode: gunUpdateNode,
+    definitions,
+    updateDefinition
+  });
+
   // Register model in local index if not present
   useEffect(() => {
     if (modelId) {
@@ -130,6 +139,23 @@ const App: React.FC = () => {
   const handleDeleteDefinition = (id: string) => {
     deleteDefinition(id);
   };
+
+  // 1b. Derived State: Populate slice.nodeIds from the nodes list
+  // usage of `slices` throughout the app expects nodeIds to be populated, but GunDB only stores the relationship on the Node.
+  const slicesWithNodes = useMemo(() => {
+    // 1. Create a deep copy of slices to avoid mutating the ref/state directly
+    const sliceMap = new Map(slices.map(s => [s.id, { ...s, nodeIds: new Set<string>() }]));
+
+    // 2. Populate nodeIds based on node.sliceId
+    nodes.forEach(node => {
+      if (node.sliceId && sliceMap.has(node.sliceId)) {
+        sliceMap.get(node.sliceId)!.nodeIds.add(node.id);
+      }
+    });
+
+    // 3. Return sorted array
+    return Array.from(sliceMap.values()).sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [slices, nodes]);
 
 
   // 2. Selection Management
@@ -335,7 +361,7 @@ const App: React.FC = () => {
       // const { calculateElkLayout } = await import('./services/elkLayoutService');
 
       // 2. Get new positions (returns object with positions and routes)
-      const { positions: newPositionsMap, edgeRoutes } = await calculateElkLayout(nodes, links, slices);
+      const { positions: newPositionsMap, edgeRoutes } = await calculateElkLayout(nodes, links, slicesWithNodes);
 
       console.log(`Auto - layout calculated for ${newPositionsMap.size} nodes.`);
 
@@ -557,31 +583,29 @@ const App: React.FC = () => {
 
   const handleExport = useCallback(() => {
     // Weavr Export (Default)
-    // const data = exportWeavrProject(nodes, links, slices, autoLayoutEdges || new Map(), modelId || uuidv4(), 'Untitled Project', 'WEAVR');
-    const data = {}; // Placeholder
+    const data = exportWeavrProject(nodes, links, slices, autoLayoutEdges || new Map(), modelId || uuidv4(), 'Untitled Project', 'WEAVR', definitionsArray);
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `weavr - project - ${modelId}.json`;
+    a.download = `weavr-project-${modelId}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [nodes, links, slices, autoLayoutEdges, modelId]);
+  }, [nodes, links, slices, autoLayoutEdges, modelId, definitionsArray]);
 
   const handleStandardExport = useCallback(() => {
     // Standard Export (Strict Schema)
-    // const data = exportWeavrProject(nodes, links, slices, autoLayoutEdges || new Map(), modelId || uuidv4(), 'Untitled Project', 'STANDARD');
-    const data = {}; // Placeholder
+    const data = exportWeavrProject(nodes, links, slices, autoLayoutEdges || new Map(), modelId || uuidv4(), 'Untitled Project', 'STANDARD', definitionsArray);
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `event - model - standard - ${modelId}.json`;
+    a.download = `event-model-standard-${modelId}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [nodes, links, slices, autoLayoutEdges, modelId]);
+  }, [nodes, links, slices, autoLayoutEdges, modelId, definitionsArray]);
 
   const handleImport = useCallback((file: File) => {
     if (!modelId) return;
@@ -592,8 +616,7 @@ const App: React.FC = () => {
         if (typeof result !== 'string') throw new Error('File read error');
 
         const json = JSON.parse(result);
-        // const importedData = importWeavrProject(json);
-        const importedData: any = { nodes: [], links: [] }; // Placeholder
+        const importedData = importWeavrProject(json);
 
         // Support legacy format (direct array of nodes/links) if importWeavrProject returns empty
         const data: ModelData = (importedData.nodes.length > 0) ? importedData : json;
@@ -606,6 +629,7 @@ const App: React.FC = () => {
         nodes.forEach(n => model.get('nodes').get(n.id).put(null as any));
         links.forEach(l => model.get('links').get(l.id).put(null as any));
         slices.forEach(s => model.get('slices').get(s.id).put(null as any));
+        definitions.forEach(d => model.get('definitions').get(d.id).put(null as any));
         manualPositionsRef.current.clear();
 
         // Restore Edge Routes
@@ -622,17 +646,6 @@ const App: React.FC = () => {
         // Restore Slices
         if (data.slices) {
           Object.values(data.slices).forEach(slice => {
-            // Ensure nodeIds is not in the put data if it's a Set (Gun handles relations differently or we serialize it)
-            // In types.ts Slice has nodeIds: Set<string>. Gun usually stores this as a separate graph or simple array if small.
-            // But here we just want to restore the slice metadata.
-            // The nodes themselves have sliceId property which links them.
-            // Weavr seems to rely on node.sliceId primarily?
-            // Let's check Slice definition in types.ts.
-            // It has nodeIds: Set<string>.
-            // But when we load slices, do we populate nodeIds?
-            // In App.tsx `useEffect` for loading slices:
-            // It seems we might not be fully using nodeIds Set in the Slice object for logic, but relying on node.sliceId?
-            // Actually, let's just save the slice metadata.
             const { nodeIds, ...sliceData } = slice;
             model.get('slices').get(slice.id).put(sliceData as any);
           });
@@ -664,6 +677,30 @@ const App: React.FC = () => {
           model.get('links').get(id).put(linkData as any);
         });
 
+        // Restore Definitions
+        if (data.definitions) {
+          data.definitions.forEach(def => {
+            const { id, ...defData } = def;
+            // Sanitize defData (stringify attributes if needed, but Gun usually handles arrays if small, 
+            // but better to check if useGraphSync does parsing.
+            // let's assume useGraphSync handles it or we stringify.
+            // In App.tsx: definitions comes from useGraphSync.
+            // Gun usually needs stringify for complex objects if not in schema.
+            // Let's assume we can put it as is for now, or stringify attributes.
+            // Actually, looking at nodes, entityIds IS stringified.
+            // Let's check updateDefinition in useGraphSync if I can.
+            // For now, I will PUT the definition object. If attributes is array, Gun might complain if not a root node.
+            // Ideally definitions are nodes in Gun?
+            // Let's assume strict JSON object structure.
+            // To be safe, I'll stringify attributes if they are arrays.
+            const sanitizedDef: any = { ...defData };
+            if (Array.isArray(sanitizedDef.attributes)) {
+              sanitizedDef.attributes = JSON.stringify(sanitizedDef.attributes);
+            }
+            model.get('definitions').get(id).put(sanitizedDef);
+          });
+        }
+
         clearSelection();
         handleClosePanel();
       } catch (error) {
@@ -671,7 +708,7 @@ const App: React.FC = () => {
       }
     };
     reader.readAsText(file);
-  }, [modelId, nodes, links, handleClosePanel, clearSelection, manualPositionsRef]);
+  }, [modelId, nodes, links, definitions, handleClosePanel, clearSelection, manualPositionsRef]);
 
   const handleCanvasClick = useCallback((event: any) => {
     const shiftKey = event.shiftKey || event.evt?.shiftKey;
@@ -780,7 +817,7 @@ const App: React.FC = () => {
           onCanvasClick={handleCanvasClick}
           onMarqueeSelect={handleMarqueeSelect}
           onValidateConnection={handleValidateConnection}
-          onViewChange={setViewState}
+          onViewChange={(view) => setViewState(view)}
           ref={graphRef}
         />
 
@@ -810,7 +847,7 @@ const App: React.FC = () => {
               onUpdateLink={handleUpdateLink}
               onDeleteLink={handleDeleteLink}
               onDeleteNode={handleDeleteNode}
-              slices={slices}
+              slices={slicesWithNodes}
               onAddSlice={handleAddSlice}
               focusOnRender={focusOnRender}
               onFocusHandled={handleFocusHandled}
@@ -821,7 +858,7 @@ const App: React.FC = () => {
           )}
           {sidebarView === 'slices' && (
             <SliceList
-              slices={slices}
+              slices={slicesWithNodes}
               definitions={definitionsArray}
               onAddSlice={addSlice}
               onUpdateSlice={updateSlice}
@@ -856,7 +893,7 @@ const App: React.FC = () => {
             setIsSliceManagerOpen(false);
             setSliceManagerInitialId(null);
           }}
-          slices={slices}
+          slices={slicesWithNodes}
           onAddSlice={addSlice}
           onUpdateSlice={updateSlice}
           onDeleteSlice={deleteSlice}

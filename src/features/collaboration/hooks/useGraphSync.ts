@@ -164,7 +164,9 @@ export function useGraphSync(modelId: string | null) {
         });
 
         // 3. Subscribe to slices
+        console.log(`[Sync] Subscribing to slices for model ${modelId}`);
         model.get('slices').map().on((sliceData: any, sliceId: string) => {
+            // console.log(`[Sync] Received slice update:`, sliceId, sliceData);
             try {
                 if (sliceData === null) {
                     tempSlicesRef.current.delete(sliceId);
@@ -384,20 +386,29 @@ export function useGraphSync(modelId: string | null) {
     const addSlice = useCallback((title: string, order: number, type?: SliceType, context?: string) => {
         if (!modelId) return;
         const sliceId = uuidv4();
-        const newSliceData = {
+        const gunPayload = {
+            title: title || 'Untitled',
+            order: order || 0,
+            color: '#e5e7eb',
+            sliceType: type || null,
+            context: context || null
+        };
+
+        const newSlice: Slice = {
+            id: sliceId,
             title: title || 'Untitled',
             order: order || 0,
             color: '#e5e7eb',
             sliceType: type,
-            context: context
-        }; // Default color
+            context: context,
+            nodeIds: new Set()
+        };
 
-        const newSlice: Slice = { id: sliceId, ...newSliceData, nodeIds: new Set() };
         setSlices(prev => [...prev, newSlice].sort((a, b) => (a.order || 0) - (b.order || 0))); // Optimistic update
         slicesRef.current = [...slicesRef.current, newSlice].sort((a, b) => (a.order || 0) - (b.order || 0)); // Immediate ref update
         tempSlicesRef.current.set(sliceId, newSlice); // Immediate DB cache update
 
-        gunClient.getModel(modelId).get('slices').get(sliceId).put(newSliceData);
+        gunClient.getModel(modelId).get('slices').get(sliceId).put(gunPayload);
         return sliceId;
     }, [modelId]);
 

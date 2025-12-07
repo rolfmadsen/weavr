@@ -209,7 +209,7 @@ export function useKeyboardShortcuts({
             }
 
             if (isToolbarOpen) {
-                const tools = [ElementType.Screen, ElementType.Command, ElementType.EventInternal, ElementType.ReadModel, ElementType.EventExternal, ElementType.Automation];
+                const tools = [ElementType.Screen, ElementType.Command, ElementType.DomainEvent, ElementType.ReadModel, ElementType.IntegrationEvent, ElementType.Automation];
                 const keyIndex = parseInt(event.key, 10) - 1;
                 if (keyIndex >= 0 && keyIndex < tools.length) {
                     onAddNode(tools[keyIndex]);
