@@ -76,6 +76,34 @@ const theme = createTheme({
                 },
             },
         },
+        // Performance Optimizations for Lighthouse
+        MuiTabs: {
+            styleOverrides: {
+                indicator: {
+                    // Disable width/left animations to prevent layout thrashing (Non-composited)
+                    // The indicator will just "snap" to the new position.
+                    transition: 'none',
+                },
+            },
+        },
+        MuiInputLabel: {
+            styleOverrides: {
+                root: {
+                    // Disable color transition (triggers Paint)
+                    transitionProperty: 'transform, opacity', // Only animate transform (composited)
+                },
+            },
+        },
+        MuiOutlinedInput: {
+            styleOverrides: {
+                root: {
+                    // Reduce paint cost on focus
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        transition: 'none',
+                    },
+                }
+            }
+        }
     },
 });
 
