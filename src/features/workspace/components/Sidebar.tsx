@@ -162,7 +162,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 {title}
                             </Typography>
                         )}
-                        <IconButton onClick={onClose} size="small">
+                        <IconButton onClick={onClose} size="small" aria-label="Close sidebar">
                             <CloseIcon />
                         </IconButton>
                     </Box>

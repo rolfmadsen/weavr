@@ -128,7 +128,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, selectedSliceIds, onC
                     <Typography variant="subtitle2" sx={{ flex: 1, fontWeight: 600, color: '#374151', fontSize: '0.85rem' }}>
                         Filter Slices
                     </Typography>
-                    <IconButton size="small" onClick={() => setIsCollapsed(true)} sx={{ p: 0.5, color: '#9ca3af' }}>
+                    <IconButton size="small" onClick={() => setIsCollapsed(true)} sx={{ p: 0.5, color: '#9ca3af' }} aria-label="Close filter">
                         <ClearIcon fontSize="small" sx={{ fontSize: 16 }} />
                     </IconButton>
                 </Stack>
@@ -205,6 +205,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, selectedSliceIds, onC
                             <Checkbox
                                 size="small"
                                 checked={selectedSliceIds.includes(slice.id)}
+                                inputProps={{ 'aria-label': `Select slice ${slice.title || 'Untitled'}` }}
                                 sx={{ p: 0.5, mr: 1, '&.Mui-checked': { color: slice.color || '#6366f1' } }}
                             />
                             <Box
