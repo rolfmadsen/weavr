@@ -1,5 +1,14 @@
 # Weavr
 
+![Local-First](https://img.shields.io/badge/Local--First-Yes-success)
+![Open Source](https://img.shields.io/badge/Open%20Source-MIT-blue)
+![GunDB](https://img.shields.io/badge/Tech-GunDB-orange)
+
+> **"Draft Event Sourcing systems and DDD architectures directly in your browser without a server."**
+
+<!-- TODO: Add a high-quality GIF here showing: Adding a node -> Dragging a link -> Seeing it sync in a second window. -->
+<!-- ![Weavr Demo](https://weavr.site/demo.gif) -->
+
 Weavr is an Event Modelling tool with a real-time, peer-to-peer feature for collaboration with your team. It provides a canvas to design and document business processes with your team, all directly within the browser.
 
 This version is **serverless and collaborative**. Changes are synchronized in real-time between all users looking at the same model.
@@ -15,6 +24,17 @@ Event Modeling is a method of describing a system by illustrating the informatio
 - **Core Event Model Elements**: Add and connect essential components: Screen, Command, Internal Event, Read Model and External Event elements.
 - **Import & Export**: Save your model to a local JSON file for backup, and import it back into any session to continue your work or overwrite a collaborative model.
 - **Intuitive Interface**: Drag-and-drop nodes, create links easily, and edit properties in a dedicated panel.
+
+## Why Weavr?
+
+Unlike generic whiteboard tools (Miro, LucidChart) or enterprise modeling heavyweights, Weavr is purpose-built for **Domain-Driven Design**.
+
+| Feature | Weavr | Generic Whiteboards | Enterprise Tools |
+| :--- | :--- | :--- | :--- |
+| **DDD Syntax** | **Enforced** (prevents invalid links) | None (draw anything) | Complex / Rigid |
+| **Privacy** | **Local-First / P2P** (Your data) | Cloud (Their data) | Cloud / On-Prem |
+| **Cost** | **Free & Open Source** | Subscription | Expensive |
+| **Collaboration** | **Real-Time P2P** | Real-Time Cloud | Often Desktop / Slow |
 
 ## How to Use
 

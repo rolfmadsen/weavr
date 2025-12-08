@@ -35,6 +35,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
               </span>
               <button
                 onClick={() => handleAddClick(tool.type)}
+                aria-label={`Add ${tool.label}`}
                 className="w-10 h-10 md:w-12 md:h-12 bg-gray-200 hover:bg-indigo-200 text-gray-700 rounded-full flex items-center justify-center shadow-md transition-transform duration-300 ease-in-out hover:scale-110"
                 title={`Add ${tool.label} (Press ${tool.shortcut})`}
                 style={{ transitionDelay: `${index * 30}ms` }}
@@ -47,6 +48,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
       )}
       <button
         onClick={onToggleMenu}
+        aria-label={isMenuOpen ? "Close Menu" : "Add Element Menu"}
         disabled={disabled}
         className={`w-14 h-14 md:w-16 md:h-16 text-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ease-in-out ${disabled
           ? 'bg-gray-400 cursor-not-allowed'

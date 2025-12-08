@@ -4,6 +4,18 @@
   "private": true,
   "description": "Serverless, peer-to-peer Event Modeling tool using React and GUN.js.",
   "type": "module",
+  "keywords": [
+    "Event Modeling",
+    "DDD",
+    "Domain-Driven Design",
+    "Event Sourcing",
+    "GunDB",
+    "Local-First",
+    "P2P",
+    "Offline-First",
+    "React",
+    "System Architecture"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

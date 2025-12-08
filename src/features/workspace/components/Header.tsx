@@ -193,7 +193,7 @@ const Header: React.FC<HeaderProps> = ({
               startIcon={!copied && <ShareIcon />}
               sx={{ borderRadius: 20 }}
             >
-              {copied ? 'Copied!' : 'Share'}
+              {copied ? 'Link Copied! Send to Team' : 'Share'}
             </Button>
 
             <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
@@ -201,14 +201,14 @@ const Header: React.FC<HeaderProps> = ({
             <Box sx={{ bgcolor: 'action.hover', borderRadius: 20, p: 0.5 }}>
               <Tooltip title="Undo (Ctrl+Z)">
                 <span>
-                  <IconButton onClick={onUndo} disabled={!canUndo} size="small">
+                  <IconButton onClick={onUndo} disabled={!canUndo} size="small" aria-label="Undo">
                     <UndoIcon fontSize="small" />
                   </IconButton>
                 </span>
               </Tooltip>
               <Tooltip title="Redo (Ctrl+Y)">
                 <span>
-                  <IconButton onClick={onRedo} disabled={!canRedo} size="small">
+                  <IconButton onClick={onRedo} disabled={!canRedo} size="small" aria-label="Redo">
                     <RedoIcon fontSize="small" />
                   </IconButton>
                 </span>
@@ -229,7 +229,7 @@ const Header: React.FC<HeaderProps> = ({
             </Tooltip>
 
             <Tooltip title="Help">
-              <IconButton onClick={onOpenHelp}>
+              <IconButton onClick={onOpenHelp} aria-label="Help">
                 <HelpIcon />
               </IconButton>
             </Tooltip>
@@ -237,7 +237,7 @@ const Header: React.FC<HeaderProps> = ({
             <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
             <Tooltip title="Import/Export">
-              <IconButton onClick={handleMenuOpen}>
+              <IconButton onClick={handleMenuOpen} aria-label="Import/Export Menu">
                 <ExportIcon />
               </IconButton>
             </Tooltip>
@@ -262,7 +262,7 @@ const Header: React.FC<HeaderProps> = ({
           </Box>
         ) : (
           <>
-            <IconButton onClick={handleMenuOpen}>
+            <IconButton onClick={handleMenuOpen} aria-label="Open Menu">
               <MenuIcon />
             </IconButton>
             <Menu
