@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect, useMemo, useCallback, useImperative
 import { Stage, Layer, Rect, Group, Path, Text, Line, Arrow, Circle } from 'react-konva';
 import { Portal } from 'react-konva-utils';
 import Konva from 'konva';
+// PERFORMANCE: Disable Perfect Draw globally for better perf
+Konva.pixelRatio = 1;
 import { Node, Link } from '../../modeling';
 import { ELEMENT_STYLE, MIN_NODE_HEIGHT, NODE_WIDTH, GRID_SIZE, FONT_FAMILY, FONT_SIZE, LINE_HEIGHT, NODE_PADDING } from '../../../shared/constants';
 import Minimap from './Minimap';
@@ -46,38 +48,7 @@ interface GraphCanvasKonvaProps {
 
 
 
-function calculatePoints(sNode: { x: number, y: number, h?: number }, tNode: { x: number, y: number, h?: number }): number[] {
-    const sx = sNode.x;
-    const sy = sNode.y;
-    const tx = tNode.x;
-    const ty = tNode.y;
 
-    const w2 = NODE_WIDTH / 2;
-    const sourceH2 = (sNode.h || MIN_NODE_HEIGHT) / 2;
-    const targetH2 = (tNode.h || MIN_NODE_HEIGHT) / 2;
-
-    const dx = tx - sx;
-    const dy = ty - sy;
-    let p1, p2, p3, p4;
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-        p1 = { x: sx + Math.sign(dx) * w2, y: sy };
-        p4 = { x: tx - Math.sign(dx) * w2, y: ty };
-        const gridSize = GRID_SIZE || 20;
-        const midX = Math.round((sx + dx / 2) / gridSize) * gridSize;
-        p2 = { x: midX, y: p1.y };
-        p3 = { x: midX, y: p4.y };
-    } else {
-        p1 = { x: sx, y: sy + Math.sign(dy) * sourceH2 };
-        p4 = { x: tx, y: ty - Math.sign(dy) * targetH2 };
-        const gridSize = GRID_SIZE || 20;
-        const midY = Math.round(((p1.y + p4.y) / 2) / gridSize) * gridSize;
-        p2 = { x: p1.x, y: midY };
-        p3 = { x: p4.x, y: midY };
-    }
-
-    return [p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y];
-}
 
 
 
@@ -161,13 +132,29 @@ function calculateIntraSlicePoints(source: Node, target: Node): number[] {
     ];
 }
 
-function calculateOrthogonalPathPoints(source: Node, target: Node): number[] {
-    const sH = safeNum(source.computedHeight, MIN_NODE_HEIGHT);
-    const tH = safeNum(target.computedHeight, MIN_NODE_HEIGHT);
-    return calculatePoints(
-        { x: safeNum(source.x) + NODE_WIDTH / 2, y: safeNum(source.y) + sH / 2, h: sH },
-        { x: safeNum(target.x) + NODE_WIDTH / 2, y: safeNum(target.y) + tH / 2, h: tH }
-    );
+
+
+// NEW: Unified Routing Resolver
+function resolveLinkPoints(
+    sourceNode: Node,
+    targetNode: Node,
+    sliceBounds: Map<string, { minX: number; maxX: number; minY: number; maxY: number }>,
+    cachedRoute?: number[]
+): number[] {
+    // Priority 1: Custom Route from ELK (if available and not ignored)
+    if (cachedRoute) return cachedRoute;
+
+    // Priority 2: Smart Dynamic Routing
+    // We REMOVED the aggressive "isVerticallyAligned" check here.
+    // Instead, we trust calculateSmartPoints to return null if nodes are in the same slice.
+
+    // Attempt Inter-Slice (Horizontal) Routing
+    const smartPoints = calculateSmartPoints(sourceNode, targetNode, sliceBounds);
+    if (smartPoints) return smartPoints;
+
+    // Fallback: Intra-Slice (Vertical) Routing
+    // This handles same-slice connections OR inter-slice connections that failed smart routing
+    return calculateIntraSlicePoints(sourceNode, targetNode);
 }
 
 // =============================================================================
@@ -215,9 +202,22 @@ function getPolylineMidpoint(points: number[]): { x: number, y: number } {
 }
 
 // Updated LinkGroup to accept customPoints
-const LinkGroup = React.memo(({ link, sourceNode, targetNode, isSelected, isHighlighted, onLinkClick, onLinkDoubleClick, customPoints }: any) => {
+// Helper to compare points arrays deeply
+function pointsAreEqual(p1: number[] | undefined, p2: number[] | undefined): boolean {
+    if (p1 === p2) return true;
+    if (!p1 || !p2) return false;
+    if (p1.length !== p2.length) return false;
+    for (let i = 0; i < p1.length; i++) {
+        if (p1[i] !== p2[i]) return false;
+    }
+    return true;
+}
+
+const LinkGroup = React.memo(({ link, sourceNode: _sourceNode, targetNode: _targetNode, isSelected, isHighlighted, onLinkClick, onLinkDoubleClick, customPoints }: any) => {
+    // console.log(`[LinkGroup Render] ${link.id} isSelected=${isSelected} isHighlighted=${isHighlighted}`);
     // 👇 Use customPoints (from ELK) if they exist, otherwise calculate normally
-    const points = customPoints || calculateOrthogonalPathPoints(sourceNode, targetNode);
+    // 👇 Use customPoints (from ELK) or assume 0,0,0,0 if missing (should not happen with resolveLinkPoints)
+    const points = customPoints || [0, 0, 0, 0];
 
     // Calculate label position based on the true midpoint of the path
     const { x: midX, y: midY } = getPolylineMidpoint(points);
@@ -235,7 +235,7 @@ const LinkGroup = React.memo(({ link, sourceNode, targetNode, isSelected, isHigh
             onClick={(e) => { e.cancelBubble = true; onLinkClick(link); }}
             onDblClick={(e) => { e.cancelBubble = true; onLinkDoubleClick(link); }}
         >
-            <Line id={`link-line-${linkId}`} points={points} stroke="transparent" strokeWidth={20} />
+            <Line id={`link-line-${linkId}`} points={points} stroke="transparent" strokeWidth={20} hitStrokeWidth={20} listening={true} perfectDrawEnabled={false} />
             <Arrow
                 id={`link-arrow-${linkId}`}
                 points={points}
@@ -245,6 +245,7 @@ const LinkGroup = React.memo(({ link, sourceNode, targetNode, isSelected, isHigh
                 pointerLength={6}
                 pointerWidth={6}
                 listening={false}
+                perfectDrawEnabled={false}
             />
             {label && (
                 <Group id={`link-label-group-${linkId}`} x={midX || 0} y={midY || 0}>
@@ -274,6 +275,17 @@ const LinkGroup = React.memo(({ link, sourceNode, targetNode, isSelected, isHigh
                 </Group>
             )}
         </Group>
+    );
+}, (prev, next) => {
+    // Custom comparison to prevent re-renders when points array is different object but same content
+    // AND all other props are equal
+    return (
+        prev.link === next.link &&
+        prev.sourceNode === next.sourceNode &&
+        prev.targetNode === next.targetNode &&
+        prev.isSelected === next.isSelected &&
+        prev.isHighlighted === next.isHighlighted && // Corrected property name from isHighted to isHighlighted if it was a typo in my thought, code says isHighlighted
+        pointsAreEqual(prev.customPoints, next.customPoints)
     );
 });
 
@@ -311,12 +323,12 @@ const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, on
 
     const renderShape = () => {
         switch (style.shape) {
-            case 'circle': return <Rect {...shapeProps} cornerRadius={Math.min(height / 2, 24)} />;
-            case 'diamond': return <Path data={`M ${width / 2} 0 L ${width} ${height / 2} L ${width / 2} ${height} L 0 ${height / 2} Z`} {...shapeProps} />;
+            case 'circle': return <Rect {...shapeProps} cornerRadius={Math.min(height / 2, 24)} perfectDrawEnabled={false} listening={false} />;
+            case 'diamond': return <Path data={`M ${width / 2} 0 L ${width} ${height / 2} L ${width / 2} ${height} L 0 ${height / 2} Z`} {...shapeProps} perfectDrawEnabled={false} listening={false} />;
             case 'beveled-rect':
                 const c = 12;
-                return <Path data={`M ${c} 0 L ${width - c} 0 L ${width} ${c} L ${width} ${height - c} L ${width - c} ${height} L ${c} ${height} L 0 ${height - c} L 0 ${c} Z`} {...shapeProps} />;
-            default: return <Rect {...shapeProps} cornerRadius={12} />;
+                return <Path data={`M ${c} 0 L ${width - c} 0 L ${width} ${c} L ${width} ${height - c} L ${width - c} ${height} L ${c} ${height} L 0 ${height - c} L 0 ${c} Z`} {...shapeProps} perfectDrawEnabled={false} listening={false} />;
+            default: return <Rect {...shapeProps} cornerRadius={12} perfectDrawEnabled={false} listening={false} />;
         }
     };
 
@@ -385,7 +397,7 @@ const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, on
                     };
                 }}
             >
-                <Rect x={contentOffsetX} y={contentOffsetY} width={width} height={height} fill="transparent" />
+                <Rect x={contentOffsetX} y={contentOffsetY} width={width} height={height} fill="transparent" listening={true} perfectDrawEnabled={false} />
                 {renderShape()}
                 <Text
                     x={contentOffsetX} y={contentOffsetY + 12} width={width}
@@ -449,6 +461,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     onValidateConnection,
     onViewChange
 }, ref) => {
+    // console.log(`[GraphCanvasKonva Render] selectedIds=${selectedIds.length}`);
     const stageRef = useRef<Konva.Stage>(null);
     const [stageScale, setStageScale] = useState(1);
     const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
@@ -457,21 +470,47 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     const [marqueeRect, setMarqueeRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
     const [validTargetIds, setValidTargetIds] = useState<Set<string>>(new Set());
 
+    // 1. Gather Nodes & Basic Safety (Consolidated)
+    // We do this ONCE at the top so everyone else uses clean data
+    const safeNodes = useMemo(() => {
+        const result: Node[] = [];
+        const seenIds = new Set<string>();
+
+        if (Array.isArray(nodes)) {
+            nodes.forEach(n => {
+                if (n && typeof n === 'object' && !Array.isArray(n)) {
+                    const id = safeStr(n.id);
+                    if (id && !seenIds.has(id)) {
+                        seenIds.add(id);
+
+                        let x = safeNum(n.x);
+                        let y = safeNum(n.y);
+
+                        // Calculate height once
+                        const computedHeight = calculateNodeHeight(safeStr(n.name));
+                        result.push({ ...n, id, x, y, computedHeight });
+                    }
+                }
+            });
+        }
+        return result;
+    }, [nodes]);
+
     // NEW: Calculate Slice Bounds for Smart Routing
     const sliceBounds = useMemo(() => {
         const bounds = new Map<string, { minX: number, maxX: number, minY: number, maxY: number }>();
         const DEFAULT_SLICE_ID = '__default_slice__';
 
-        nodes.forEach(node => {
+        safeNodes.forEach(node => {
             const sliceId = node.sliceId || DEFAULT_SLICE_ID;
             const current = bounds.get(sliceId) || {
                 minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity
             };
 
-            const x = safeNum(node.x);
-            const y = safeNum(node.y);
+            const x = node.x ?? 0; // Already safe
+            const y = node.y ?? 0; // Already safe
             const w = NODE_WIDTH;
-            const h = safeNum(node.computedHeight, MIN_NODE_HEIGHT);
+            const h = node.computedHeight || MIN_NODE_HEIGHT; // Already calculated
 
             bounds.set(sliceId, {
                 minX: Math.min(current.minX, x),
@@ -481,7 +520,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             });
         });
         return bounds;
-    }, [nodes]); // Re-calculate when nodes move
+    }, [safeNodes]);
 
     useEffect(() => {
         if (onViewChange) {
@@ -491,13 +530,13 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
 
     useImperativeHandle(ref, () => ({
         panToNode: (nodeId: string) => {
-            const node = nodes.find(n => n.id === nodeId);
+            const node = safeNodes.find(n => n.id === nodeId);
             if (node && stageRef.current) {
                 const stage = stageRef.current;
                 const newScale = 1;
                 // CHANGED: Pan to center of node (Top-Left + Half Size)
-                const newX = -(safeNum(node.x) + NODE_WIDTH / 2) * newScale + stage.width() / 2;
-                const newY = -(safeNum(node.y) + safeNum((node as any).computedHeight, MIN_NODE_HEIGHT) / 2) * newScale + stage.height() / 2;
+                const newX = -((node.x ?? 0) + NODE_WIDTH / 2) * newScale + stage.width() / 2;
+                const newY = -((node.y ?? 0) + (node.computedHeight || MIN_NODE_HEIGHT) / 2) * newScale + stage.height() / 2;
 
                 stage.to({
                     x: newX,
@@ -519,7 +558,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         const nodeMap = new Map<string, Node>();
         const linksByNode = new Map<string, Link[]>();
 
-        nodes.forEach(n => nodeMap.set(safeStr(n.id), n));
+        safeNodes.forEach(n => nodeMap.set(n.id, n));
         links.forEach(l => {
             const s = safeStr(l.source);
             const t = safeStr(l.target);
@@ -530,7 +569,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         });
 
         return { nodeMap, linksByNode };
-    }, [nodes, links]);
+    }, [safeNodes, links]);
 
     const handleNodeDragMove = useCallback((nodeId: string, x: number, y: number) => {
         const stage = stageRef.current;
@@ -566,12 +605,18 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
 
             const connectedLinks = lookup.linksByNode.get(movingNodeId) || [];
 
+            // Batch update all connected links
+            // console.log(`[Drag] Node ${movingNodeId} moving. Found ${connectedLinks.length} links.`);
+
             connectedLinks.forEach(link => {
                 const linkId = safeStr(link.id);
-                if (edgeRoutes && edgeRoutes.has(linkId)) return;
+                // ALWAYS update visual position during drag, ignoring cached routes
+                // if (edgeRoutes && edgeRoutes.has(linkId)) return;
 
                 const sId = safeStr(link.source);
                 const tId = safeStr(link.target);
+
+                // console.log(`[Drag] Updating Link ${linkId}`);
 
                 // Get positions for source and target
                 // If they are moving, use new pos, else use existing
@@ -588,28 +633,29 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     ? { ...tNodeRaw, x: safeNum(tNodeRaw.x) + dx, y: safeNum(tNodeRaw.y) + dy }
                     : tNodeRaw;
 
-                const sH = safeNum((sNode as any).computedHeight, MIN_NODE_HEIGHT);
-                const tH = safeNum((tNode as any).computedHeight, MIN_NODE_HEIGHT);
-
-                const points = calculatePoints(
-                    { x: safeNum(sNode.x) + NODE_WIDTH / 2, y: safeNum(sNode.y) + sH / 2, h: sH },
-                    { x: safeNum(tNode.x) + NODE_WIDTH / 2, y: safeNum(tNode.y) + tH / 2, h: tH }
-                );
+                // Priority 2: Use the unified routing logic
+                // We pass undefined for cachedRoute to force recalculation during drag
+                const points = resolveLinkPoints(sNode as any, tNode as any, sliceBounds, undefined);
 
                 const arrow = stage.findOne(`#link-arrow-${linkId}`);
                 const line = stage.findOne(`#link-line-${linkId}`);
                 const labelGroup = stage.findOne(`#link-label-group-${linkId}`);
 
+                // if (!arrow) console.warn(`[Drag] Arrow not found: #link-arrow-${linkId}`);
+                // if (!line) console.warn(`[Drag] Line not found: #link-line-${linkId}`);
+
                 if (arrow instanceof Konva.Arrow) arrow.points(points);
                 if (line instanceof Konva.Line) line.points(points);
                 if (labelGroup instanceof Konva.Group) {
-                    const midX = (points[2] + points[4]) / 2;
-                    const midY = (points[3] + points[5]) / 2;
-                    labelGroup.position({ x: midX, y: midY });
+                    const mid = getPolylineMidpoint(points);
+                    labelGroup.position({ x: mid.x, y: mid.y });
                 }
             });
         });
-    }, [lookup, edgeRoutes, selectedIds]);
+
+        // FORCE RENDER
+        stage.batchDraw();
+    }, [lookup, edgeRoutes, selectedIds, sliceBounds]);
 
     useEffect(() => {
         if (tempLink && onValidateConnection) {
@@ -830,32 +876,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         onNodesDrag(updates);
     }, [onNodesDrag, selectedIds, lookup]);
 
-    const safeData = useMemo(() => {
-        const safeNodes: Node[] = [];
-        const seenIds = new Set<string>();
 
-        // ---------------------------------------------------------
-        // 1. Gather Nodes & Basic Safety
-        // ---------------------------------------------------------
-        if (Array.isArray(nodes)) {
-            nodes.forEach(n => {
-                if (n && typeof n === 'object' && !Array.isArray(n)) {
-                    const id = safeStr(n.id);
-                    if (id && !seenIds.has(id)) {
-                        seenIds.add(id);
-
-                        let x = safeNum(n.x);
-                        let y = safeNum(n.y);
-
-                        const computedHeight = calculateNodeHeight(safeStr(n.name));
-                        safeNodes.push({ ...n, id, x, y, computedHeight });
-                    }
-                }
-            });
-        }
-
-        return { safeNodes };
-    }, [nodes]);
 
     return (
         <div className="w-full h-full bg-gray-50 overflow-hidden relative" onContextMenu={(e) => e.preventDefault()}>
@@ -920,27 +941,13 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         const isSelected = selectedIds.includes(link.id);
                         const isHighlighted = selectedIds.includes(sourceNode.id) || selectedIds.includes(targetNode.id);
 
-                        // Priority 1: Custom Route from ELK (if available)
-                        let points = edgeRoutes?.get(link.id);
-
-                        // Priority 2: Smart Dynamic Routing
-                        if (!points) {
-                            // Geometric Check: Are nodes vertically aligned?
-                            // If so, force Vertical Routing (South -> North) regardless of slices
-                            const isVerticallyAligned = Math.abs(safeNum(sourceNode.x) - safeNum(targetNode.x)) < NODE_WIDTH / 2;
-
-                            if (isVerticallyAligned) {
-                                points = calculateIntraSlicePoints(sourceNode, targetNode);
-                            } else {
-                                // Inter-Slice: Horizontal (Right -> Left)
-                                points = calculateSmartPoints(sourceNode, targetNode, sliceBounds) || undefined;
-
-                                // Intra-Slice Fallback: Vertical (Bottom -> Top)
-                                if (!points) {
-                                    points = calculateIntraSlicePoints(sourceNode, targetNode);
-                                }
-                            }
-                        }
+                        // Unified Routing Calculation
+                        const points = resolveLinkPoints(
+                            sourceNode,
+                            targetNode,
+                            sliceBounds,
+                            edgeRoutes?.get(link.id)
+                        );
 
                         return (
                             <LinkGroup
@@ -965,7 +972,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     )}
 
                     {/* Nodes */}
-                    {safeData.safeNodes.map(node => {
+                    {safeNodes.map(node => {
                         // Virtualization Check
                         if (!visibleNodeIds.has(node.id)) return null;
 
@@ -1008,7 +1015,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             </Stage>
 
             <Minimap
-                nodes={safeData.safeNodes}
+                nodes={safeNodes}
                 stageScale={stageScale}
                 stagePos={stagePos}
                 viewportWidth={window.innerWidth}

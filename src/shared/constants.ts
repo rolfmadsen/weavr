@@ -1,4 +1,4 @@
-import { ElementType } from '../features/modeling';
+import { ElementType } from '../features/modeling/types';
 
 export const ELEMENT_STYLE: Record<ElementType, { color: string; textColor: string; shape: 'rect' | 'circle' | 'diamond' | 'beveled-rect' }> = {
   [ElementType.Screen]: { color: '#e5e7eb', textColor: '#1f2937', shape: 'rect' }, // Light Gray
