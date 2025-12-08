@@ -26,13 +26,14 @@ const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> 
 };
 
 // Accessible text colors for white background (WCAG AA compliant)
+// Accessible text colors for white background (WCAG AA compliant)
 const ACCESSIBLE_TEXT_COLORS: Record<ElementType, string> = {
   [ElementType.Screen]: '#374151', // gray-700
-  [ElementType.Command]: '#2563eb', // blue-600 (vs #3b82f6 blue-500)
-  [ElementType.DomainEvent]: '#ea580c', // orange-600 (vs #f97316 orange-500)
-  [ElementType.ReadModel]: '#16a34a', // green-600 (vs #22c55e green-500)
-  [ElementType.IntegrationEvent]: '#ca8a04', // yellow-600
-  [ElementType.Automation]: '#0d9488', // teal-600 (vs #14b8a6 teal-500)
+  [ElementType.Command]: '#1d4ed8', // blue-700 (vs #2563eb blue-600)
+  [ElementType.DomainEvent]: '#c2410c', // orange-700 (vs #ea580c orange-600)
+  [ElementType.ReadModel]: '#15803d', // green-700 (vs #16a34a green-600)
+  [ElementType.IntegrationEvent]: '#a16207', // yellow-700
+  [ElementType.Automation]: '#0f766e', // teal-700 (vs #0d9488 teal-600)
 };
 
 const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) => {
