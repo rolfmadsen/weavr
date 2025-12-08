@@ -62,6 +62,7 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom'],
           'vendor-konva': ['konva', 'react-konva'],
           'vendor-gun': ['gun'],
+          'vendor-elk': ['elkjs'],
         },
       },
     },

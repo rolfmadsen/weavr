@@ -25,6 +25,16 @@ const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> 
   [ElementType.Automation]: { name: 'Automation', icon: <AutomationIcon /> },
 };
 
+// Accessible text colors for white background (WCAG AA compliant)
+const ACCESSIBLE_TEXT_COLORS: Record<ElementType, string> = {
+  [ElementType.Screen]: '#374151', // gray-700
+  [ElementType.Command]: '#2563eb', // blue-600 (vs #3b82f6 blue-500)
+  [ElementType.DomainEvent]: '#ea580c', // orange-600 (vs #f97316 orange-500)
+  [ElementType.ReadModel]: '#16a34a', // green-600 (vs #22c55e green-500)
+  [ElementType.IntegrationEvent]: '#ca8a04', // yellow-600
+  [ElementType.Automation]: '#0d9488', // teal-600 (vs #14b8a6 teal-500)
+};
+
 const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
@@ -67,13 +77,13 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) => {
             <h3 className="text-lg font-bold text-gray-800 mb-2">Getting Started (The Workflow)</h3>
             <ol className="list-decimal list-inside space-y-3 text-gray-600">
               <li>
-                <strong>Model the Core User Flow:</strong> Start with the user's perspective. An action begins on a <span className="font-semibold text-gray-800">User Interface</span>, which triggers a <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> (the intent). A successful command creates a <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Domain Event</span> (the fact). This event then updates a <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>Read Model</span>, providing feedback to the user on a <span className="font-semibold text-gray-800">User Interface</span>.
+                <strong>Model the Core User Flow:</strong> Start with the user's perspective. An action begins on a <span className="font-semibold text-gray-800">User Interface</span>, which triggers a <span className="font-semibold" style={{ color: ACCESSIBLE_TEXT_COLORS[ElementType.Command] }}>Command</span> (the intent). A successful command creates a <span className="font-semibold" style={{ color: ACCESSIBLE_TEXT_COLORS[ElementType.DomainEvent] }}>Domain Event</span> (the fact). This event then updates a <span className="font-semibold" style={{ color: ACCESSIBLE_TEXT_COLORS[ElementType.ReadModel] }}>Read Model</span>, providing feedback to the user on a <span className="font-semibold text-gray-800">User Interface</span>.
               </li>
               <li>
-                <strong>Add System Reactions:</strong> Does an Event trigger an automatic process? Use an <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>Automation</span> element. It listens for an event and issues a new command.
+                <strong>Add System Reactions:</strong> Does an Event trigger an automatic process? Use an <span className="font-semibold" style={{ color: ACCESSIBLE_TEXT_COLORS[ElementType.Automation] }}>Automation</span> element. It listens for an event and issues a new command.
               </li>
               <li>
-                <strong>Integrate External Systems:</strong> When data enters your system from an outside source, use an <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event</span>. It can either update a Read Model directly or trigger an Automation to translate it into an internal command.
+                <strong>Integrate External Systems:</strong> When data enters your system from an outside source, use an <span className="font-semibold" style={{ color: ACCESSIBLE_TEXT_COLORS[ElementType.IntegrationEvent] }}>Integration Event</span>. It can either update a Read Model directly or trigger an Automation to translate it into an internal command.
               </li>
             </ol>
           </div>
