@@ -179,22 +179,26 @@ const ControlsContent = () => (
 );
 
 
+const TabButton: React.FC<{
+  isActive: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}> = ({ isActive, onClick, children }) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${isActive
+        ? 'bg-indigo-100 text-indigo-700'
+        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+      }`}
+  >
+    {children}
+  </button>
+);
+
 const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'introduction' | 'controls'>('introduction');
 
   if (!isOpen) return null;
-
-  const TabButton: React.FC<{ tabId: 'introduction' | 'controls', children: React.ReactNode }> = ({ tabId, children }) => (
-    <button
-      onClick={() => setActiveTab(tabId)}
-      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tabId
-        ? 'bg-indigo-100 text-indigo-700'
-        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-        }`}
-    >
-      {children}
-    </button>
-  );
 
   return (
     <div
@@ -214,8 +218,18 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
 
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <TabButton tabId="introduction">Introduction</TabButton>
-            <TabButton tabId="controls">Controls & Shortcuts</TabButton>
+            <TabButton
+              isActive={activeTab === 'introduction'}
+              onClick={() => setActiveTab('introduction')}
+            >
+              Introduction
+            </TabButton>
+            <TabButton
+              isActive={activeTab === 'controls'}
+              onClick={() => setActiveTab('controls')}
+            >
+              Controls & Shortcuts
+            </TabButton>
           </div>
         </div>
 
