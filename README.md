@@ -99,3 +99,17 @@ This project uses Vite for a modern, fast development experience.
     ```bash
     npm test
     ```
+
+## Configuration
+
+### Analytics (Optional)
+
+This project uses [TelemetryDeck](https://telemetrydeck.com/) for privacy-first analytics.
+
+To enable analytics, create a `.env` file in the root directory (or set the environment variable in your deployment platform) with your App ID:
+
+```env
+VITE_TELEMETRYDECK_APP_ID=your-app-id-here
+```
+
+If this variable is missing, analytics will be automatically disabled, and the application will function normally. Use this for local development or testing.

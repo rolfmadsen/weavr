@@ -9,7 +9,8 @@ const appID = import.meta.env.VITE_TELEMETRYDECK_APP_ID;
 
 const td = appID ? createTelemetryDeck({
   appID,
-  clientUser: "anonymous"
+  clientUser: "anonymous",
+  testMode: import.meta.env.DEV
 }) : null;
 
 // Polyfill global for Gun.js
