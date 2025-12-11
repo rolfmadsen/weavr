@@ -88,6 +88,20 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                     </button>
                 </div>
 
+                <div className="bg-blue-50 border-b border-blue-100 px-6 py-3">
+                    <p className="text-sm text-blue-800 flex items-start gap-2">
+                        <span className="text-lg">💾</span>
+                        <span>
+                            These models live in your <strong>browser cache</strong>.
+                            Clearing your history/cache will remove them.
+                            <br />
+                            <span className="text-blue-600 font-semibold text-xs">
+                                Tip: Export important models as backups.
+                            </span>
+                        </span>
+                    </p>
+                </div>
+
                 <div className="p-6 overflow-y-auto text-gray-700 space-y-4">
                     {/* Create New Section */}
                     <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">

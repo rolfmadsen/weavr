@@ -36,6 +36,23 @@ const IntroductionContent = () => (
     </p>
 
     <div>
+      <h3 className="text-lg font-bold text-gray-800 mb-2">Storage & Privacy</h3>
+      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
+          <li>
+            <strong>Local-First:</strong> Data is stored exclusively in your browser (IndexedDB). We have no access to it.
+          </li>
+          <li>
+            <strong>Persistence:</strong> Your data remains here as long as you don't clear your browser's "Site Data" or "Cache".
+          </li>
+          <li>
+            <strong>Backups:</strong> To keep your data safe from accidental deletion, use the <strong>Export</strong> button in the top header to save a <code>.json</code> file to your computer.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
       <h3 className="text-lg font-bold text-gray-800 mb-3">Core Elements</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
         {Object.values(ElementType).map(type => (
@@ -187,8 +204,8 @@ const TabButton: React.FC<{
   <button
     onClick={onClick}
     className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${isActive
-        ? 'bg-indigo-100 text-indigo-700'
-        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+      ? 'bg-indigo-100 text-indigo-700'
+      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
       }`}
   >
     {children}

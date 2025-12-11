@@ -29,6 +29,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
+    "@typedigital/telemetrydeck-react": "^0.5.0",
     "compression": "^1.8.1",
     "elkjs": "^0.11.0",
     "express": "^5.2.1",

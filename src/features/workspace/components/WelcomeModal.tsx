@@ -90,6 +90,22 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+          <h3 className="text-lg font-bold text-amber-800 mb-2 flex items-center gap-2">
+            ⚠️ Important: Data Storage
+          </h3>
+          <p className="text-amber-800 text-sm mb-2">
+            Weavr stores your models directly in your <strong>browser's internal database</strong>.
+            We do not store your data on any cloud server.
+          </p>
+          <p className="text-amber-900 text-sm font-bold">
+            If you clear your browser cache or site data, your models will be permanently deleted.
+          </p>
+          <p className="text-amber-800 text-sm mt-2">
+            Please use the <strong>Export</strong> feature frequently to save backup copies to your device.
+          </p>
+        </div>
+
         <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl text-right">
           <button
             onClick={onClose}

@@ -1,7 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './src/App';
+import { AppTelemetry } from './src/features/telemetry/AppTelemetry';
 import './index.css';
+import { TelemetryDeckProvider, createTelemetryDeck } from "@typedigital/telemetrydeck-react";
+
+const appID = import.meta.env.VITE_TELEMETRYDECK_APP_ID;
+
+const td = appID ? createTelemetryDeck({
+  appID,
+  clientUser: "anonymous"
+}) : null;
 
 // Polyfill global for Gun.js
 (window as any).global = window;
@@ -12,11 +21,24 @@ import './index.css';
 const rootElement = document.getElementById('root');
 if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+
+  if (td) {
+    root.render(
+      <React.StrictMode>
+        <TelemetryDeckProvider telemetryDeck={td}>
+          <AppTelemetry />
+          <App />
+        </TelemetryDeckProvider>
+      </React.StrictMode>
+    );
+  } else {
+    console.warn("TelemetryDeck App ID not found. Analytics disabled.");
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+  }
 } else {
   // If the root element is missing, log an error and display a message.
   console.error("Fatal Error: Could not find root element to mount to.");
