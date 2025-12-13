@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { exportWeavrProject, importWeavrProject } from './exportUtils';
+import { exportWeavrProject, importWeavrProject, type WeavrExportData } from './exportUtils';
 import { DefinitionType, DataDefinition } from '../types';
 
 describe('exportUtils Data Dictionary', () => {
@@ -22,7 +22,7 @@ describe('exportUtils Data Dictionary', () => {
             }
         ];
 
-        const json = exportWeavrProject(mockNodes, mockLinks, mockSlices, mockEdgeRoutes, 'model-1', 'Test', 'WEAVR', definitions);
+        const json = exportWeavrProject(mockNodes, mockLinks, mockSlices, mockEdgeRoutes, 'model-1', 'Test', 'WEAVR', definitions) as WeavrExportData;
 
         expect(json.dataDictionary).toBeDefined();
         expect(json.dataDictionary.definitions['OrderStatus']).toBeDefined();
@@ -44,7 +44,7 @@ describe('exportUtils Data Dictionary', () => {
             }
         ];
 
-        const json = exportWeavrProject(mockNodes, mockLinks, mockSlices, mockEdgeRoutes, 'model-1', 'Test', 'WEAVR', definitions);
+        const json = exportWeavrProject(mockNodes, mockLinks, mockSlices, mockEdgeRoutes, 'model-1', 'Test', 'WEAVR', definitions) as WeavrExportData;
 
         expect(json.dataDictionary.definitions['Customer']).toBeDefined();
         expect(json.dataDictionary.definitions['Customer'].type).toBe('object');

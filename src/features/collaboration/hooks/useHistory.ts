@@ -2,21 +2,15 @@ import { useState, useCallback } from 'react';
 import { Node, Link, ElementType } from '../../modeling';
 
 // 1. Add 'BATCH_MOVE' to the supported types
-type ActionType =
-    | 'ADD_NODE'
-    | 'DELETE_NODE'
-    | 'MOVE_NODE'
-    | 'ADD_LINK'
-    | 'DELETE_LINK'
-    | 'UPDATE_NODE'
-    | 'UPDATE_LINK'
-    | 'BATCH_MOVE';
-
-interface HistoryAction {
-    type: ActionType;
-    payload: any;
-    undoPayload: any;
-}
+export type HistoryAction =
+    | { type: 'ADD_NODE'; payload: { id: string; type: ElementType; x: number; y: number }; undoPayload: { id: string } }
+    | { type: 'DELETE_NODE'; payload: { id: string }; undoPayload: { node: Node; links: Link[] } }
+    | { type: 'MOVE_NODE'; payload: { id: string; x: number; y: number }; undoPayload: { id: string; x: number; y: number } }
+    | { type: 'ADD_LINK'; payload: Link; undoPayload: { id: string } }
+    | { type: 'DELETE_LINK'; payload: { id: string }; undoPayload: Link }
+    | { type: 'UPDATE_NODE'; payload: { id: string; data: Partial<Node> }; undoPayload: Partial<Node> }
+    | { type: 'UPDATE_LINK'; payload: { id: string; data: Partial<Link> }; undoPayload: Partial<Link> }
+    | { type: 'BATCH_MOVE'; payload: { id: string; x: number; y: number }[]; undoPayload: { id: string; x: number; y: number }[] };
 
 interface UseHistoryProps {
     onAddNode: (type: ElementType, x: number, y: number, id?: string) => void;

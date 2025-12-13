@@ -29,7 +29,7 @@ export const useDataMigration = ({ nodes, updateNode, definitions, updateDefinit
         if (nodes.length > 0) {
             nodes.forEach(node => {
                 // Explicitly cast to any to check for legacy types
-                const legacyType = node.type as any;
+                const legacyType = node.type as string;
                 if (legacyType === 'EVENT_INTERNAL') {
                     console.log(`Migrating node ${node.id}: EVENT_INTERNAL -> DOMAIN_EVENT`);
                     updateNode(node.id, { type: ElementType.DomainEvent });

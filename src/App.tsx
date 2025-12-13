@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import Konva from 'konva';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
@@ -18,7 +19,7 @@ import {
   exportWeavrProject,
   importWeavrProject
 } from './features/modeling';
-import { GraphCanvas, useSelection } from './features/canvas';
+import { GraphCanvas, useSelection, type GraphCanvasKonvaRef } from './features/canvas';
 import { gunClient, useGraphSync, useHistory } from './features/collaboration';
 import {
   PropertiesPanel,
@@ -34,7 +35,6 @@ import {
   Sidebar,
   Toolbar,
   HelpModal,
-  WelcomeModal,
   ModelListModal,
   useKeyboardShortcuts
 } from './features/workspace';
@@ -55,7 +55,6 @@ const App: React.FC = () => {
   const [focusOnRender, setFocusOnRender] = useState(false);
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [isModelListOpen, setIsModelListOpen] = useState(false);
   const [filteredSliceIds, setFilteredSliceIds] = useState<string[]>([]);
 
@@ -67,7 +66,7 @@ const App: React.FC = () => {
 
   // Track view state (pan/zoom) for smart node placement
   const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1 });
-  const graphRef = React.useRef<any>(null);
+  const graphRef = React.useRef<GraphCanvasKonvaRef>(null);
   const [isLayoutLoading, setIsLayoutLoading] = useState(false);
 
   // Store explicit edge paths from ELK
@@ -131,7 +130,7 @@ const App: React.FC = () => {
     const newDefId = addDefinition(def);
     return newDefId || '';
   };
-  const handleUpdateDefinition = (id: string, updates: any) => {
+  const handleUpdateDefinition = (id: string, updates: Partial<DataDefinition>) => {
     updateDefinition(id, updates);
   };
 
@@ -184,8 +183,8 @@ const App: React.FC = () => {
   // --- Effects ---
 
   useEffect(() => {
-    if (isReady && nodes.length === 0 && localStorage.getItem('weavr-welcome-shown') !== 'true') {
-      setIsWelcomeModalOpen(true);
+    if (isReady && nodes.length === 0 && localStorage.getItem('weavr-intro-shown') !== 'true') {
+      setIsHelpModalOpen(true);
     }
   }, [isReady, nodes]);
 
@@ -304,11 +303,11 @@ const App: React.FC = () => {
 
     updates.forEach(({ nodeId, pos }) => {
       const node = nodes.find(n => n.id === nodeId);
-      const oldPos = node ? { x: node.fx ?? node.x, y: node.fy ?? node.y } : { x: 0, y: 0 };
+      const oldPos = node ? { x: node.fx ?? node.x ?? 0, y: node.fy ?? node.y ?? 0 } : { x: 0, y: 0 };
 
       gunUpdateNodePosition(nodeId, pos.x, pos.y);
 
-      if (Math.abs(oldPos.x! - pos.x) > 1 || Math.abs(oldPos.y! - pos.y) > 1) {
+      if (Math.abs(oldPos.x - pos.x) > 1 || Math.abs(oldPos.y - pos.y) > 1) {
         addToHistory({
           type: 'MOVE_NODE',
           payload: { id: nodeId, x: pos.x, y: pos.y },
@@ -319,8 +318,8 @@ const App: React.FC = () => {
   }, [nodes, gunUpdateNodePosition, addToHistory, autoLayoutEdges]);
 
 
-  const handleNodeClick = useCallback((node: Node, event: any) => {
-    const isMulti = event?.evt?.shiftKey || event?.shiftKey;
+  const handleNodeClick = useCallback((node: Node, event: Konva.KonvaEventObject<MouseEvent>) => {
+    const isMulti = event.evt.shiftKey;
     if (isMulti) {
       selectNode(node.id, true);
       return;
@@ -353,8 +352,8 @@ const App: React.FC = () => {
       // 1. Snapshot the CURRENT (Old) positions before we change them
       const oldPositions = nodes.map(n => ({
         id: n.id,
-        x: n.fx ?? n.x, // Use fixed position if available, else current x
-        y: n.fy ?? n.y
+        x: n.fx ?? n.x ?? 0, // Use fixed position if available, else current x
+        y: n.fy ?? n.y ?? 0
       }));
 
       // const { calculateElkLayout } = await import('./services/elkLayoutService');
@@ -435,7 +434,7 @@ const App: React.FC = () => {
     onMoveNodes: (updates) => {
       updates.forEach((pos, id) => {
         const node = nodes.find(n => n.id === id);
-        const oldPos = node ? { x: node.fx ?? node.x, y: node.fy ?? node.y } : { x: 0, y: 0 };
+        const oldPos = node ? { x: node.fx ?? node.x ?? 0, y: node.fy ?? node.y ?? 0 } : { x: 0, y: 0 };
         gunUpdateNodePosition(id, pos.fx, pos.fy);
         addToHistory({
           type: 'MOVE_NODE',
@@ -545,16 +544,16 @@ const App: React.FC = () => {
   }, [nodes, links, modelId, gunAddLink, gunUpdateNode, addToHistory, selectLink]);
 
 
-  const handleUpdateNode = useCallback((nodeId: string, key: string, value: any) => {
+  const handleUpdateNode = useCallback(<K extends keyof Node>(nodeId: string, key: K, value: Node[K]) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
 
-    const oldValue = (node as any)[key];
-    const updates: any = { [key]: value };
+    const oldValue = node[key];
+    const updates: Partial<Node> = { [key]: value };
 
     // Recalculate height if name changes
     if (key === 'name') {
-      const newHeight = calculateNodeHeight(value);
+      const newHeight = calculateNodeHeight(value as string);
       updates.computedHeight = newHeight;
     }
 
@@ -567,10 +566,10 @@ const App: React.FC = () => {
     });
   }, [nodes, gunUpdateNode, addToHistory]);
 
-  const handleUpdateLink = useCallback((linkId: string, key: string, value: any) => {
+  const handleUpdateLink = useCallback(<K extends keyof Link>(linkId: string, key: K, value: Link[K]) => {
     const link = links.find(l => l.id === linkId);
     if (!link) return;
-    const oldValue = (link as any)[key];
+    const oldValue = link[key];
 
     gunUpdateLink(linkId, { [key]: value });
     addToHistory({
@@ -709,8 +708,8 @@ const App: React.FC = () => {
     reader.readAsText(file);
   }, [modelId, nodes, links, definitions, handleClosePanel, clearSelection, manualPositionsRef]);
 
-  const handleCanvasClick = useCallback((event: any) => {
-    const shiftKey = event.shiftKey || event.evt?.shiftKey;
+  const handleCanvasClick = useCallback((event: Konva.KonvaEventObject<MouseEvent> | React.MouseEvent<any>) => {
+    const shiftKey = 'evt' in event ? event.evt.shiftKey : event.shiftKey;
     if (!shiftKey) {
       clearSelection();
       handleClosePanel();
@@ -720,9 +719,9 @@ const App: React.FC = () => {
 
   const handleFocusHandled = useCallback(() => setFocusOnRender(false), []);
 
-  const handleCloseWelcomeModal = useCallback(() => {
-    setIsWelcomeModalOpen(false);
-    localStorage.setItem('weavr-welcome-shown', 'true');
+  const handleCloseHelpModal = useCallback(() => {
+    setIsHelpModalOpen(false);
+    localStorage.setItem('weavr-intro-shown', 'true');
   }, []);
 
   const selectedItemData = useMemo(() => {
@@ -832,7 +831,7 @@ const App: React.FC = () => {
           onClose={handleCloseSidebar}
           title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
           activeTab={sidebarView || 'properties'}
-          onTabChange={(tab) => setSidebarView(tab as any)}
+          onTabChange={(tab) => setSidebarView(tab as 'properties' | 'slices' | 'dictionary' | null)}
           tabs={[
             { id: 'properties', label: 'Properties', title: 'Alt + P' },
             { id: 'dictionary', label: 'Data', title: 'Alt + D' },
@@ -880,8 +879,7 @@ const App: React.FC = () => {
           )}
         </Sidebar>
 
-        <WelcomeModal isOpen={isWelcomeModalOpen} onClose={handleCloseWelcomeModal} />
-        <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
+        <HelpModal isOpen={isHelpModalOpen} onClose={handleCloseHelpModal} />
         <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
 
 

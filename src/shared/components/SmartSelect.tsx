@@ -14,7 +14,7 @@ interface Option {
     subLabel?: string;
     group?: string;
     color?: string;
-    [key: string]: any;
+    inputValue?: string;
 }
 
 interface SmartSelectProps {
@@ -74,10 +74,10 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
                     } else if (allowCustomValue) {
                         onChange(newValue);
                     }
-                } else if (newValue && (newValue as any).inputValue) {
+                } else if (newValue && newValue.inputValue) {
                     // User selected "Add 'xxx'" option created by filterOptions
                     if (onCreate) {
-                        const id = onCreate((newValue as any).inputValue);
+                        const id = onCreate(newValue.inputValue);
                         if (id) onChange(id);
                     }
                 } else if (newValue) {
@@ -100,7 +100,7 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
                         label: `Add "${inputValue}"`,
                         id: 'create-option-id', // Dummy ID
                         group: 'Actions'
-                    } as any);
+                    } as Option);
                 }
 
                 return filtered;
@@ -116,8 +116,8 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
                     return option;
                 }
                 // Add "xxx" option created dynamically
-                if ((option as any).inputValue) {
-                    return (option as any).inputValue;
+                if (typeof option !== 'string' && option.inputValue) {
+                    return option.inputValue;
                 }
                 // Regular option
                 return option.label;

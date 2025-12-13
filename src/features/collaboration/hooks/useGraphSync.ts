@@ -4,6 +4,47 @@ import gunClient from '../services/gunClient';
 import { Node, Link, ElementType, Slice, DataDefinition, DefinitionType, SliceType } from '../../modeling';
 
 
+
+interface GunNode {
+    type?: ElementType;
+    name?: string;
+    description?: string;
+    x?: number;
+    y?: number;
+    fx?: number;
+    fy?: number;
+    sliceId?: string;
+    schemaBinding?: string;
+    entityIds?: string;
+    service?: string;
+    aggregate?: string;
+    technicalTimestamp?: boolean;
+    externalSystem?: string;
+}
+
+interface GunLink {
+    source?: string;
+    target?: string;
+    label?: string;
+    type?: string;
+}
+
+interface GunSlice {
+    title?: string;
+    order?: number;
+    color?: string;
+    sliceType?: SliceType | null;
+    context?: string | null;
+    specifications?: string;
+}
+
+interface GunDefinition {
+    name?: string;
+    type?: DefinitionType;
+    description?: string;
+    attributes?: string;
+}
+
 export function useGraphSync(modelId: string | null) {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [links, setLinks] = useState<Link[]>([]);
@@ -75,7 +116,7 @@ export function useGraphSync(modelId: string | null) {
         let definitionUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 
         // 1. Subscribe to nodes
-        model.get('nodes').map().on((nodeData: any, nodeId: string) => {
+        model.get('nodes').map().on((nodeData: GunNode | null, nodeId: string) => {
             try {
                 if (nodeData === null) {
                     tempNodesRef.current.delete(nodeId);
@@ -88,9 +129,9 @@ export function useGraphSync(modelId: string | null) {
 
                     // We need either an existing node to merge into, OR a full node definition (type & name)
                     if (existingNode || (nodeData.type && nodeData.name)) {
-                        const newNode: Node = {
+                        const newNode: Partial<Node> = {
                             id: nodeId,
-                            type: nodeData.type || existingNode?.type,
+                            type: (nodeData.type || existingNode?.type) as ElementType,
                             name: nodeData.name || existingNode?.name,
                             description: nodeData.description !== undefined ? nodeData.description : (existingNode?.description || ''),
                             x: typeof nodeData.x === 'number' ? nodeData.x : existingNode?.x,
@@ -110,9 +151,9 @@ export function useGraphSync(modelId: string | null) {
                         // Only set if we have the critical fields
                         if (newNode.type && newNode.name) {
                             if (newNode.fx != null && newNode.fy != null) {
-                                manualPositionsRef.current.set(nodeId, { x: newNode.fx, y: newNode.fy });
+                                manualPositionsRef.current.set(nodeId, { x: newNode.fx!, y: newNode.fy! });
                             }
-                            tempNodesRef.current.set(nodeId, newNode);
+                            tempNodesRef.current.set(nodeId, newNode as Node);
                         }
                     }
                 }
@@ -130,7 +171,7 @@ export function useGraphSync(modelId: string | null) {
         });
 
         // 2. Subscribe to links
-        model.get('links').map().on((linkData: any, linkId: string) => {
+        model.get('links').map().on((linkData: GunLink | null, linkId: string) => {
             try {
                 if (linkData === null) {
                     tempLinksRef.current.delete(linkId);
@@ -138,16 +179,16 @@ export function useGraphSync(modelId: string | null) {
                     const existingLink = tempLinksRef.current.get(linkId) || linksRef.current.find(l => l.id === linkId);
 
                     if (existingLink || (linkData.source && linkData.target)) {
-                        const newLink: Link = {
+                        const newLink: Partial<Link> = {
                             id: linkId,
                             source: linkData.source || existingLink?.source,
                             target: linkData.target || existingLink?.target,
                             label: linkData.label !== undefined ? linkData.label : (existingLink?.label || ''),
-                            type: linkData.type || existingLink?.type,
+                            type: (linkData.type || existingLink?.type) as "FLOW" | "DATA_DEPENDENCY",
                         };
 
                         if (newLink.source && newLink.target) {
-                            tempLinksRef.current.set(linkId, newLink);
+                            tempLinksRef.current.set(linkId, newLink as Link);
                         }
                     }
                 }
@@ -165,7 +206,7 @@ export function useGraphSync(modelId: string | null) {
 
         // 3. Subscribe to slices
         console.log(`[Sync] Subscribing to slices for model ${modelId}`);
-        model.get('slices').map().on((sliceData: any, sliceId: string) => {
+        model.get('slices').map().on((sliceData: GunSlice | null, sliceId: string) => {
             // console.log(`[Sync] Received slice update:`, sliceId, sliceData);
             try {
                 if (sliceData === null) {
@@ -200,7 +241,7 @@ export function useGraphSync(modelId: string | null) {
         });
 
         // 4. Subscribe to definitions
-        model.get('definitions').map().on((defData: any, defId: string) => {
+        model.get('definitions').map().on((defData: GunDefinition | null, defId: string) => {
             try {
                 if (defData === null) {
                     tempDefinitionsRef.current.delete(defId);
@@ -246,7 +287,7 @@ export function useGraphSync(modelId: string | null) {
 
         const formattedTypeName = type.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 
-        const newNodeData: any = {
+        const newNodeData = {
             type,
             name: `New ${formattedTypeName}`,
             description: '',
@@ -254,14 +295,14 @@ export function useGraphSync(modelId: string | null) {
             y: y,
             fx: x,
             fy: y,
-            entityIds: [], // Initialize as array for local state
+            entityIds: JSON.stringify([]), // Initialize as array for local state
         };
 
-        if (sliceId !== undefined) {
-            newNodeData.sliceId = sliceId;
+        if (sliceId) {
+            (newNodeData as any).sliceId = sliceId;
         }
 
-        const newNode: Node = { id: nodeId, ...newNodeData };
+        const newNode: Node = { id: nodeId, ...newNodeData, entityIds: [] };
         setNodes(prev => [...prev, newNode]); // Optimistic update
         nodesRef.current = [...nodesRef.current, newNode]; // Immediate ref update for subscription race condition
         tempNodesRef.current.set(nodeId, newNode); // Immediate DB cache update to prevent clobbering
@@ -284,7 +325,7 @@ export function useGraphSync(modelId: string | null) {
         }
 
         // Sanitize updates for Gun: undefined -> null (to delete), keep others
-        const sanitizedUpdates: any = {};
+        const sanitizedUpdates: Record<string, any> = {};
         Object.entries(updates).forEach(([key, value]) => {
             if (value === undefined) {
                 sanitizedUpdates[key] = null; // Gun uses null to delete/unset
@@ -307,10 +348,10 @@ export function useGraphSync(modelId: string | null) {
         tempNodesRef.current.delete(nodeId); // Immediate DB cache update
         manualPositionsRef.current.delete(nodeId);
 
-        model.get('nodes').get(nodeId).put(null as any);
+        model.get('nodes').get(nodeId).put(null);
         links.forEach(link => {
             if (link.source === nodeId || link.target === nodeId) {
-                model.get('links').get(link.id).put(null as any);
+                model.get('links').get(link.id).put(null);
             }
         });
     }, [modelId, links]);
@@ -318,7 +359,7 @@ export function useGraphSync(modelId: string | null) {
     const addLink = useCallback((sourceId: string, targetId: string, label: string, id?: string) => {
         if (!modelId) return;
         const linkId = id || uuidv4();
-        const newLinkData: any = { source: sourceId, target: targetId, label: label || '' };
+        const newLinkData = { source: sourceId, target: targetId, label: label || '' };
 
         const newLink: Link = { id: linkId, ...newLinkData };
         setLinks(prev => [...prev, newLink]); // Optimistic update
@@ -341,7 +382,7 @@ export function useGraphSync(modelId: string | null) {
         }
 
         // Sanitize updates
-        const sanitizedUpdates: any = {};
+        const sanitizedUpdates: Record<string, any> = {};
         Object.entries(updates).forEach(([key, value]) => {
             if (value === undefined) {
                 sanitizedUpdates[key] = null;
@@ -360,7 +401,7 @@ export function useGraphSync(modelId: string | null) {
         linksRef.current = linksRef.current.filter(l => l.id !== linkId); // Immediate ref update
         tempLinksRef.current.delete(linkId); // Immediate DB cache update
 
-        gunClient.getModel(modelId).get('links').get(linkId).put(null as any);
+        gunClient.getModel(modelId).get('links').get(linkId).put(null);
     }, [modelId]);
 
 
@@ -427,7 +468,7 @@ export function useGraphSync(modelId: string | null) {
         const { nodeIds, ...storageUpdates } = updates as any;
 
         // Sanitize updates
-        const sanitizedUpdates: any = {};
+        const sanitizedUpdates: Record<string, any> = {};
         Object.entries(storageUpdates).forEach(([key, value]) => {
             if (value === undefined) {
                 sanitizedUpdates[key] = null;
@@ -448,7 +489,7 @@ export function useGraphSync(modelId: string | null) {
         slicesRef.current = slicesRef.current.filter(s => s.id !== sliceId); // Immediate ref update
         tempSlicesRef.current.delete(sliceId); // Immediate DB cache update
 
-        gunClient.getModel(modelId).get('slices').get(sliceId).put(null as any);
+        gunClient.getModel(modelId).get('slices').get(sliceId).put(null);
 
         // Optional: Unassign nodes from this slice?
         // For now, let's leave them orphaned or handle it in the UI
@@ -486,7 +527,7 @@ export function useGraphSync(modelId: string | null) {
             tempDefinitionsRef.current.set(defId, { ...existing, ...updates });
         }
 
-        const sanitizedUpdates: any = {};
+        const sanitizedUpdates: Record<string, any> = {};
         Object.entries(updates).forEach(([key, value]) => {
             if (value === undefined) {
                 sanitizedUpdates[key] = null;
@@ -507,7 +548,7 @@ export function useGraphSync(modelId: string | null) {
         definitionsRef.current = definitionsRef.current.filter(d => d.id !== defId); // Immediate ref update
         tempDefinitionsRef.current.delete(defId); // Immediate DB cache update
 
-        gunClient.getModel(modelId).get('definitions').get(defId).put(null as any);
+        gunClient.getModel(modelId).get('definitions').get(defId).put(null);
     }, [modelId]);
 
 

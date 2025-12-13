@@ -1,6 +1,30 @@
 import { Node, Link, Slice, ElementType, ModelData, DataDefinition, DefinitionType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
+export interface WeavrExportData {
+    meta: {
+        version: string;
+        generator: string;
+        createdAt: string;
+        updatedAt: string;
+        projectId: string;
+        projectName: string;
+    };
+    eventModel: {
+        slices: any[];
+    };
+    layout: Record<string, any>;
+    dataDictionary: {
+        definitions: Record<string, any>;
+    };
+}
+
+export interface StandardExportData {
+    slices: any[];
+}
+
+export type ExportData = WeavrExportData | StandardExportData;
+
 // Helper to get current ISO date
 const now = () => new Date().toISOString();
 
@@ -38,7 +62,7 @@ export const exportWeavrProject = (
     projectName: string = 'Untitled Project',
     format: 'WEAVR' | 'STANDARD' = 'WEAVR',
     definitions: DataDefinition[] = []
-): any => {
+): ExportData => {
     // 1. Meta
     const meta = {
         version: "1.0.0",

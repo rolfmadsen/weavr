@@ -89,8 +89,8 @@ const ElementHelp: React.FC<{ type: ElementType }> = ({ type }) => {
 
 interface PropertiesPanelProps {
   selectedItem: { type: 'node' | 'link' | 'multi-node'; data: any } | null;
-  onUpdateNode: (id: string, key: string, value: any) => void;
-  onUpdateLink: (id: string, key: string, value: any) => void;
+  onUpdateNode: <K extends keyof Node>(id: string, key: K, value: Node[K]) => void;
+  onUpdateLink: <K extends keyof Link>(id: string, key: K, value: Link[K]) => void;
 
   onDeleteLink: (id: string) => void;
   onDeleteNode: (id: string) => void;
@@ -105,7 +105,7 @@ interface PropertiesPanelProps {
 
 interface NodePropertiesProps {
   node: Node;
-  onUpdateNode: (id: string, key: string, value: any) => void;
+  onUpdateNode: <K extends keyof Node>(id: string, key: K, value: Node[K]) => void;
   onDeleteNode: (id: string) => void;
   slices: Slice[];
   onAddSlice: (title: string) => string;
@@ -130,7 +130,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 }) => {
   // Slice Options
   const sliceOptions = useMemo(() => {
-    const localOptions = slices.map((s: any) => ({
+    const localOptions = slices.map((s) => ({
       id: s.id,
       label: s.title || 'Untitled',
       color: s.color,
@@ -153,8 +153,8 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
     const currentIds = node.entityIds || [];
 
     const localOptions = definitions
-      .filter((d: any) => !currentIds.includes(d.id))
-      .map((d: any) => ({
+      .filter((d) => !currentIds.includes(d.id))
+      .map((d) => ({
         id: d.id,
         label: d.name,
         subLabel: d.type,
@@ -229,7 +229,15 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
   const handleEntityAdd = (id: string, option: any) => {
     if (!id) return;
 
-    const currentIds = node.entityIds || [];
+    const safeIds = (() => {
+      const eIds = node.entityIds;
+      if (Array.isArray(eIds)) return eIds;
+      if (typeof eIds === 'string') {
+        try { return JSON.parse(eIds); } catch { return []; }
+      }
+      return [];
+    })();
+    const currentIds: string[] = safeIds;
 
     // Handle Remote Entity Selection
     if (id.startsWith('remote:') && option?.originalData) {
@@ -260,8 +268,15 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
   };
 
   const handleEntityRemove = (idToRemove: string) => {
-    const currentIds = node.entityIds || [];
-    onUpdateNode(node.id, 'entityIds', currentIds.filter((id: string) => id !== idToRemove));
+    const safeIds = (() => {
+      const eIds = node.entityIds;
+      if (Array.isArray(eIds)) return eIds;
+      if (typeof eIds === 'string') {
+        try { return JSON.parse(eIds); } catch { return []; }
+      }
+      return [];
+    })();
+    onUpdateNode(node.id, 'entityIds', safeIds.filter((id: string) => id !== idToRemove));
   };
 
 
@@ -372,17 +387,26 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
           <Typography variant="caption" display="block" gutterBottom>Linked Entities</Typography>
 
           <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 1 }}>
-            {(node.entityIds || []).map((entityId: string) => {
-              const def = definitions.find((d: any) => d.id === entityId);
-              return (
-                <Chip
-                  key={entityId}
-                  label={def?.name || 'Unknown'}
-                  onDelete={() => handleEntityRemove(entityId)}
-                  size="small"
-                />
-              );
-            })}
+            {(() => {
+              const eIds = node.entityIds;
+              const safeIds = Array.isArray(eIds)
+                ? eIds
+                : (typeof eIds === 'string'
+                  ? (() => { try { return JSON.parse(eIds); } catch { return []; } })()
+                  : []);
+
+              return (safeIds || []).map((entityId: string) => {
+                const def = definitions.find((d: any) => d.id === entityId);
+                return (
+                  <Chip
+                    key={entityId}
+                    label={def?.name || 'Unknown'}
+                    onDelete={() => handleEntityRemove(entityId)}
+                    size="small"
+                  />
+                );
+              })
+            })()}
           </Stack>
 
           <SmartSelect
@@ -423,7 +447,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
 interface LinkPropertiesProps {
   link: Link;
-  onUpdateLink: (id: string, key: string, value: any) => void;
+  onUpdateLink: <K extends keyof Link>(id: string, key: K, value: Link[K]) => void;
   onDeleteLink: (id: string) => void;
   nameInputRef: React.RefObject<HTMLInputElement | null>;
 }
@@ -469,7 +493,7 @@ const LinkProperties: React.FC<LinkPropertiesProps> = ({ link, onUpdateLink, onD
 
 interface MultiNodePropertiesProps {
   nodes: Node[];
-  onUpdateNode: (id: string, key: string, value: any) => void;
+  onUpdateNode: <K extends keyof Node>(id: string, key: K, value: Node[K]) => void;
   onDeleteNode: (id: string) => void;
   slices: Slice[];
   onAddSlice: (title: string) => string;
@@ -529,7 +553,7 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
     }
 
     // Update all selected nodes
-    nodes.forEach((node: any) => {
+    nodes.forEach((node) => {
       onUpdateNode(node.id, 'sliceId', targetSliceId || undefined);
     });
   };
@@ -564,7 +588,7 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
           variant="outlined"
           color="error"
           startIcon={<DeleteIcon />}
-          onClick={() => nodes.forEach((n: any) => onDeleteNode(n.id))}
+          onClick={() => nodes.forEach((n) => onDeleteNode(n.id))}
           fullWidth
         >
           Delete All Selected

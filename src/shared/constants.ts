@@ -1,6 +1,7 @@
 import { ElementType } from '../features/modeling/types';
 
-export const ELEMENT_STYLE: Record<ElementType, { color: string; textColor: string; shape: 'rect' | 'circle' | 'diamond' | 'beveled-rect' }> = {
+type LegacyType = 'EVENT_INTERNAL' | 'EVENT_EXTERNAL';
+export const ELEMENT_STYLE: Record<ElementType | LegacyType, { color: string; textColor: string; shape: 'rect' | 'circle' | 'diamond' | 'beveled-rect' }> = {
   [ElementType.Screen]: { color: '#e5e7eb', textColor: '#1f2937', shape: 'rect' }, // Light Gray
   [ElementType.Command]: { color: '#3b82f6', textColor: '#ffffff', shape: 'rect' }, // Blue
   [ElementType.DomainEvent]: { color: '#f97316', textColor: '#ffffff', shape: 'circle' }, // Orange
@@ -8,8 +9,8 @@ export const ELEMENT_STYLE: Record<ElementType, { color: string; textColor: stri
   [ElementType.IntegrationEvent]: { color: '#facc15', textColor: '#1f2937', shape: 'beveled-rect' }, // Yellow with dark text
   [ElementType.Automation]: { color: '#14b8a6', textColor: '#ffffff', shape: 'rect' }, // Teal
   // Legacy Types Support
-  ['EVENT_INTERNAL' as any]: { color: '#f97316', textColor: '#ffffff', shape: 'circle' },
-  ['EVENT_EXTERNAL' as any]: { color: '#facc15', textColor: '#1f2937', shape: 'beveled-rect' },
+  'EVENT_INTERNAL': { color: '#f97316', textColor: '#ffffff', shape: 'circle' },
+  'EVENT_EXTERNAL': { color: '#facc15', textColor: '#1f2937', shape: 'beveled-rect' },
 };
 
 export const NODE_WIDTH = 160;

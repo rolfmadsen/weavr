@@ -8,7 +8,7 @@ export interface CrossModelItem {
     modelId: string;
     modelName: string;
     type: 'slice' | 'definition';
-    originalData?: any;
+    originalData?: unknown;
 }
 
 export function useCrossModelData(currentModelId: string | null) {
@@ -31,15 +31,16 @@ export function useCrossModelData(currentModelId: string | null) {
 
             // Fetch Slices
             // We use map().once() to get each slice once
-            gun.get('slices').map().once((data: any, key: string) => {
-                if (data && data.title) {
+            gun.get('slices').map().once((data: unknown, key: string) => {
+                const sliceData = data as any;
+                if (sliceData && sliceData.title) {
                     fetchedSlices.push({
                         id: key, // This is the slice ID in the OTHER model
-                        label: data.title,
+                        label: sliceData.title,
                         modelId: model.id,
                         modelName: model.name,
                         type: 'slice',
-                        originalData: data
+                        originalData: sliceData
                     });
                     // Update state progressively or debounce?
                     // For now, let's just update at the end or periodically?
@@ -52,15 +53,16 @@ export function useCrossModelData(currentModelId: string | null) {
             });
 
             // Fetch Definitions
-            gun.get('definitions').map().once((data: any, key: string) => {
-                if (data && data.name) {
+            gun.get('definitions').map().once((data: unknown, key: string) => {
+                const defData = data as any;
+                if (defData && defData.name) {
                     fetchedDefinitions.push({
                         id: key,
-                        label: data.name,
+                        label: defData.name,
                         modelId: model.id,
                         modelName: model.name,
                         type: 'definition',
-                        originalData: data
+                        originalData: defData
                     });
                     scheduleUpdate();
                 }
