@@ -803,6 +803,7 @@ const App: React.FC = () => {
         <GraphCanvas
           nodes={filteredNodes}
           links={filteredLinks}
+          slices={slicesWithNodes}
 
           selectedIds={selectedIds}
           edgeRoutes={autoLayoutEdges}
