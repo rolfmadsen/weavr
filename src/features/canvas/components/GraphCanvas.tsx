@@ -4,7 +4,11 @@ import { Portal } from 'react-konva-utils';
 import Konva from 'konva';
 // PERFORMANCE: Disable Perfect Draw globally for better perf
 Konva.pixelRatio = 1;
-import { Node, Link } from '../../modeling';
+import {
+    Node,
+    Link,
+    Slice
+} from '../../modeling';
 import { ELEMENT_STYLE, MIN_NODE_HEIGHT, NODE_WIDTH, GRID_SIZE, FONT_FAMILY, FONT_SIZE, LINE_HEIGHT, NODE_PADDING } from '../../../shared/constants';
 import Minimap from './Minimap';
 import { calculateNodeHeight } from '../../modeling';
@@ -31,6 +35,7 @@ export interface GraphCanvasKonvaRef {
 interface GraphCanvasKonvaProps {
     nodes: Node[];
     links: Link[];
+    slices?: Slice[];
     selectedIds: string[];
     edgeRoutes?: Map<string, number[]>;
     onNodeClick: (node: Node, event?: any) => void;
@@ -422,22 +427,96 @@ const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, on
                     <Circle
                         key={i} x={pos.x} y={pos.y} radius={9}
                         fill="#4f46e5" stroke="white" strokeWidth={2}
+                        onMouseDown={(e) => {
+                            e.cancelBubble = true;
+                            onLinkStart({ x: x + pos.x, y: y + pos.y });
+                        }}
                         onMouseEnter={(e) => {
                             const stage = e.target.getStage();
                             if (stage) stage.container().style.cursor = 'crosshair';
                         }}
                         onMouseLeave={(e) => {
                             const stage = e.target.getStage();
-                            if (stage) stage.container().style.cursor = 'grab';
-                        }}
-                        onMouseDown={(e) => {
-                            e.cancelBubble = true;
-                            onLinkStart({ x: x + pos.x, y: y + pos.y });
+                            if (stage) stage.container().style.cursor = 'default';
                         }}
                     />
                 ))}
             </Group>
         </Portal>
+    );
+});
+
+// =============================================================================
+// PART 4: SLICE RENDERING
+// =============================================================================
+
+const SliceGroup: React.FC<{ slice: Slice; nodes: Node[]; }> = React.memo(({ slice, nodes }) => {
+    // 1. Calculate Bounding Box
+    const bounds = useMemo(() => {
+        if (nodes.length === 0) return null;
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        nodes.forEach(node => {
+            const x = node.x ?? 0; // Already safe
+            const y = node.y ?? 0; // Already safe
+            const w = NODE_WIDTH;
+            const h = node.computedHeight || MIN_NODE_HEIGHT; // Already calculated
+
+            const left = x;
+            const top = y;
+            const right = x + w;
+            const bottom = y + h;
+
+            if (left < minX) minX = left;
+            if (top < minY) minY = top;
+            if (right > maxX) maxX = right;
+            if (bottom > maxY) maxY = bottom;
+        });
+
+        const padding = 20;
+        return {
+            x: minX - padding,
+            y: minY - padding,
+            width: (maxX - minX) + (padding * 2),
+            height: (maxY - minY) + (padding * 2)
+        };
+    }, [nodes]);
+
+    if (!bounds) return null;
+
+    return (
+        <Group>
+            {/* Slice Border */}
+            <Rect
+                x={bounds.x}
+                y={bounds.y}
+                width={bounds.width}
+                height={bounds.height}
+                // Use a darker gray for the default border if it matches the light default (#e5e7eb)
+                stroke={(!slice.color || slice.color === '#e5e7eb') ? '#9ca3af' : slice.color}
+                strokeWidth={2}
+                dash={[10, 5]}
+                cornerRadius={8}
+                opacity={0.8}
+                listening={false}
+            />
+            {/* Slice Label */}
+            <Text
+                x={bounds.x}
+                y={bounds.y - 25} // Position above the box
+                width={bounds.width}
+                text={slice.title}
+                fontSize={14}
+                fontStyle="bold"
+                fill="#374151" // Always use dark gray for text for accessibility
+                align="center"
+                listening={false}
+            />
+        </Group>
     );
 });
 
@@ -448,6 +527,7 @@ const NodeGroup = React.memo(({ node, isSelected, isValidTarget, onNodeClick, on
 const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(({
     nodes,
     links,
+    slices = [], // Default to empty array
     selectedIds,
     edgeRoutes,
     onNodeClick,
@@ -926,6 +1006,17 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         fillPatternOffset={{ x: (-stagePos.x / stageScale) % (GRID_SIZE || 20), y: (-stagePos.y / stageScale) % (GRID_SIZE || 20) }}
                         name="grid-background"
                     />
+                </Layer>
+
+                {/* Slices Layer (Behind Nodes/Links) */}
+                <Layer>
+                    {slices.map(slice => (
+                        <SliceGroup
+                            key={slice.id}
+                            slice={slice}
+                            nodes={safeNodes.filter(n => n.sliceId === slice.id)}
+                        />
+                    ))}
                 </Layer>
 
                 <Layer>

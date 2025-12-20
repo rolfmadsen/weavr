@@ -7,7 +7,7 @@ export interface ModelMetadata {
     updatedAt: number;
 }
 
-const STORAGE_KEY = 'weavr_model_index';
+export const STORAGE_KEY = 'weavr_model_index';
 
 export function useModelList() {
     const [models, setModels] = useState<ModelMetadata[]>([]);

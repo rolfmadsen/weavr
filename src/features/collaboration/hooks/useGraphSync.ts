@@ -253,7 +253,19 @@ export function useGraphSync(modelId: string | null) {
                         name: defData.name || existingDef?.name || defId,
                         type: (defData.type as DefinitionType) || existingDef?.type || DefinitionType.Entity,
                         description: defData.description !== undefined ? defData.description : (existingDef?.description || ''),
-                        attributes: defData.attributes ? (typeof defData.attributes === 'string' ? JSON.parse(defData.attributes) : defData.attributes) : (existingDef?.attributes || []),
+                        attributes: (() => {
+                            if (!defData.attributes) return existingDef?.attributes || [];
+                            if (Array.isArray(defData.attributes)) return defData.attributes;
+                            if (typeof defData.attributes === 'string') {
+                                try {
+                                    const parsed = JSON.parse(defData.attributes);
+                                    return Array.isArray(parsed) ? parsed : [];
+                                } catch (e) {
+                                    return existingDef?.attributes || [];
+                                }
+                            }
+                            return existingDef?.attributes || [];
+                        })(),
                     };
                     tempDefinitionsRef.current.set(defId, newDef);
                 }

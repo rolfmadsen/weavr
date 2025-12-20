@@ -15,6 +15,8 @@ import {
   calculateNodeHeight,
   validationService,
   useModelList,
+  STORAGE_KEY,
+  type ModelMetadata,
   calculateElkLayout,
   exportWeavrProject,
   importWeavrProject
@@ -29,6 +31,7 @@ import {
   SliceManagerModal
 } from './features/editor';
 import { useDataMigration } from './features/migration';
+import { AppTelemetry, useTelemetry } from './features/telemetry/AppTelemetry';
 import {
   Header,
   Footer,
@@ -42,8 +45,29 @@ import {
 
 
 function getModelIdFromUrl(): string {
+  // 1. Prefer URL Hash if present
   const hash = window.location.hash.slice(1);
   if (hash) return hash;
+
+  // 2. Check Local Storage for last active model
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const models: ModelMetadata[] = JSON.parse(stored);
+      // Sort by updatedAt descending
+      models.sort((a, b) => b.updatedAt - a.updatedAt);
+
+      if (models.length > 0) {
+        const lastModel = models[0];
+        window.location.hash = lastModel.id;
+        return lastModel.id;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to recover last model", e);
+  }
+
+  // 3. Fallback: New Blank Model
   const newId = uuidv4();
   window.location.hash = newId;
   return newId;
@@ -116,11 +140,14 @@ const App: React.FC = () => {
     }
   }, [modelId, addModel]);
 
+  const { signal } = useTelemetry();
+
   const handleRenameModel = useCallback((newName: string) => {
     if (modelId) {
       updateModel(modelId, { name: newName });
+      signal("Model.Renamed");
     }
-  }, [modelId, updateModel]);
+  }, [modelId, updateModel, signal]);
 
   const definitionsArray = useMemo(() => {
     return definitions;
@@ -236,6 +263,7 @@ const App: React.FC = () => {
 
     const id = gunAddNode(type, manualX, manualY, explicitId);
     if (id) {
+      signal("Node.Created", { elementType: type });
       addToHistory({ type: 'ADD_NODE', payload: { id, type, x: manualX, y: manualY }, undoPayload: { id } });
       selectNode(id);
       selectNode(id);
@@ -258,6 +286,7 @@ const App: React.FC = () => {
     const connectedLinks = links.filter(l => l.source === nodeId || l.target === nodeId);
 
     gunDeleteNode(nodeId);
+    signal("Node.Deleted");
     addToHistory({
       type: 'DELETE_NODE',
       payload: { id: nodeId },
@@ -275,6 +304,7 @@ const App: React.FC = () => {
     if (!link) return;
 
     gunDeleteLink(linkId);
+    signal("Link.Deleted");
     addToHistory({
       type: 'DELETE_LINK',
       payload: { id: linkId },
@@ -387,6 +417,8 @@ const App: React.FC = () => {
         payload: newPositions,      // When Redoing: move all these to new
         undoPayload: oldPositions   // When Undoing: move all these to old
       });
+
+      signal("Layout.Auto", { nodeCount: nodes.length.toString() });
 
     } catch (error) {
       console.error("Auto-layout failed:", error);
@@ -539,6 +571,7 @@ const App: React.FC = () => {
         lastFocusedElementRef.current = document.activeElement;
       }
 
+      signal("Link.Created");
       setSidebarView('properties');
     }
   }, [nodes, links, modelId, gunAddLink, gunUpdateNode, addToHistory, selectLink]);
@@ -582,6 +615,9 @@ const App: React.FC = () => {
   const handleExport = useCallback(() => {
     // Weavr Export (Default)
     const data = exportWeavrProject(nodes, links, slices, autoLayoutEdges || new Map(), modelId || uuidv4(), 'Untitled Project', 'WEAVR', definitionsArray);
+
+    signal("Export.Started", { format: 'WEAVR', nodeCount: nodes.length.toString(), linkCount: links.length.toString() });
+
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -595,6 +631,9 @@ const App: React.FC = () => {
   const handleStandardExport = useCallback(() => {
     // Standard Export (Strict Schema)
     const data = exportWeavrProject(nodes, links, slices, autoLayoutEdges || new Map(), modelId || uuidv4(), 'Untitled Project', 'STANDARD', definitionsArray);
+
+    signal("Export.Started", { format: 'STANDARD', nodeCount: nodes.length.toString(), linkCount: links.length.toString() });
+
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -615,6 +654,8 @@ const App: React.FC = () => {
 
         const json = JSON.parse(result);
         const importedData = importWeavrProject(json);
+
+        signal("Import.Started");
 
         // Support legacy format (direct array of nodes/links) if importWeavrProject returns empty
         const data: ModelData = (importedData.nodes.length > 0) ? importedData : json;
@@ -803,6 +844,7 @@ const App: React.FC = () => {
         <GraphCanvas
           nodes={filteredNodes}
           links={filteredLinks}
+          slices={slicesWithNodes}
 
           selectedIds={selectedIds}
           edgeRoutes={autoLayoutEdges}
@@ -831,7 +873,10 @@ const App: React.FC = () => {
           onClose={handleCloseSidebar}
           title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
           activeTab={sidebarView || 'properties'}
-          onTabChange={(tab) => setSidebarView(tab as 'properties' | 'slices' | 'dictionary' | null)}
+          onTabChange={(tab) => {
+            setSidebarView(tab as 'properties' | 'slices' | 'dictionary' | null);
+            if (tab) signal("Sidebar.TabChanged", { tab });
+          }}
           tabs={[
             { id: 'properties', label: 'Properties', title: 'Alt + P' },
             { id: 'dictionary', label: 'Data', title: 'Alt + D' },
@@ -879,6 +924,7 @@ const App: React.FC = () => {
           )}
         </Sidebar>
 
+        <AppTelemetry nodeCount={nodes.length} linkCount={links.length} isReady={isReady} />
         <HelpModal isOpen={isHelpModalOpen} onClose={handleCloseHelpModal} />
         <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
 

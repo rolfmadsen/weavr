@@ -45,7 +45,7 @@ export const useDataMigration = ({ nodes, updateNode, definitions, updateDefinit
     useEffect(() => {
         if (definitions.length > 0) {
             definitions.forEach(def => {
-                if (!def.attributes) return;
+                if (!def.attributes || !Array.isArray(def.attributes)) return;
 
                 let hasChanges = false;
                 const newAttributes = def.attributes.map(attr => {

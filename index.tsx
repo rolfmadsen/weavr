@@ -1,15 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './src/App';
-import { AppTelemetry } from './src/features/telemetry/AppTelemetry';
 import './index.css';
 import { TelemetryDeckProvider, createTelemetryDeck } from "@typedigital/telemetrydeck-react";
 
 const appID = import.meta.env.VITE_TELEMETRYDECK_APP_ID;
 
+function getOrCreateUserId(): string {
+  const STORAGE_KEY = 'weavr_telemetry_user_id';
+  let userId = localStorage.getItem(STORAGE_KEY);
+  if (!userId) {
+    userId = crypto.randomUUID();
+    localStorage.setItem(STORAGE_KEY, userId);
+  }
+  return userId;
+}
+
 const td = appID ? createTelemetryDeck({
   appID,
-  clientUser: "anonymous",
+  clientUser: getOrCreateUserId(),
   testMode: import.meta.env.DEV
 }) : null;
 
@@ -27,7 +36,6 @@ if (rootElement) {
     root.render(
       <React.StrictMode>
         <TelemetryDeckProvider telemetryDeck={td}>
-          <AppTelemetry />
           <App />
         </TelemetryDeckProvider>
       </React.StrictMode>
