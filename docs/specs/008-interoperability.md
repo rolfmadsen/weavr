@@ -14,7 +14,7 @@ The native backup format. Includes all metadata required to perfectly restore th
     *   `meta`: Project versions/dates.
     *   `eventModel`: The semantic graph.
     *   `dataDictionary`: The Definitions schemas.
-    *   `layout`: `x, y, height` coordinates for every node and link.
+    *   `layout`: `x, y, height` coordinates (and redundant `type`/`title` for readability) for every node.
 
 ### 2.2. Event Modeling Standard Specification (`STANDARD`)
 A simplified, interoperable JSON format focusing on the semantic model only.

@@ -1,5 +1,7 @@
-import ELK from 'elkjs/lib/elk-api.js';
-import type { ElkNode, ElkExtendedEdge, ElkPort } from 'elkjs';
+import ELK from 'elkjs/lib/elk.bundled.js';
+// @ts-ignore - Vite worker import
+import ElkWorker from 'elkjs/lib/elk-worker.js?worker';
+import type { ElkNode, ElkExtendedEdge, LayoutOptions } from 'elkjs';
 import { NODE_WIDTH, MIN_NODE_HEIGHT } from '../../../shared/constants';
 
 // Interfaces for data received from Main Thread
@@ -7,12 +9,13 @@ interface WorkerNode {
     id: string;
     width?: number;
     height?: number;
+    computedHeight?: number;
+    type?: string;
+    sliceId?: string;
+    layoutOptions?: Record<string, string | number | boolean>;
+    pinned?: boolean;
     x?: number;
     y?: number;
-    computedHeight?: number; // Pre-calculated in main thread
-    type?: string; // For potential partitioning
-    sliceId?: string; // Explicit slice association
-    layoutOptions?: any;
 }
 
 interface WorkerLink {
@@ -23,58 +26,49 @@ interface WorkerLink {
 
 interface WorkerSlice {
     id: string;
-    nodeIds: string[]; // Received as Array, not Set
-    order?: number;
+    nodeIds: string[];
+    order?: number; // Explicit order from data model
 }
 
+// Hierarchical ranks for vertical flow (Partitions within a Slice)
+const TYPE_RANKING: Record<string, number> = {
+    'SCREEN': 0,
+    'AUTOMATION': 1,
+    'COMMAND': 2,
+    'READ_MODEL': 3,
+    'DOMAIN_EVENT': 4,
+    'INTEGRATION_EVENT': 5
+};
+
 const elk = new ELK({
-    workerUrl: './elk-worker.min.js', // Placeholder, used by workerFactory
-    workerFactory: (_url) => {
-        // Vite will bundle this worker correctly using the URL constructor
-        return new Worker(new URL('elkjs/lib/elk-worker.min.js', import.meta.url), { type: 'module' });
-    }
+    workerFactory: () => new ElkWorker()
 });
 
 self.onmessage = async (e: MessageEvent) => {
-    // console.log("ELK Worker received layout request", e.data);
+    // console.log("[ELK Worker] Message Received", e.data);
+    console.log("[ELK Worker v6] STRICT HORIZONTAL PARTITIONS active");
 
-    // Destructure with default direction
-    const { nodes, links, slices, globalOptions = {} } = e.data as {
+    const { requestId, nodes, links, slices, globalOptions = {} } = e.data as {
+        requestId: number,
         nodes: WorkerNode[],
         links: WorkerLink[],
         slices: WorkerSlice[],
-        globalOptions?: any
+        globalOptions?: Record<string, string | number | boolean>
     };
 
     try {
-        // 1. Map for quick lookup
         const nodeMap = new Map<string, WorkerNode>();
         nodes.forEach(n => nodeMap.set(n.id, n));
         const validNodeIds = new Set(nodes.map(n => n.id));
-
-        // 2. Map Node IDs to Slice IDs
         const nodeSliceMap = new Map<string, string>();
 
-        // Priority 1: Use explicit sliceId from node
+        // Map nodes to slices
         nodes.forEach(node => {
-            if (node.sliceId) {
-                // Verify slice exists in the slices list
-                if (slices.some(s => s.id === node.sliceId)) {
-                    nodeSliceMap.set(node.id, node.sliceId);
-                }
+            if (node.sliceId && slices.some(s => s.id === node.sliceId)) {
+                nodeSliceMap.set(node.id, node.sliceId);
             }
         });
 
-        // Priority 2: Fallback to slice.nodeIds (if not already set)
-        slices.forEach(slice => {
-            slice.nodeIds.forEach(nodeId => {
-                if (validNodeIds.has(nodeId) && !nodeSliceMap.has(nodeId)) {
-                    nodeSliceMap.set(nodeId, slice.id);
-                }
-            });
-        });
-
-        // 2b. Handle Loose Nodes (Assign to Default Slice)
         const DEFAULT_SLICE_ID = '__default_slice__';
         nodes.forEach(node => {
             if (!nodeSliceMap.has(node.id)) {
@@ -82,292 +76,221 @@ self.onmessage = async (e: MessageEvent) => {
             }
         });
 
-        // 3. Helper: Create ELK Node
-        const createElkNode = (node: WorkerNode, isVertical: boolean): ElkNode => {
+        const sanitizeOptions = (options?: Record<string, string | number | boolean>): LayoutOptions => {
+            return Object.fromEntries(
+                Object.entries(options || {}).map(([k, v]) => [k, String(v)])
+            ) as LayoutOptions;
+        };
+
+        const createElkNode = (node: WorkerNode): ElkNode => {
             const height = node.computedHeight || node.height || MIN_NODE_HEIGHT;
             const width = node.width || NODE_WIDTH;
-
-            // Dynamic Port Configuration
-            const ports: ElkPort[] = isVertical ? [
-                {
-                    id: `${node.id}_in`,
-                    width: 0, height: 0,
-                    x: width / 2, y: 0, // Top center
-                    layoutOptions: { 'elk.port.side': 'NORTH' }
-                },
-                {
-                    id: `${node.id}_out`,
-                    width: 0, height: 0,
-                    x: width / 2, y: height, // Bottom center
-                    layoutOptions: { 'elk.port.side': 'SOUTH' }
-                }
-            ] : [
-                {
-                    id: `${node.id}_in`,
-                    width: 0, height: 0,
-                    x: 0, y: height / 2, // Left center
-                    layoutOptions: { 'elk.port.side': 'WEST' }
-                },
-                {
-                    id: `${node.id}_out`,
-                    width: 0, height: 0,
-                    x: width, y: height / 2, // Right center
-                    layoutOptions: { 'elk.port.side': 'EAST' }
-                }
-            ];
+            const typeKey = (node.type || '').toUpperCase().trim().replace(/ /g, '_');
+            const partition = TYPE_RANKING[typeKey] ?? 99;
 
             return {
                 id: node.id,
                 width: width,
                 height: height,
                 layoutOptions: {
-                    'elk.portConstraints': 'FIXED_POS',
-                    ...node.layoutOptions
+                    'org.eclipse.elk.partitioning.partition': String(partition),
+                    'org.eclipse.elk.portConstraints': 'UNDEFINED',
+                    ...(node.pinned ? { 'org.eclipse.elk.noLayout': 'true' } : {}),
+                    ...sanitizeOptions(node.layoutOptions)
                 },
-                ports: ports
+                x: node.x,
+                y: node.y
             };
         };
 
-        // 4. Build Hierarchy
+        const sliceNodesMap = new Map<string, ElkNode[]>();
+        nodes.forEach(node => {
+            const sliceId = nodeSliceMap.get(node.id)!;
+            if (!sliceNodesMap.has(sliceId)) sliceNodesMap.set(sliceId, []);
+            sliceNodesMap.get(sliceId)!.push(createElkNode(node));
+        });
+
+        // ---------------------------------------------------------------------
+        // 1. Slice Layout Configuration (Vertical Flow inside Slices)
+        // ---------------------------------------------------------------------
+        const sliceLayoutOptions: LayoutOptions = sanitizeOptions({
+            'org.eclipse.elk.nodeLabels.placement': 'INSIDE V_CENTER H_RIGHT',
+            'org.eclipse.elk.algorithm': 'layered',
+            'org.eclipse.elk.direction': 'DOWN',
+            'org.eclipse.elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+            'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+            'org.eclipse.elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+            'org.eclipse.elk.layered.unnecessaryBendpoints': 'true',
+            'org.eclipse.elk.layered.spacing.edgeNodeBetweenLayers': '20',
+            'org.eclipse.elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+            'org.eclipse.elk.layered.nodePlacement.bk.edgeStraightening': 'IMPROVE_STRAIGHTNESS',
+            'org.eclipse.elk.layered.cycleBreaking.strategy': 'DEPTH_FIRST',
+            'org.eclipse.elk.insideSelfLoops.activate': 'true',
+            'org.eclipse.elk.separateConnectedComponents': 'false',
+            'org.eclipse.elk.spacing.componentComponent': '40',
+            'org.eclipse.elk.spacing.nodeNode': '40',
+            'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '40',
+            'org.eclipse.elk.layered.nodePlacement.favorStraightEdges': 'true',
+            'org.eclipse.elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+            'org.eclipse.elk.layered.considerModelOrder.crossingCounterNodeInfluence': '0.001',
+            'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+            'org.eclipse.elk.spacing.edgeLabel': '0',
+            'org.eclipse.elk.spacing.edgeNode': '20',
+            'org.eclipse.elk.layered.edgeLabels.sideSelection': 'ALWAYS_UP',
+            'org.eclipse.elk.spacing.portPort': '10',
+            'org.eclipse.elk.padding': '[top=20,left=20,bottom=20,right=20]',
+        });
+
         const rootChildren: ElkNode[] = [];
         const rootEdges: ElkExtendedEdge[] = [];
 
-        // Group nodes by slice
-        const sliceNodesMap = new Map<string, ElkNode[]>();
+        // Build containers (Slices)
+        const allSliceIds = [...slices.map(s => s.id), DEFAULT_SLICE_ID];
+        allSliceIds.forEach((sliceId, index) => {
+            const children = sliceNodesMap.get(sliceId) || [];
+            if (children.length === 0) return;
 
-        nodes.forEach(node => {
-            const sliceId = nodeSliceMap.get(node.id)!;
-            const elkNode = createElkNode(node, true); // Inside slice is always DOWN (Vertical)
-
-            if (!sliceNodesMap.has(sliceId)) sliceNodesMap.set(sliceId, []);
-            sliceNodesMap.get(sliceId)!.push(elkNode);
-        });
-
-        // Create Slice Nodes (Containers)
-        slices.forEach(slice => {
-            const children = sliceNodesMap.get(slice.id) || [];
-            if (children.length === 0) return; // Skip empty slices
+            // Strict use of index for horizontal partitioning (Left -> Right)
+            const sliceOrder = index;
 
             rootChildren.push({
-                id: slice.id,
+                id: sliceId,
                 children: children,
                 layoutOptions: {
-                    'elk.algorithm': 'layered',
-                    'elk.direction': 'DOWN', // Slice internal direction
-                    'elk.padding': '[top=40,left=20,bottom=20,right=20]',
-                    'elk.spacing.nodeNode': '40',
-                    'elk.layered.spacing.nodeNodeBetweenLayers': '60',
-                    // Ensure internal edges are routed vertically
-                    'elk.edgeRouting': 'ORTHOGONAL'
-                },
-                edges: [] // Intra-slice edges will be added here
-            });
-        });
-
-        // Handle Default Slice (Loose Nodes)
-        if (sliceNodesMap.has(DEFAULT_SLICE_ID)) {
-            const children = sliceNodesMap.get(DEFAULT_SLICE_ID)!;
-            rootChildren.push({
-                id: DEFAULT_SLICE_ID,
-                children: children,
-                layoutOptions: {
-                    'elk.algorithm': 'layered',
-                    'elk.direction': 'DOWN',
-                    'elk.padding': '[top=20,left=20,bottom=20,right=20]',
-                    'elk.spacing.nodeNode': '40',
-                    'elk.layered.spacing.nodeNodeBetweenLayers': '60',
-                    'elk.edgeRouting': 'ORTHOGONAL'
+                    ...sliceLayoutOptions,
+                    'org.eclipse.elk.partitioning.partition': String(sliceOrder),
                 },
                 edges: []
             });
-        }
+        });
 
-        // Add loose nodes to root (or a default container?)
-        // For now, add them to root. They will be laid out Left-to-Right along with Slices.
-        // looseNodes.forEach(n => rootChildren.push(n));
-
-
-        // 5. Process Edges
-        const interSliceEdges: WorkerLink[] = [];
-        const sliceDependencies = new Set<string>(); // "SliceA->SliceB"
-
+        // Process Edges
         links.forEach(link => {
             if (!validNodeIds.has(link.source) || !validNodeIds.has(link.target)) return;
+
+            const sourceNode = nodeMap.get(link.source);
+            const targetNode = nodeMap.get(link.target);
+            const sourceTypeKey = (sourceNode?.type || '').toUpperCase().trim().replace(/ /g, '_');
+            const targetTypeKey = (targetNode?.type || '').toUpperCase().trim().replace(/ /g, '_');
+            const sourceRank = TYPE_RANKING[sourceTypeKey] ?? 99;
+            const targetRank = TYPE_RANKING[targetTypeKey] ?? 99;
 
             const sourceSliceId = nodeSliceMap.get(link.source);
             const targetSliceId = nodeSliceMap.get(link.target);
 
-            if (sourceSliceId && targetSliceId && sourceSliceId === targetSliceId) {
-                // A. Intra-Slice Edge
-                const sliceNode = rootChildren.find(c => c.id === sourceSliceId);
-                if (sliceNode && sliceNode.edges) {
-                    sliceNode.edges.push({
-                        id: link.id,
-                        sources: [link.source],
-                        targets: [link.target]
-                    });
+            const elkEdge: ElkExtendedEdge = {
+                id: link.id,
+                sources: [link.source],
+                targets: [link.target],
+                layoutOptions: {}
+            };
+
+            // Detect Feedback Edges (Upwards in hierarchy or Backwards in slices)
+            const sourceSliceIndex = slices.findIndex(s => s.id === sourceSliceId);
+            const targetSliceIndex = slices.findIndex(s => s.id === targetSliceId);
+            const sourceSliceOrder = sourceSliceIndex !== -1 ? (slices[sourceSliceIndex].order ?? sourceSliceIndex) : 999;
+            const targetSliceOrder = targetSliceIndex !== -1 ? (slices[targetSliceIndex].order ?? targetSliceIndex) : 999;
+
+            if (sourceRank > targetRank || sourceSliceOrder > targetSliceOrder) {
+                elkEdge.layoutOptions!['org.eclipse.elk.layered.feedbackEdges'] = 'true';
+            }
+
+            if (sourceSliceId === targetSliceId) {
+                // Intra-slice edge
+                const slice = rootChildren.find(c => c.id === sourceSliceId);
+                if (slice && slice.edges) {
+                    slice.edges.push(elkEdge);
                 }
             } else {
-                // B. Inter-Slice Edge (or involves loose nodes)
-                interSliceEdges.push(link);
-
-                // Synthetic Edge Logic
-                if (sourceSliceId && targetSliceId && sourceSliceId !== targetSliceId) {
-                    const depKey = `${sourceSliceId}->${targetSliceId}`;
-                    if (!sliceDependencies.has(depKey)) {
-                        sliceDependencies.add(depKey);
-                        rootEdges.push({
-                            id: `synthetic-${depKey}`,
-                            sources: [sourceSliceId],
-                            targets: [targetSliceId],
-                            layoutOptions: {
-                                // Make these invisible or minimal impact if possible, 
-                                // but they are needed for ordering.
-                            }
-                        });
-                    }
-                }
+                // Root edge (Inter-slice)
+                // WE DO NOT ADD EDGES TO ROOT GRAPH to prevent UnsupportedGraphException.
+                // We rely on 'org.eclipse.elk.partitioning.partition' in the Slices to ensure correct ordering.
             }
         });
 
-        // 6. Define Root Graph Options
-        const finalOptions = {
-            'elk.algorithm': 'layered',
-            'elk.direction': 'RIGHT', // Root direction
-            'elk.hierarchyHandling': 'SEPARATE_CHILDREN', // Treat slices as black boxes
-            'elk.spacing.nodeNode': '80', // Gap between slices
-            'elk.layered.spacing.nodeNodeBetweenLayers': '80',
-            'elk.edgeRouting': 'ORTHOGONAL',
-            ...globalOptions
-        };
-
+        // ---------------------------------------------------------------------
+        // 2. Root Graph Configuration (Horizontal Flow of Slices)
+        // ---------------------------------------------------------------------
         const rootGraph: ElkNode = {
             id: 'root',
-            layoutOptions: finalOptions,
+            layoutOptions: sanitizeOptions({
+                'org.eclipse.elk.algorithm': 'org.eclipse.elk.layered',
+                'org.eclipse.elk.direction': 'RIGHT',
+                'elk.direction': 'RIGHT',
+                'org.eclipse.elk.hierarchyHandling': 'SEPARATE_CHILDREN',
+                'org.eclipse.elk.partitioning.activate': 'true', // EXPLICITLY ACTIVATE PARTITIONING
+                'org.eclipse.elk.layered.layering.strategy': 'LONGEST_PATH', // Simplest strategy for partitions
+                'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+                'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '80',
+                'org.eclipse.elk.spacing.nodeNode': '75',
+                'org.eclipse.elk.insideSelfLoops.activate': 'true',
+                'org.eclipse.elk.separateConnectedComponents': 'false',
+                'org.eclipse.elk.spacing.edgeLabel': '0',
+                'org.eclipse.elk.spacing.edgeNode': '24',
+                'org.eclipse.elk.layered.edgeLabels.sideSelection': 'ALWAYS_UP',
+                'org.eclipse.elk.spacing.portPort': '5',
+                ...globalOptions
+            }),
             children: rootChildren,
             edges: rootEdges
         };
 
-        // 7. Execute Layout
         const layout = await elk.layout(rootGraph);
 
-        // 8. Process Results
+        // Process Results
         const positions: Record<string, { x: number, y: number }> = {};
         const edgeRoutes: Record<string, number[]> = {};
 
-        // Helper to get absolute position of a node
-        const getAbsolutePosition = (nodeId: string): { x: number, y: number, width: number, height: number } | null => {
-            // Find the node in the layout tree
-            // This is a bit inefficient, but robust
-
-            // Check slices
-            for (const child of layout.children || []) {
-                if (child.id === nodeId) {
-                    return { x: child.x || 0, y: child.y || 0, width: child.width || 0, height: child.height || 0 };
-                }
-                if (child.children) {
-                    const inner = child.children.find(n => n.id === nodeId);
-                    if (inner) {
-                        return {
-                            x: (child.x || 0) + (inner.x || 0),
-                            y: (child.y || 0) + (inner.y || 0),
-                            width: inner.width || 0,
-                            height: inner.height || 0
-                        };
-                    }
-                }
-            }
-            return null;
-        };
-
-        // Populate positions
         const processNode = (node: ElkNode, parentX = 0, parentY = 0) => {
-            let currentX = parentX + (node.x || 0);
-            let currentY = parentY + (node.y || 0);
+            const currentX = parentX + (node.x || 0);
+            const currentY = parentY + (node.y || 0);
+
+            const GRID = 20;
+            const snap = (v: number) => Math.round(v / GRID) * GRID;
 
             if (validNodeIds.has(node.id)) {
-                const GRID = 20;
                 positions[node.id] = {
-                    x: Math.round(currentX / GRID) * GRID,
-                    y: Math.round(currentY / GRID) * GRID
+                    x: snap(currentX),
+                    y: snap(currentY)
                 };
+            }
+
+            const interSliceEdgeIds = new Set(rootEdges.map(e => e.id));
+
+            if (node.edges) {
+                node.edges.forEach(edge => {
+                    // SKIP Inter-Slice Edges (Let Frontend handle smart routing)
+                    if (interSliceEdgeIds.has(edge.id)) return;
+
+                    if (edge.sections && edge.sections.length > 0) {
+                        const points: number[] = [];
+                        edge.sections.forEach(section => {
+                            points.push(snap(currentX + section.startPoint.x));
+                            points.push(snap(currentY + section.startPoint.y));
+                            if (section.bendPoints) {
+                                section.bendPoints.forEach(bp => {
+                                    points.push(snap(currentX + bp.x));
+                                    points.push(snap(currentY + bp.y));
+                                });
+                            }
+                            points.push(snap(currentX + section.endPoint.x));
+                            points.push(snap(currentY + section.endPoint.y));
+                        });
+                        edgeRoutes[edge.id] = points;
+                    }
+                });
             }
 
             if (node.children) {
                 node.children.forEach(child => processNode(child, currentX, currentY));
             }
         };
+
         if (layout) processNode(layout);
-
-        // 9. Manual Edge Routing for Inter-Slice Edges
-        interSliceEdges.forEach(link => {
-            const sourcePos = getAbsolutePosition(link.source);
-            const targetPos = getAbsolutePosition(link.target);
-            const sourceSliceId = nodeSliceMap.get(link.source);
-            const targetSliceId = nodeSliceMap.get(link.target);
-
-            if (sourcePos && targetPos && sourceSliceId && targetSliceId && sourceSliceId !== targetSliceId) {
-                // Get Slice Bounding Boxes
-                const sourceSlice = layout.children?.find(c => c.id === sourceSliceId);
-                const targetSlice = layout.children?.find(c => c.id === targetSliceId);
-
-                if (sourceSlice && targetSlice) {
-                    const sourceSliceRight = (sourceSlice.x || 0) + (sourceSlice.width || 0);
-                    const targetSliceLeft = (targetSlice.x || 0);
-
-                    // Calculate Gap Center
-                    // If target is to the right of source (normal flow)
-                    let gapCenter: number;
-                    if (targetSliceLeft > sourceSliceRight) {
-                        gapCenter = (sourceSliceRight + targetSliceLeft) / 2;
-                    } else {
-                        // Overlap or backward edge: Just put it in between the node centers?
-                        // Or fallback to a default offset
-                        gapCenter = sourceSliceRight + 40; // Default buffer
-                    }
-
-                    // 4-Point Path
-                    // Start: Node A Center Right (or just Center)
-                    // Bend 1: Gap Center, Node A Y
-                    // Bend 2: Gap Center, Node B Y
-                    // End: Node B Center Left
-
-                    const startX = sourcePos.x + sourcePos.width; // Right side of source node
-                    const startY = sourcePos.y + sourcePos.height / 2;
-
-                    const endX = targetPos.x; // Left side of target node
-                    const endY = targetPos.y + targetPos.height / 2;
-
-                    // Adjust Gap Center to be grid aligned
-                    const GRID = 20;
-                    const bendX = Math.round(gapCenter / GRID) * GRID;
-
-                    // Snap start/end points to grid to match node positions
-                    const snappedStartX = Math.round(startX / GRID) * GRID;
-                    const snappedStartY = Math.round(startY / GRID) * GRID;
-                    const snappedEndX = Math.round(endX / GRID) * GRID;
-                    const snappedEndY = Math.round(endY / GRID) * GRID;
-
-                    edgeRoutes[link.id] = [
-                        snappedStartX, snappedStartY,
-                        bendX, snappedStartY,
-                        bendX, snappedEndY,
-                        snappedEndX, snappedEndY
-                    ];
-                    return;
-                }
-            }
-
-            // Fallback for loose nodes or non-standard layouts:
-            // Let the frontend calculate it (don't return a route)
-            // OR calculate a simple direct path here?
-            // If we don't return a route, GraphCanvasKonva uses calculateOrthogonalPathPoints
-        });
-
-        // 10. Reply to Main Thread
-        self.postMessage({ type: 'SUCCESS', positions, edgeRoutes });
+        self.postMessage({ type: 'SUCCESS', positions, edgeRoutes, requestId });
 
     } catch (error) {
-        self.postMessage({ type: 'ERROR', message: String(error) });
+        console.error("[ELK Worker] Fatal Error", error);
+        self.postMessage({ type: 'ERROR', message: String(error), requestId });
     }
 };

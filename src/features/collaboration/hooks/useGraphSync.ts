@@ -20,6 +20,7 @@ interface GunNode {
     aggregate?: string;
     technicalTimestamp?: boolean;
     externalSystem?: string;
+    pinned?: boolean;
 }
 
 interface GunLink {
@@ -45,11 +46,16 @@ interface GunDefinition {
     attributes?: string;
 }
 
+interface GunEdgeRoutes {
+    routes?: string; // Serialized Map<string, number[]>
+}
+
 export function useGraphSync(modelId: string | null) {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [links, setLinks] = useState<Link[]>([]);
     const [slices, setSlices] = useState<Slice[]>([]);
     const [definitions, setDefinitions] = useState<DataDefinition[]>([]);
+    const [edgeRoutesMap, setEdgeRoutesMap] = useState<Map<string, number[]>>(new Map());
 
     const [isReady, setIsReady] = useState(false);
 
@@ -58,6 +64,7 @@ export function useGraphSync(modelId: string | null) {
     const tempLinksRef = useRef(new Map<string, Link>());
     const tempSlicesRef = useRef(new Map<string, Slice>());
     const tempDefinitionsRef = useRef(new Map<string, DataDefinition>());
+    const tempEdgeRoutesRef = useRef(new Map<string, number[]>());
 
     // We keep manual positions in a ref to avoid re-rendering on every drag frame,
     // but we also sync them to Gun.
@@ -100,6 +107,7 @@ export function useGraphSync(modelId: string | null) {
         tempLinksRef.current.clear();
         tempSlicesRef.current.clear();
         tempDefinitionsRef.current.clear();
+        tempEdgeRoutesRef.current.clear();
         manualPositionsRef.current.clear();
 
         const model = gunClient.getModel(modelId);
@@ -114,6 +122,7 @@ export function useGraphSync(modelId: string | null) {
         let linkUpdateTimer: ReturnType<typeof setTimeout> | null = null;
         let sliceUpdateTimer: ReturnType<typeof setTimeout> | null = null;
         let definitionUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+        let edgeRoutesUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 
         // 1. Subscribe to nodes
         model.get('nodes').map().on((nodeData: GunNode | null, nodeId: string) => {
@@ -146,6 +155,7 @@ export function useGraphSync(modelId: string | null) {
                             aggregate: nodeData.aggregate !== undefined ? nodeData.aggregate : existingNode?.aggregate,
                             technicalTimestamp: nodeData.technicalTimestamp !== undefined ? nodeData.technicalTimestamp : existingNode?.technicalTimestamp,
                             externalSystem: nodeData.externalSystem !== undefined ? nodeData.externalSystem : existingNode?.externalSystem,
+                            pinned: nodeData.pinned !== undefined ? nodeData.pinned : existingNode?.pinned,
                         };
 
                         // Only set if we have the critical fields
@@ -280,6 +290,30 @@ export function useGraphSync(modelId: string | null) {
             }
         });
 
+        // 5. Subscribe to Edge Routes (Snapshot)
+        model.get('edgeRoutes').on((data: GunEdgeRoutes | null) => {
+            try {
+                if (data === null || !data.routes) {
+                    tempEdgeRoutesRef.current.clear();
+                } else {
+                    const parsed = JSON.parse(data.routes);
+                    const newMap = new Map<string, number[]>();
+                    Object.entries(parsed).forEach(([id, points]) => {
+                        newMap.set(id, points as number[]);
+                    });
+                    tempEdgeRoutesRef.current = newMap;
+                }
+
+                if (edgeRoutesUpdateTimer) clearTimeout(edgeRoutesUpdateTimer);
+                edgeRoutesUpdateTimer = setTimeout(() => {
+                    setEdgeRoutesMap(new Map(tempEdgeRoutesRef.current));
+                    edgeRoutesUpdateTimer = null;
+                }, 50);
+            } catch (err) {
+                console.error(`Error processing edge routes:`, err);
+            }
+        });
+
         const readyTimer = setTimeout(() => setIsReady(true), 500);
 
         return () => {
@@ -288,6 +322,7 @@ export function useGraphSync(modelId: string | null) {
             if (linkUpdateTimer) clearTimeout(linkUpdateTimer);
             if (sliceUpdateTimer) clearTimeout(sliceUpdateTimer);
             if (definitionUpdateTimer) clearTimeout(definitionUpdateTimer);
+            if (edgeRoutesUpdateTimer) clearTimeout(edgeRoutesUpdateTimer);
         };
 
     }, [modelId]);
@@ -307,6 +342,7 @@ export function useGraphSync(modelId: string | null) {
             y: y,
             fx: x,
             fy: y,
+            pinned: true,
             entityIds: JSON.stringify([]), // Initialize as array for local state
         };
 
@@ -328,17 +364,25 @@ export function useGraphSync(modelId: string | null) {
 
     const updateNode = useCallback((nodeId: string, updates: Partial<Node>) => {
         if (!modelId) return;
-        setNodes(currentNodes => currentNodes.map(node => (node.id === nodeId ? { ...node, ...updates } : node)));
+
+        // Special handling for pinning: if unpinning, clear fixed coordinates
+        const enhancedUpdates = { ...updates };
+        if (updates.pinned === false) {
+            enhancedUpdates.fx = undefined;
+            enhancedUpdates.fy = undefined;
+        }
+
+        setNodes(currentNodes => currentNodes.map(node => (node.id === nodeId ? { ...node, ...enhancedUpdates } : node)));
 
         // Update temp ref
         const existing = tempNodesRef.current.get(nodeId);
         if (existing) {
-            tempNodesRef.current.set(nodeId, { ...existing, ...updates });
+            tempNodesRef.current.set(nodeId, { ...existing, ...enhancedUpdates });
         }
 
         // Sanitize updates for Gun: undefined -> null (to delete), keep others
         const sanitizedUpdates: Record<string, any> = {};
-        Object.entries(updates).forEach(([key, value]) => {
+        Object.entries(enhancedUpdates).forEach(([key, value]) => {
             if (value === undefined) {
                 sanitizedUpdates[key] = null; // Gun uses null to delete/unset
             } else if (key === 'entityIds' && Array.isArray(value)) {
@@ -347,6 +391,12 @@ export function useGraphSync(modelId: string | null) {
                 sanitizedUpdates[key] = value;
             }
         });
+
+        // Ensure if we are unpinning, we also tell Gun to clear fx/fy
+        if (updates.pinned === false) {
+            sanitizedUpdates.fx = null;
+            sanitizedUpdates.fy = null;
+        }
 
         gunClient.getModel(modelId).get('nodes').get(nodeId).put(sanitizedUpdates);
     }, [modelId]);
@@ -370,6 +420,19 @@ export function useGraphSync(modelId: string | null) {
 
     const addLink = useCallback((sourceId: string, targetId: string, label: string, id?: string) => {
         if (!modelId) return;
+
+        // Auto-slice association
+        const sourceNode = nodes.find(n => n.id === sourceId);
+        const targetNode = nodes.find(n => n.id === targetId);
+
+        if (sourceNode && targetNode) {
+            if (sourceNode.sliceId && !targetNode.sliceId) {
+                updateNode(targetId, { sliceId: sourceNode.sliceId });
+            } else if (!sourceNode.sliceId && targetNode.sliceId) {
+                updateNode(sourceId, { sliceId: targetNode.sliceId });
+            }
+        }
+
         const linkId = id || uuidv4();
         const newLinkData = { source: sourceId, target: targetId, label: label || '' };
 
@@ -380,7 +443,7 @@ export function useGraphSync(modelId: string | null) {
 
         gunClient.getModel(modelId).get('links').get(linkId).put(newLinkData);
         return linkId;
-    }, [modelId]);
+    }, [modelId, nodes, updateNode]);
 
 
     const updateLink = useCallback((linkId: string, updates: Partial<Link>) => {
@@ -417,22 +480,83 @@ export function useGraphSync(modelId: string | null) {
     }, [modelId]);
 
 
-    const updateNodePosition = useCallback((nodeId: string, x: number, y: number) => {
+    const updateNodePosition = useCallback((nodeId: string, x: number, y: number, pinned?: boolean) => {
         if (!modelId) return;
-        setNodes(currentNodes => currentNodes.map(node => (node.id === nodeId ? { ...node, x, y, fx: x, fy: y } : node)));
+
+        // If pinned is not provided, we assume it's a user action (default to true)
+        const finalPinned = pinned !== undefined ? pinned : true;
+
+        // Ensure numbers are valid
+        const safeX = isNaN(x) ? 0 : x;
+        const safeY = isNaN(y) ? 0 : y;
+
+        setNodes(currentNodes => currentNodes.map(node => (
+            node.id === nodeId
+                ? {
+                    ...node,
+                    x: safeX,
+                    y: safeY,
+                    fx: finalPinned ? safeX : undefined,
+                    fy: finalPinned ? safeY : undefined,
+                    pinned: finalPinned
+                }
+                : node
+        )));
 
         // Update temp ref
         const existing = tempNodesRef.current.get(nodeId);
         if (existing) {
-            tempNodesRef.current.set(nodeId, { ...existing, x, y, fx: x, fy: y });
+            tempNodesRef.current.set(nodeId, {
+                ...existing,
+                x: safeX,
+                y: safeY,
+                fx: finalPinned ? safeX : undefined,
+                fy: finalPinned ? safeY : undefined,
+                pinned: finalPinned
+            });
         }
 
-        manualPositionsRef.current.set(nodeId, { x, y });
-        // Ensure numbers are valid
-        const safeX = isNaN(x) ? 0 : x;
-        const safeY = isNaN(y) ? 0 : y;
-        gunClient.getModel(modelId).get('nodes').get(nodeId).put({ x: safeX, y: safeY, fx: safeX, fy: safeY });
+        manualPositionsRef.current.set(nodeId, { x: safeX, y: safeY });
+
+        gunClient.getModel(modelId).get('nodes').get(nodeId).put({
+            x: safeX,
+            y: safeY,
+            fx: finalPinned ? safeX : null,
+            fy: finalPinned ? safeY : null,
+            pinned: finalPinned
+        });
     }, [modelId]);
+
+    const unpinNode = useCallback((nodeId: string) => {
+        if (!modelId) return;
+        setNodes(currentNodes => currentNodes.map(node => (node.id === nodeId ? { ...node, pinned: false, fx: undefined, fy: undefined } : node)));
+
+        // Update temp ref to prevent subscription from overwriting with stale data
+        const existing = tempNodesRef.current.get(nodeId);
+        if (existing) {
+            tempNodesRef.current.set(nodeId, { ...existing, pinned: false, fx: undefined, fy: undefined });
+        }
+
+        manualPositionsRef.current.delete(nodeId);
+        gunClient.getModel(modelId).get('nodes').get(nodeId).put({ pinned: false, fx: null, fy: null });
+    }, [modelId]);
+
+    const unpinAllNodes = useCallback(() => {
+        if (!modelId) return;
+        nodes.forEach(node => {
+            if (node.pinned) {
+                // Update temp ref for each node
+                const existing = tempNodesRef.current.get(node.id);
+                if (existing) {
+                    tempNodesRef.current.set(node.id, { ...existing, pinned: false, fx: undefined, fy: undefined });
+                }
+
+                gunClient.getModel(modelId).get('nodes').get(node.id).put({ pinned: false, fx: null, fy: null });
+                manualPositionsRef.current.delete(node.id);
+            }
+        });
+        setNodes(currentNodes => currentNodes.map(node => ({ ...node, pinned: false, fx: undefined, fy: undefined })));
+    }, [modelId, nodes]);
 
     // --- Slice Management ---
 
@@ -581,8 +705,22 @@ export function useGraphSync(modelId: string | null) {
         addSlice,
         updateSlice,
         deleteSlice,
+        unpinNode,
+        unpinAllNodes,
         addDefinition,
         updateDefinition,
-        deleteDefinition
+        deleteDefinition,
+        updateEdgeRoutes: (routes: Map<string, number[]>) => {
+            if (!modelId) return;
+            const obj: Record<string, number[]> = {};
+            routes.forEach((points, id) => {
+                obj[id] = points;
+            });
+            gunClient.getModel(modelId).get('edgeRoutes').put({ routes: JSON.stringify(obj) });
+            // Local update for responsiveness
+            setEdgeRoutesMap(new Map(routes));
+            tempEdgeRoutesRef.current = new Map(routes);
+        },
+        edgeRoutesMap
     };
 }

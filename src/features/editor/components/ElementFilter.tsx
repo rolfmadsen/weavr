@@ -1,41 +1,40 @@
 import React, { useState, useMemo } from 'react';
-import { Box, TextField, Checkbox, Typography, IconButton, Tooltip, Stack } from '@mui/material';
-import { Slice } from '../../modeling';
+import { Box, TextField, Typography, IconButton, Tooltip, Stack, Avatar } from '@mui/material';
+import { Node } from '../../modeling';
 import {
-    FilterList as FilterIcon,
+    Search as SearchIcon,
     Clear as ClearIcon,
-    SelectAll as SelectAllIcon,
-    Deselect as DeselectIcon
+    CenterFocusStrong as FocusIcon,
 } from '@mui/icons-material';
+import { ELEMENT_STYLE } from '../../../shared/constants';
 
-interface SliceFilterProps {
-    slices: Slice[];
-    hiddenSliceIds: string[];
-    onChange: (ids: string[]) => void;
+interface ElementFilterProps {
+    nodes: Node[];
+    onNodeClick: (node: Node) => void;
 }
 
-const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onChange }) => {
+const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
 
-    // Filter slices based on search AND sort by order
-    const displayedSlices = useMemo(() => {
-        let result = slices;
-        if (searchTerm.trim()) {
-            const lower = searchTerm.toLowerCase();
-            result = slices.filter(s => (s.title || 'Untitled').toLowerCase().includes(lower));
-        }
-        // Explicitly sort by order
-        return [...result].sort((a, b) => (a.order || 0) - (b.order || 0));
-    }, [slices, searchTerm]);
+    // Fuzzy search nodes based on name and type
+    const displayedNodes = useMemo(() => {
+        if (!searchTerm.trim()) return [];
+
+        const lower = searchTerm.toLowerCase();
+        return nodes.filter(n =>
+            (n.name || '').toLowerCase().includes(lower) ||
+            (n.type || '').toLowerCase().includes(lower)
+        ).slice(0, 20); // Limit results for performance
+    }, [nodes, searchTerm]);
 
     const listRef = React.useRef<HTMLDivElement>(null);
 
     // Reset selection when search results change
     React.useEffect(() => {
         setSelectedIndex(0);
-    }, [displayedSlices.length]);
+    }, [displayedNodes.length]);
 
     // Scroll highlighted item into view
     React.useEffect(() => {
@@ -57,29 +56,19 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
         }
     }, [selectedIndex]);
 
-    const handleToggleSlice = (id: string) => {
-        if (hiddenSliceIds.includes(id)) {
-            // Remove from hidden (make visible)
-            onChange(hiddenSliceIds.filter(sId => sId !== id));
-        } else {
-            // Add to hidden (hide)
-            onChange([...hiddenSliceIds, id]);
-        }
-    };
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (displayedSlices.length === 0) return;
+        if (displayedNodes.length === 0) return;
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setSelectedIndex(prev => (prev + 1) % displayedSlices.length);
+            setSelectedIndex(prev => (prev + 1) % displayedNodes.length);
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            setSelectedIndex(prev => (prev - 1 + displayedSlices.length) % displayedSlices.length);
+            setSelectedIndex(prev => (prev - 1 + displayedNodes.length) % displayedNodes.length);
         } else if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault(); // Prevent page scroll on Space
-            if (selectedIndex >= 0 && selectedIndex < displayedSlices.length) {
-                handleToggleSlice(displayedSlices[selectedIndex].id);
+            e.preventDefault();
+            if (selectedIndex >= 0 && selectedIndex < displayedNodes.length) {
+                onNodeClick(displayedNodes[selectedIndex]);
             }
         } else if (e.key === 'Escape') {
             setSearchTerm('');
@@ -87,25 +76,10 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
         }
     };
 
-    const handleShowVisible = () => {
-        // Remove displayed slices from hidden list
-        const displayedIds = displayedSlices.map(s => s.id);
-        const newHidden = hiddenSliceIds.filter(id => !displayedIds.includes(id));
-        onChange(newHidden);
-    };
-
-    const handleHideVisible = () => {
-        // Add displayed slices to hidden list
-        const displayedIds = displayedSlices.map(s => s.id);
-        const newHidden = Array.from(new Set([...hiddenSliceIds, ...displayedIds]));
-        onChange(newHidden);
-    };
-
-    if (slices.length === 0) return null;
 
     if (isCollapsed) {
         return (
-            <Tooltip title="Filter Slices" placement="left">
+            <Tooltip title="Find Element" placement="left">
                 <Box
                     onClick={() => setIsCollapsed(false)}
                     sx={{
@@ -121,7 +95,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
                         backdropFilter: 'blur(4px)',
                         border: '1px solid #e5e7eb',
                         transition: 'all 0.2s',
-                        mb: 1.5,
+                        mb: 1.5, // Added margin for stacking
                         '&:hover': {
                             transform: 'scale(1.1)',
                             borderColor: '#818cf8',
@@ -129,21 +103,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
                         }
                     }}
                 >
-                    <FilterIcon fontSize="small" color={hiddenSliceIds.length > 0 ? "primary" : "action"} />
-                    {hiddenSliceIds.length > 0 && (
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                top: -2,
-                                right: -2,
-                                width: 14,
-                                height: 14,
-                                bgcolor: '#ef4444',
-                                borderRadius: '50%',
-                                border: '2px solid white',
-                            }}
-                        />
-                    )}
+                    <SearchIcon fontSize="small" color="action" />
                 </Box>
             </Tooltip>
         );
@@ -153,7 +113,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
         <Box
             sx={{
                 width: 250,
-                maxHeight: 400,
+                maxHeight: 500,
                 display: 'flex',
                 flexDirection: 'column',
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -163,24 +123,25 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 overflow: 'hidden',
                 transition: 'all 0.2s',
-                mb: 1.5
+                mb: 1.5 // Added margin for stacking
             }}
         >
             {/* Header / Search */}
             <Box sx={{ p: 1.5, borderBottom: '1px solid #f3f4f6', bgcolor: 'rgba(249, 250, 251, 0.5)' }}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                     <Typography variant="subtitle2" sx={{ flex: 1, fontWeight: 600, color: '#374151', fontSize: '0.85rem' }}>
-                        Filter Slices
+                        Filter Elements
                     </Typography>
                     <IconButton size="small" onClick={() => setIsCollapsed(true)} sx={{ p: 0.5, color: '#9ca3af' }} aria-label="Close filter">
                         <ClearIcon fontSize="small" sx={{ fontSize: 16 }} />
                     </IconButton>
                 </Stack>
                 <TextField
-                    placeholder="Search slices..."
+                    placeholder="Search elements..."
                     variant="outlined"
                     size="small"
                     fullWidth
+                    autoFocus
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -212,24 +173,6 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
                 />
             </Box>
 
-            {/* Actions */}
-            <Box sx={{ px: 1.5, py: 1, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                    {slices.length - hiddenSliceIds.length} slice(s) visible
-                </Typography>
-                <Stack direction="row" spacing={1}>
-                    <Tooltip title="Show Visible">
-                        <IconButton size="small" onClick={handleShowVisible} sx={{ p: 0.5 }}>
-                            <SelectAllIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Hide Visible">
-                        <IconButton size="small" onClick={handleHideVisible} sx={{ p: 0.5 }}>
-                            <DeselectIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                    </Tooltip>
-                </Stack>
-            </Box>
 
             {/* List */}
             <Box
@@ -237,64 +180,65 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
                 sx={{
                     overflowY: 'auto',
                     flex: 1,
-                    maxHeight: 250,
+                    maxHeight: 350,
                     position: 'relative',
                     '&::-webkit-scrollbar': { width: 4 },
                     '&::-webkit-scrollbar-thumb': { backgroundColor: '#d1d5db', borderRadius: 2 }
                 }}
             >
-                {displayedSlices.length === 0 ? (
+                {searchTerm && displayedNodes.length === 0 ? (
                     <Typography variant="caption" sx={{ display: 'block', p: 2, textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
-                        No slices found
+                        No elements found
                     </Typography>
                 ) : (
-                    displayedSlices.map((slice, index) => {
+                    displayedNodes.map((node, index) => {
+                        const style = ELEMENT_STYLE[node.type as keyof typeof ELEMENT_STYLE];
                         const isHighlighted = index === selectedIndex;
-                        const isVisible = !hiddenSliceIds.includes(slice.id);
                         return (
                             <Box
-                                key={slice.id}
-                                onClick={() => handleToggleSlice(slice.id)}
+                                key={node.id}
+                                onClick={() => onNodeClick(node)}
                                 sx={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     px: 1.5,
-                                    py: 0.75,
+                                    py: 1,
                                     cursor: 'pointer',
                                     transition: 'colors 0.1s',
-                                    bgcolor: isHighlighted ? 'rgba(99, 102, 241, 0.08)' : (isVisible ? 'transparent' : 'rgba(0,0,0,0.02)'),
+                                    bgcolor: isHighlighted ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
                                     '&:hover': { bgcolor: isHighlighted ? 'rgba(99, 102, 241, 0.12)' : '#f3f4f6' },
                                 }}
                             >
-                                <Checkbox
-                                    size="small"
-                                    checked={isVisible}
-                                    sx={{ p: 0.5, mr: 1, '&.Mui-checked': { color: slice.color || '#6366f1' } }}
-                                />
-                                <Box
+                                <Avatar
                                     sx={{
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: '50%',
-                                        bgcolor: slice.color,
-                                        mr: 1.5,
-                                        flexShrink: 0,
-                                        boxShadow: '0 0 0 1px rgba(0,0,0,0.05)'
-                                    }}
-                                />
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        fontSize: '0.8rem',
-                                        color: isVisible ? '#111827' : '#9ca3af',
-                                        fontWeight: isHighlighted ? 600 : (isVisible ? 500 : 400),
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap'
+                                        width: 24,
+                                        height: 24,
+                                        bgcolor: style?.color || '#9ca3af',
+                                        fontSize: '0.6rem',
+                                        mr: 1.5
                                     }}
                                 >
-                                    {slice.title || 'Untitled'}
-                                </Typography>
+                                    {node.type?.charAt(0).toUpperCase()}
+                                </Avatar>
+                                <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.8rem',
+                                            color: '#111827',
+                                            fontWeight: isHighlighted ? 600 : 500,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        {node.name || 'Untitled'}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block' }}>
+                                        {node.type?.replace(/_/g, ' ')}
+                                    </Typography>
+                                </Box>
+                                <FocusIcon sx={{ fontSize: 16, color: isHighlighted ? '#4f46e5' : '#9ca3af', ml: 1 }} />
                             </Box>
                         );
                     })
@@ -304,4 +248,5 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
     );
 };
 
-export default SliceFilter;
+
+export default ElementFilter;

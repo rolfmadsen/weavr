@@ -125,7 +125,7 @@ const Minimap: React.FC<MinimapProps> = ({
     const ty = (height - contentHeight * scale) / 2;
 
     return (
-        <div className="absolute bottom-24 left-8 bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-xl rounded-xl overflow-hidden z-10 w-[240px] h-[160px] hidden md:block transition-all duration-300 hover:shadow-2xl hover:border-indigo-200">
+        <div className="bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-xl rounded-xl overflow-hidden w-[240px] h-[160px] hidden md:block transition-all duration-300 hover:shadow-2xl hover:border-indigo-200">
             <Stage width={width} height={height} onClick={handleStageClick}>
                 <Layer>
                     <Group

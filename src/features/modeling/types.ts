@@ -25,6 +25,7 @@ export interface Node {
   aggregate?: string;
   technicalTimestamp?: boolean;
   externalSystem?: string; // For External Events/Systems
+  pinned?: boolean;
 }
 
 

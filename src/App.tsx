@@ -1,36 +1,30 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import Konva from 'konva';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import { Box, CssBaseline, ThemeProvider } from '@mui/material';
 import theme from './theme';
 
 // Features
 import {
-  Node,
-  Link,
-  ElementType,
-  DataDefinition,
-  ModelData,
-  calculateNodeHeight,
   validationService,
-  useModelList,
   STORAGE_KEY,
   type ModelMetadata,
-  calculateElkLayout,
-  exportWeavrProject,
-  importWeavrProject
+  useModelManager,
+  useLayoutManager,
+  useImportExport,
+  type Node,
+  type Link,
+  type Slice
 } from './features/modeling';
-import { GraphCanvas, useSelection, type GraphCanvasKonvaRef } from './features/canvas';
-import { gunClient, useGraphSync, useHistory } from './features/collaboration';
+import { GraphCanvas, type GraphCanvasKonvaRef } from './features/canvas';
+import { Minimap } from './features/canvas';
 import {
   PropertiesPanel,
   SliceFilter,
+  ElementFilter,
   SliceList,
   DataDictionaryList,
   SliceManagerModal
 } from './features/editor';
-import { useDataMigration } from './features/migration';
 import { AppTelemetry, useTelemetry } from './features/telemetry/AppTelemetry';
 import {
   Header,
@@ -39,785 +33,248 @@ import {
   Toolbar,
   HelpModal,
   ModelListModal,
-  useKeyboardShortcuts
+  useKeyboardShortcuts,
+  useWorkspaceManager
 } from './features/workspace';
 
-
-
 function getModelIdFromUrl(): string {
-  // 1. Prefer URL Hash if present
   const hash = window.location.hash.slice(1);
   if (hash) return hash;
-
-  // 2. Check Local Storage for last active model
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const models: ModelMetadata[] = JSON.parse(stored);
-      // Sort by updatedAt descending
       models.sort((a, b) => b.updatedAt - a.updatedAt);
-
       if (models.length > 0) {
         const lastModel = models[0];
         window.location.hash = lastModel.id;
         return lastModel.id;
       }
     }
-  } catch (e) {
-    console.error("Failed to recover last model", e);
-  }
-
-  // 3. Fallback: New Blank Model
+  } catch (e) { }
   const newId = uuidv4();
   window.location.hash = newId;
   return newId;
 }
 
 const App: React.FC = () => {
-  const [modelId, setModelId] = useState<string | null>(null);
+  const [modelId, setModelId] = React.useState<string | null>(null);
 
-  const [focusOnRender, setFocusOnRender] = useState(false);
-  const [isToolbarOpen, setIsToolbarOpen] = useState(false);
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  const [isModelListOpen, setIsModelListOpen] = useState(false);
-  const [filteredSliceIds, setFilteredSliceIds] = useState<string[]>([]);
-
-  const [isSliceManagerOpen, setIsSliceManagerOpen] = useState(false);
-  const [sliceManagerInitialId, setSliceManagerInitialId] = useState<string | null>(null);
-
-  // --- Sidebar Management ---
-  const [sidebarView, setSidebarView] = useState<'properties' | 'slices' | 'dictionary' | null>(null);
-
-  // Track view state (pan/zoom) for smart node placement
-  const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1 });
-  const graphRef = React.useRef<GraphCanvasKonvaRef>(null);
-  const [isLayoutLoading, setIsLayoutLoading] = useState(false);
-
-  // Store explicit edge paths from ELK
-  const [autoLayoutEdges, setAutoLayoutEdges] = useState<Map<string, number[]>>(new Map());
-
-  // 1. Gun State Management
-
-  const {
-    nodes,
-    links,
-    slices, // Restored slices
-    addSlice, // Needed for PropertiesPanel
-    isReady,
-    manualPositionsRef,
-    addNode: gunAddNode,
-    updateNode: gunUpdateNode,
-    deleteNode: gunDeleteNode,
-    addLink: gunAddLink,
-    updateLink: gunUpdateLink,
-    deleteLink: gunDeleteLink,
-    updateNodePosition: gunUpdateNodePosition,
-    updateSlice,
-    deleteSlice,
-    definitions,
-    addDefinition,
-    updateDefinition,
-    deleteDefinition
-  } = useGraphSync(modelId);
-
-  const { models, updateModel, addModel } = useModelList();
-
-  const currentModelName = useMemo(() => {
-    return models.find(m => m.id === modelId)?.name || 'Untitled Model';
-  }, [models, modelId]);
-
-  useDataMigration({
-    nodes,
-    updateNode: gunUpdateNode,
-    definitions,
-    updateDefinition
-  });
-
-  // Register model in local index if not present
-  useEffect(() => {
-    if (modelId) {
-      addModel(modelId, 'Untitled Model');
-    }
-  }, [modelId, addModel]);
-
-  const { signal } = useTelemetry();
-
-  const handleRenameModel = useCallback((newName: string) => {
-    if (modelId) {
-      updateModel(modelId, { name: newName });
-      signal("Model.Renamed");
-    }
-  }, [modelId, updateModel, signal]);
-
-  const definitionsArray = useMemo(() => {
-    return definitions;
-  }, [definitions]);
-
-  const handleAddDefinition = (def: Omit<DataDefinition, 'id'>) => {
-    const newDefId = addDefinition(def);
-    return newDefId || '';
-  };
-  const handleUpdateDefinition = (id: string, updates: Partial<DataDefinition>) => {
-    updateDefinition(id, updates);
-  };
-
-  const handleDeleteDefinition = (id: string) => {
-    deleteDefinition(id);
-  };
-
-  // 1b. Derived State: Populate slice.nodeIds from the nodes list
-  // usage of `slices` throughout the app expects nodeIds to be populated, but GunDB only stores the relationship on the Node.
-  const slicesWithNodes = useMemo(() => {
-    // 1. Create a deep copy of slices to avoid mutating the ref/state directly
-    const sliceMap = new Map(slices.map(s => [s.id, { ...s, nodeIds: new Set<string>() }]));
-
-    // 2. Populate nodeIds based on node.sliceId
-    nodes.forEach(node => {
-      if (node.sliceId && sliceMap.has(node.sliceId)) {
-        sliceMap.get(node.sliceId)!.nodeIds.add(node.id);
-      }
-    });
-
-    // 3. Return sorted array
-    return Array.from(sliceMap.values()).sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [slices, nodes]);
-
-
-  // 2. Selection Management
-  const {
-    selectedNodeIds, // This is a Set<string> in useSelection, but we need to handle it carefully
-    selectedLinkId,
-    selectNode,
-    selectLink,
-    clearSelection,
-    setSelection
-  } = useSelection();
-
-  // Convert Set to Array for easier usage in App.tsx
-  const selectedNodeIdsArray = useMemo(() => Array.from(selectedNodeIds), [selectedNodeIds]);
-
-  // 3. History (Undo/Redo)
-  const { undo, redo, addToHistory, canUndo, canRedo } = useHistory({
-    onAddNode: gunAddNode,
-    onDeleteNode: gunDeleteNode,
-    onUpdateNode: gunUpdateNode,
-    onAddLink: gunAddLink,
-    onDeleteLink: gunDeleteLink,
-    onUpdateLink: gunUpdateLink,
-    onMoveNode: gunUpdateNodePosition
-  });
-
-  // --- Effects ---
-
-  useEffect(() => {
-    if (isReady && nodes.length === 0 && localStorage.getItem('weavr-intro-shown') !== 'true') {
-      setIsHelpModalOpen(true);
-    }
-  }, [isReady, nodes]);
-
+  // 1. Initial Load
   useEffect(() => {
     const id = getModelIdFromUrl();
     setModelId(id);
-
-    const handleHashChange = () => {
-      window.location.reload();
-    };
+    const handleHashChange = () => window.location.reload();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  const { signal } = useTelemetry();
+  const graphRef = React.useRef<GraphCanvasKonvaRef>(null);
+  const [windowSize, setWindowSize] = React.useState({ width: window.innerWidth, height: window.innerHeight });
 
-  // --- Handlers ---
-
-  const lastFocusedElementRef = React.useRef<HTMLElement | null>(null);
-
-  const handleClosePanel = useCallback(() => {
-    // Restore focus
-    if (lastFocusedElementRef.current && document.body.contains(lastFocusedElementRef.current)) {
-      lastFocusedElementRef.current.focus();
-    } else {
-      // Fallback: blur active element if we can't restore
-      if (document.activeElement) {
-        (document.activeElement as HTMLElement).blur();
-      }
-    }
-    lastFocusedElementRef.current = null;
-
-    setSidebarView(null);
+  useEffect(() => {
+    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Smart Add: Places node in the center of the current view
-  const handleAddNode = useCallback((type: ElementType, explicitId?: string) => {
-    // Calculate center of current view in world coordinates
-    const centerX = (window.innerWidth / 2 - viewState.x) / viewState.scale;
-    const centerY = (window.innerHeight / 2 - viewState.y) / viewState.scale;
+  // 2. Workspace State
+  const {
+    focusOnRender, setFocusOnRender,
+    isToolbarOpen, setIsToolbarOpen,
+    isHelpModalOpen, setIsHelpModalOpen,
+    isModelListOpen, setIsModelListOpen,
+    hiddenSliceIds, setHiddenSliceIds,
+    activeSliceId, setActiveSliceId,
+    isSliceManagerOpen, setIsSliceManagerOpen,
+    sliceManagerInitialId, setSliceManagerInitialId,
+    sidebarView, setSidebarView,
+    viewState, setViewState,
+    currentModelName,
+    handleRenameModel
+  } = useWorkspaceManager({ modelId });
 
-    // Adjust for Top-Left anchor (subtract half width/height)
-    let manualX = centerX - 80;
-    let manualY = centerY - 30;
+  // 3. Model Logic
+  const [layoutRequestId, setLayoutRequestId] = React.useState(0);
+  const handleRequestAutoLayout = useCallback(() => setLayoutRequestId(prev => prev + 1), []);
 
-    // Snap to grid (20px)
-    const GRID = 20;
-    manualX = Math.round(manualX / GRID) * GRID;
-    manualY = Math.round(manualY / GRID) * GRID;
-
-    const id = gunAddNode(type, manualX, manualY, explicitId);
-    if (id) {
-      signal("Node.Created", { elementType: type });
-      addToHistory({ type: 'ADD_NODE', payload: { id, type, x: manualX, y: manualY }, undoPayload: { id } });
-      selectNode(id);
-      selectNode(id);
-
-      // Capture focus before opening
-      if (document.activeElement instanceof HTMLElement) {
-        lastFocusedElementRef.current = document.activeElement;
-      }
-
-      setSidebarView('properties');
-      setFocusOnRender(true);
-      setIsToolbarOpen(false);
-    }
-  }, [gunAddNode, addToHistory, selectNode, viewState]);
-
-  const handleDeleteNode = useCallback((nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return;
-
-    const connectedLinks = links.filter(l => l.source === nodeId || l.target === nodeId);
-
-    gunDeleteNode(nodeId);
-    signal("Node.Deleted");
-    addToHistory({
-      type: 'DELETE_NODE',
-      payload: { id: nodeId },
-      undoPayload: { node, links: connectedLinks }
-    });
-
-    if (selectedNodeIds.includes(nodeId)) {
-      setSelection(selectedNodeIdsArray.filter(id => id !== nodeId));
-    }
-    handleClosePanel();
-  }, [nodes, links, gunDeleteNode, addToHistory, selectedNodeIds, selectedNodeIdsArray, setSelection, handleClosePanel]);
-
-  const handleDeleteLink = useCallback((linkId: string) => {
-    const link = links.find(l => l.id === linkId);
-    if (!link) return;
-
-    gunDeleteLink(linkId);
-    signal("Link.Deleted");
-    addToHistory({
-      type: 'DELETE_LINK',
-      payload: { id: linkId },
-      undoPayload: link
-    });
-
-    if (selectedLinkId === linkId) {
-      clearSelection();
-    }
-    handleClosePanel();
-  }, [links, gunDeleteLink, addToHistory, selectedLinkId, clearSelection, handleClosePanel]);
-
-  const handleDeleteSelection = useCallback(() => {
-    if (selectedNodeIds.length > 0) {
-      selectedNodeIds.forEach(nodeId => handleDeleteNode(nodeId));
-    }
-    if (selectedLinkId) {
-      handleDeleteLink(selectedLinkId);
-    }
-    handleClosePanel();
-  }, [selectedNodeIds, selectedLinkId, handleDeleteNode, handleDeleteLink, handleClosePanel]);
-
-  const handleNodesDrag = useCallback((updates: { nodeId: string; pos: { x: number; y: number } }[]) => {
-    // Clear auto-layout edges on drag to switch to dynamic routing
-    setAutoLayoutEdges(new Map());
-
-    updates.forEach(({ nodeId, pos }) => {
-      const node = nodes.find(n => n.id === nodeId);
-      const oldPos = node ? { x: node.fx ?? node.x ?? 0, y: node.fy ?? node.y ?? 0 } : { x: 0, y: 0 };
-
-      gunUpdateNodePosition(nodeId, pos.x, pos.y);
-
-      if (Math.abs(oldPos.x - pos.x) > 1 || Math.abs(oldPos.y - pos.y) > 1) {
-        addToHistory({
-          type: 'MOVE_NODE',
-          payload: { id: nodeId, x: pos.x, y: pos.y },
-          undoPayload: { id: nodeId, x: oldPos.x, y: oldPos.y }
-        });
-      }
-    });
-  }, [nodes, gunUpdateNodePosition, addToHistory, autoLayoutEdges]);
-
-
-  const handleNodeClick = useCallback((node: Node, event: Konva.KonvaEventObject<MouseEvent>) => {
-    const isMulti = event.evt.shiftKey;
-    if (isMulti) {
-      selectNode(node.id, true);
-      return;
-    }
-    if (selectedNodeIds.length > 1 && selectedNodeIds.includes(node.id)) {
-      return;
-    }
-    selectNode(node.id);
-
-    // Capture focus (if not already open/captured)
-    if (!sidebarView && document.activeElement instanceof HTMLElement) {
-      lastFocusedElementRef.current = document.activeElement;
-    }
-
-    setIsToolbarOpen(false);
-  }, [selectedNodeIds, selectNode, sidebarView]);
-
-  const handleFocusNode = useCallback(() => {
-    if (selectedNodeIds.length === 1 && graphRef.current) {
-      graphRef.current.panToNode(selectedNodeIdsArray[0]);
-    }
-  }, [selectedNodeIds, selectedNodeIdsArray]);
-
-  // --- Auto Layout Handler (ELK) ---
-  const handleAutoLayout = useCallback(async () => {
-    if (nodes.length === 0) return;
-    setIsLayoutLoading(true);
-
-    try {
-      // 1. Snapshot the CURRENT (Old) positions before we change them
-      const oldPositions = nodes.map(n => ({
-        id: n.id,
-        x: n.fx ?? n.x ?? 0, // Use fixed position if available, else current x
-        y: n.fy ?? n.y ?? 0
-      }));
-
-      // const { calculateElkLayout } = await import('./services/elkLayoutService');
-
-      // 2. Get new positions (returns object with positions and routes)
-      const { positions: newPositionsMap, edgeRoutes } = await calculateElkLayout(nodes, links, slicesWithNodes);
-
-      console.log(`Auto - layout calculated for ${newPositionsMap.size} nodes.`);
-
-      // Update edge routes for rendering
-      setAutoLayoutEdges(edgeRoutes);
-
-      // 3. Prepare the NEW positions array for history
-      const newPositions: { id: string, x: number, y: number }[] = [];
-
-      // 4. Update GunDB
-      newPositionsMap.forEach((pos, nodeId) => {
-        // Extra safety check for ID
-        if (!nodeId || nodeId.length === 0) return;
-
-        // Save to GunDB - Pass RAW float values (pos.x, pos.y)
-        gunUpdateNodePosition(nodeId, pos.x, pos.y);
-
-        // Add to our history tracker
-        newPositions.push({ id: nodeId, x: pos.x, y: pos.y });
-      });
-
-      // 5. ONE History Entry for the entire operation (Batch)
-      addToHistory({
-        type: 'BATCH_MOVE',
-        payload: newPositions,      // When Redoing: move all these to new
-        undoPayload: oldPositions   // When Undoing: move all these to old
-      });
-
-      signal("Layout.Auto", { nodeCount: nodes.length.toString() });
-
-    } catch (error) {
-      console.error("Auto-layout failed:", error);
-    } finally {
-      setIsLayoutLoading(false);
-    }
-  }, [nodes, links, gunUpdateNodePosition, addToHistory]);
-
-
-
-  // --- Keyboard Shortcuts ---
-  useKeyboardShortcuts({
+  const {
     nodes,
-    selectedNodeIds,
-    selectedLinkId,
-    isPanelOpen: !!sidebarView,
-    isToolbarOpen,
+    links,
+    slices,
+    slicesWithNodes,
+    definitions,
     isReady,
-    showSlices: false, // Force false
-    swimlanePositions: new Map(), // Empty
-    onDeleteSelection: handleDeleteSelection,
-    onClosePanel: handleClosePanel,
-    onToggleToolbar: () => setIsToolbarOpen(prev => !prev),
-    onOpenPropertiesPanel: () => {
-      if (!sidebarView && document.activeElement instanceof HTMLElement) {
-        lastFocusedElementRef.current = document.activeElement;
-      }
-      setSidebarView('properties');
-      setFocusOnRender(true);
-    },
-    onOpenSlices: () => {
-      if (!sidebarView && document.activeElement instanceof HTMLElement) {
-        lastFocusedElementRef.current = document.activeElement;
-      }
-      setSidebarView('slices');
-    },
-    onOpenDictionary: () => {
-      if (!sidebarView && document.activeElement instanceof HTMLElement) {
-        lastFocusedElementRef.current = document.activeElement;
-      }
-      setSidebarView('dictionary');
-    },
-    onSelectNode: handleNodeClick,
-    onAddNode: handleAddNode,
-    onMoveNodes: (updates) => {
-      updates.forEach((pos, id) => {
-        const node = nodes.find(n => n.id === id);
-        const oldPos = node ? { x: node.fx ?? node.x ?? 0, y: node.fy ?? node.y ?? 0 } : { x: 0, y: 0 };
-        gunUpdateNodePosition(id, pos.fx, pos.fy);
-        addToHistory({
-          type: 'MOVE_NODE',
-          payload: { id, x: pos.fx, y: pos.fy },
-          undoPayload: { id, x: oldPos.x, y: oldPos.y }
-        });
-      });
-    },
-    onFocusNode: handleFocusNode,
-    onUndo: undo,
-    onRedo: redo
+    edgeRoutesMap: autoLayoutEdges,
+    manualPositionsRef,
+    selectedNodeIdsArray,
+    selectedLinkId,
+    handleAddNode,
+    handleDeleteNode,
+    handleUpdateNode,
+    handleUpdateLink,
+    handleAddLink,
+    handleDeleteLink,
+    handleDeleteSelection,
+    handleNodesDrag,
+    handleNodeClick,
+    handleLinkClick,
+    handleNodeDoubleClick,
+    handleLinkDoubleClick,
+    handleMarqueeSelect,
+    handleFocusNode,
+    handleClosePanel,
+    addDefinition,
+    updateDefinition,
+    deleteDefinition,
+    updateSlice,
+    deleteSlice,
+    updateEdgeRoutes,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    gunUpdateNodePosition,
+    unpinAllNodes,
+    unpinNode,
+    addToHistory // Add this to destructuring
+  } = useModelManager({
+    modelId,
+    viewState,
+    signal,
+    setSidebarView,
+    setFocusOnRender,
+    graphRef,
+    setIsToolbarOpen,
+    onRequestAutoLayout: handleRequestAutoLayout
   });
 
+  // 4. Layout Logic
+  const { handleAutoLayout } = useLayoutManager({
+    nodes,
+    links,
+    slicesWithNodes,
+    gunUpdateNodePosition,
+    updateEdgeRoutes,
+    addToHistory, // Pass real addToHistory
+    signal,
+    layoutRequestId
+  });
 
-  const handleLinkClick = useCallback((link: Link) => {
-    selectLink(link.id);
+  // 5. Serialization
+  const { handleExport, handleStandardExport, handleImport } = useImportExport({
+    modelId,
+    nodes,
+    links,
+    slices,
+    definitions,
+    edgeRoutesMap: autoLayoutEdges,
+    signal,
+    clearSelection: () => { },
+    handleClosePanel,
+    manualPositionsRef,
+    updateEdgeRoutes
+  });
 
-    // Capture focus
-    if (!sidebarView && document.activeElement instanceof HTMLElement) {
-      lastFocusedElementRef.current = document.activeElement;
+  // Help Modal logic
+  useEffect(() => {
+    if (isReady && nodes.length === 0 && localStorage.getItem('weavr-intro-shown') !== 'true') {
+      setIsHelpModalOpen(true);
     }
+  }, [isReady, nodes, setIsHelpModalOpen]);
 
-    setIsToolbarOpen(false);
-  }, [selectLink, sidebarView]);
-
-  const handleNodeDoubleClick = useCallback((node: Node) => {
-    selectNode(node.id);
-
-    if (document.activeElement instanceof HTMLElement) {
-      lastFocusedElementRef.current = document.activeElement;
-    }
-
-    setSidebarView('properties');
-    setFocusOnRender(true);
-  }, [selectNode]);
-
-  const handleLinkDoubleClick = useCallback((link: Link) => {
-    selectLink(link.id);
-
-    if (document.activeElement instanceof HTMLElement) {
-      lastFocusedElementRef.current = document.activeElement;
-    }
-
-    setSidebarView('properties');
-  }, [selectLink]);
-
-  const handleMarqueeSelect = useCallback((nodeIds: string[]) => {
-    setSelection(nodeIds);
-    if (nodeIds.length > 0) {
-      if (!sidebarView && document.activeElement instanceof HTMLElement) {
-        lastFocusedElementRef.current = document.activeElement;
-      }
-      setSidebarView('properties');
-
-    } else {
-
-    }
-  }, [setSelection]);
-
-  const handleValidateConnection = useCallback((s: Node, t: Node) => {
-    return !!validationService.isValidConnection(s, t);
-  }, []);
-
-  const handleAddLink = useCallback((sourceId: string, targetId: string) => {
-    if (!modelId || sourceId === targetId) return;
-    const sourceNode = nodes.find(n => n.id === sourceId);
-    const targetNode = nodes.find(n => n.id === targetId);
-
-    if (!sourceNode || !targetNode) return;
-    const rule = validationService.getConnectionRule(sourceNode, targetNode);
-    if (!rule) return;
-    if (links.some(l => l.source === sourceId && l.target === targetId)) return;
-
-    const id = gunAddLink(sourceId, targetId, rule.verb);
-    if (id) {
-      addToHistory({
-        type: 'ADD_LINK',
-        payload: { id, source: sourceId, target: targetId, label: rule.verb },
-        undoPayload: { id }
-      });
-
-      // Auto-assign slice if one node has it and the other doesn't
-      if (sourceNode.sliceId && !targetNode.sliceId) {
-        gunUpdateNode(targetId, { sliceId: sourceNode.sliceId });
-        addToHistory({
-          type: 'UPDATE_NODE',
-          payload: { id: targetId, data: { sliceId: sourceNode.sliceId } },
-          undoPayload: { sliceId: undefined } // Assuming it was undefined
-        });
-      } else if (!sourceNode.sliceId && targetNode.sliceId) {
-        gunUpdateNode(sourceId, { sliceId: targetNode.sliceId });
-        addToHistory({
-          type: 'UPDATE_NODE',
-          payload: { id: sourceId, data: { sliceId: targetNode.sliceId } },
-          undoPayload: { sliceId: undefined }
-        });
-      }
-
-      selectLink(id);
-
-      if (document.activeElement instanceof HTMLElement) {
-        lastFocusedElementRef.current = document.activeElement;
-      }
-
-      signal("Link.Created");
-      setSidebarView('properties');
-    }
-  }, [nodes, links, modelId, gunAddLink, gunUpdateNode, addToHistory, selectLink]);
-
-
-  const handleUpdateNode = useCallback(<K extends keyof Node>(nodeId: string, key: K, value: Node[K]) => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return;
-
-    const oldValue = node[key];
-    const updates: Partial<Node> = { [key]: value };
-
-    // Recalculate height if name changes
-    if (key === 'name') {
-      const newHeight = calculateNodeHeight(value as string);
-      updates.computedHeight = newHeight;
-    }
-
-    gunUpdateNode(nodeId, updates);
-
-    addToHistory({
-      type: 'UPDATE_NODE',
-      payload: { id: nodeId, data: updates },
-      undoPayload: { [key]: oldValue, ...(key === 'name' ? { computedHeight: node.computedHeight } : {}) }
-    });
-  }, [nodes, gunUpdateNode, addToHistory]);
-
-  const handleUpdateLink = useCallback(<K extends keyof Link>(linkId: string, key: K, value: Link[K]) => {
-    const link = links.find(l => l.id === linkId);
-    if (!link) return;
-    const oldValue = link[key];
-
-    gunUpdateLink(linkId, { [key]: value });
-    addToHistory({
-      type: 'UPDATE_LINK',
-      payload: { id: linkId, data: { [key]: value } },
-      undoPayload: { [key]: oldValue }
-    });
-  }, [links, gunUpdateLink, addToHistory]);
-
-  const handleExport = useCallback(() => {
-    // Weavr Export (Default)
-    const data = exportWeavrProject(nodes, links, slices, autoLayoutEdges || new Map(), modelId || uuidv4(), 'Untitled Project', 'WEAVR', definitionsArray);
-
-    signal("Export.Started", { format: 'WEAVR', nodeCount: nodes.length.toString(), linkCount: links.length.toString() });
-
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `weavr-project-${modelId}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [nodes, links, slices, autoLayoutEdges, modelId, definitionsArray]);
-
-  const handleStandardExport = useCallback(() => {
-    // Standard Export (Strict Schema)
-    const data = exportWeavrProject(nodes, links, slices, autoLayoutEdges || new Map(), modelId || uuidv4(), 'Untitled Project', 'STANDARD', definitionsArray);
-
-    signal("Export.Started", { format: 'STANDARD', nodeCount: nodes.length.toString(), linkCount: links.length.toString() });
-
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `event-model-standard-${modelId}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [nodes, links, slices, autoLayoutEdges, modelId, definitionsArray]);
-
-  const handleImport = useCallback((file: File) => {
-    if (!modelId) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const result = e.target?.result;
-        if (typeof result !== 'string') throw new Error('File read error');
-
-        const json = JSON.parse(result);
-        const importedData = importWeavrProject(json);
-
-        signal("Import.Started");
-
-        // Support legacy format (direct array of nodes/links) if importWeavrProject returns empty
-        const data: ModelData = (importedData.nodes.length > 0) ? importedData : json;
-
-        if (!Array.isArray(data.nodes) || !Array.isArray(data.links)) throw new Error('Invalid file format');
-
-        const model = gunClient.getModel(modelId);
-
-        // Clear existing data
-        nodes.forEach(n => model.get('nodes').get(n.id).put(null as any));
-        links.forEach(l => model.get('links').get(l.id).put(null as any));
-        slices.forEach(s => model.get('slices').get(s.id).put(null as any));
-        definitions.forEach(d => model.get('definitions').get(d.id).put(null as any));
-        manualPositionsRef.current.clear();
-
-        // Restore Edge Routes
-        if (importedData.edgeRoutes) {
-          const routeMap = new Map<string, number[]>();
-          Object.entries(importedData.edgeRoutes).forEach(([id, points]) => {
-            routeMap.set(id, points as number[]);
-          });
-          setAutoLayoutEdges(routeMap);
-        } else {
-          setAutoLayoutEdges(new Map());
-        }
-
-        // Restore Slices
-        if (data.slices) {
-          Object.values(data.slices).forEach(slice => {
-            const { nodeIds, ...sliceData } = slice;
-            model.get('slices').get(slice.id).put(sliceData as any);
-          });
-        }
-
-        (data.nodes || []).forEach(node => {
-          const { id, ...nodeData } = node;
-
-          // Sanitize nodeData for Gun (remove undefined)
-          const sanitizedNodeData: any = {};
-          Object.entries(nodeData).forEach(([key, value]) => {
-            if (value !== undefined) {
-              if (key === 'entityIds' && Array.isArray(value)) {
-                sanitizedNodeData[key] = JSON.stringify(value);
-              } else {
-                sanitizedNodeData[key] = value;
-              }
-            }
-          });
-
-          model.get('nodes').get(id).put(sanitizedNodeData);
-          if (node.fx != null && node.fy != null) {
-            manualPositionsRef.current.set(id, { x: node.fx, y: node.fy });
-          }
-        });
-
-        (data.links || []).forEach(link => {
-          const { id, ...linkData } = link;
-          model.get('links').get(id).put(linkData as any);
-        });
-
-        // Restore Definitions
-        if (data.definitions) {
-          data.definitions.forEach(def => {
-            const { id, ...defData } = def;
-            // Sanitize defData (stringify attributes if needed, but Gun usually handles arrays if small, 
-            // but better to check if useGraphSync does parsing.
-            // let's assume useGraphSync handles it or we stringify.
-            // In App.tsx: definitions comes from useGraphSync.
-            // Gun usually needs stringify for complex objects if not in schema.
-            // Let's assume we can put it as is for now, or stringify attributes.
-            // Actually, looking at nodes, entityIds IS stringified.
-            // Let's check updateDefinition in useGraphSync if I can.
-            // For now, I will PUT the definition object. If attributes is array, Gun might complain if not a root node.
-            // Ideally definitions are nodes in Gun?
-            // Let's assume strict JSON object structure.
-            // To be safe, I'll stringify attributes if they are arrays.
-            const sanitizedDef: any = { ...defData };
-            if (Array.isArray(sanitizedDef.attributes)) {
-              sanitizedDef.attributes = JSON.stringify(sanitizedDef.attributes);
-            }
-            model.get('definitions').get(id).put(sanitizedDef);
-          });
-        }
-
-        clearSelection();
-        handleClosePanel();
-      } catch (error) {
-        alert('Failed to import model: ' + (error as Error).message);
-      }
-    };
-    reader.readAsText(file);
-  }, [modelId, nodes, links, definitions, handleClosePanel, clearSelection, manualPositionsRef]);
-
-  const handleCanvasClick = useCallback((event: Konva.KonvaEventObject<MouseEvent> | React.MouseEvent<any>) => {
-    const shiftKey = 'evt' in event ? event.evt.shiftKey : event.shiftKey;
-    if (!shiftKey) {
-      clearSelection();
-      handleClosePanel();
-      setIsToolbarOpen(false);
-    }
-  }, [handleClosePanel, clearSelection]);
-
-  const handleFocusHandled = useCallback(() => setFocusOnRender(false), []);
-
-  const handleCloseHelpModal = useCallback(() => {
-    setIsHelpModalOpen(false);
-    localStorage.setItem('weavr-intro-shown', 'true');
-  }, []);
-
+  // Derived Selection State
   const selectedItemData = useMemo(() => {
-    if (selectedNodeIds.length === 1 && !selectedLinkId) {
-      const node = nodes.find(n => n.id === selectedNodeIdsArray[0]);
+    if (selectedNodeIdsArray.length === 1 && !selectedLinkId) {
+      const node = nodes.find((n: Node) => n.id === selectedNodeIdsArray[0]);
       return node ? { type: 'node' as const, data: node } : null;
     }
-    if (selectedNodeIds.length > 1 && !selectedLinkId) {
-      const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
+    if (selectedNodeIdsArray.length > 1 && !selectedLinkId) {
+      const selectedNodes = nodes.filter((n: Node) => selectedNodeIdsArray.includes(n.id));
       return { type: 'multi-node' as const, data: selectedNodes };
     }
-    if (selectedLinkId && selectedNodeIds.length === 0) {
-      const link = links.find(l => l.id === selectedLinkId);
+    if (selectedLinkId && selectedNodeIdsArray.length === 0) {
+      const link = links.find((l: Link) => l.id === selectedLinkId);
       return link ? { type: 'link' as const, data: link } : null;
     }
     return null;
-  }, [selectedNodeIds, selectedNodeIdsArray, selectedLinkId, nodes, links]);
+  }, [selectedNodeIdsArray, selectedLinkId, nodes, links]);
 
   const selectedIds = useMemo(() => {
     return selectedLinkId ? [...selectedNodeIdsArray, selectedLinkId] : selectedNodeIdsArray;
   }, [selectedNodeIdsArray, selectedLinkId]);
 
-  const handleAddSlice = (title: string) => {
-    const newSliceId = addSlice(title, slices.length);
-    return newSliceId || '';
-  };
-
-
-  const handleCloseSidebar = () => {
-    setSidebarView(null);
-    setSelection([]);
-    selectLink(''); // Assuming selectLink expects a string, passing empty string to clear
-  };
-
-  // --- Filtering Logic ---
+  // Filters
   const filteredNodes = useMemo(() => {
-    if (filteredSliceIds.length === 0) return nodes;
-
-    // Filter nodes based on node.sliceId matching one of the filteredSliceIds
-    return nodes.filter(node => node.sliceId && filteredSliceIds.includes(node.sliceId));
-  }, [nodes, filteredSliceIds]);
+    if (hiddenSliceIds.length === 0) return nodes;
+    return nodes.filter((node: Node) => !node.sliceId || !hiddenSliceIds.includes(node.sliceId));
+  }, [nodes, hiddenSliceIds]);
 
   const filteredLinks = useMemo(() => {
-    if (filteredSliceIds.length === 0) return links;
-    const nodeIds = new Set(filteredNodes.map(n => n.id));
-    return links.filter(link => nodeIds.has(link.source) && nodeIds.has(link.target));
-  }, [links, filteredNodes, filteredSliceIds]);
+    if (hiddenSliceIds.length === 0) return links;
+    const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
+    return links.filter((link: Link) => nodeIds.has(link.source) && nodeIds.has(link.target));
+  }, [links, filteredNodes, hiddenSliceIds]);
 
+  const handleSliceClick = useCallback((slice: Slice) => {
+    setSidebarView('slices');
+    setActiveSliceId(slice.id);
+  }, [setSidebarView, setActiveSliceId]);
 
+  const handleBatchPin = useCallback(() => {
+    selectedNodeIdsArray.forEach(id => handleUpdateNode(id, 'pinned', true));
+  }, [selectedNodeIdsArray, handleUpdateNode]);
 
-  // --- Render ---
+  const handleBatchUnpin = useCallback(() => {
+    selectedNodeIdsArray.forEach(id => unpinNode(id));
+    handleRequestAutoLayout();
+  }, [selectedNodeIdsArray, unpinNode, handleRequestAutoLayout]);
+
+  // Keyboard Shortcuts
+  useKeyboardShortcuts({
+    nodes,
+    selectedNodeIds: selectedNodeIdsArray,
+    selectedLinkId,
+    isPanelOpen: !!sidebarView,
+    isToolbarOpen,
+    isReady,
+    showSlices: false,
+    swimlanePositions: new Map(),
+    onDeleteSelection: handleDeleteSelection,
+    onClosePanel: handleClosePanel,
+    onToggleToolbar: () => setIsToolbarOpen((prev: boolean) => !prev),
+    onOpenPropertiesPanel: () => {
+      setSidebarView('properties');
+      setFocusOnRender(true);
+    },
+    onOpenSlices: () => setSidebarView('slices'),
+    onOpenDictionary: () => setSidebarView('dictionary'),
+    onSelectNode: (node: Node) => handleNodeClick(node.id),
+    onAddNode: handleAddNode,
+    onMoveNodes: (updates) => {
+      const arrayUpdates = Array.from(updates.entries()).map(([nodeId, pos]) => ({
+        nodeId,
+        pos: { x: pos.fx, y: pos.fy }
+      }));
+      handleNodesDrag(arrayUpdates);
+    },
+    onFocusNode: (id: string | undefined) => id && handleFocusNode(id),
+    onAutoLayout: handleAutoLayout,
+    onUndo: undo,
+    onRedo: redo
+  });
+
+  const handleAddSliceInternal = (title: string) => {
+    const id = uuidv4();
+    updateSlice(id, { title, order: slices.length });
+    return id;
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="w-screen h-[100dvh] overflow-hidden relative font-sans bg-gray-50">
+      <div className="w-screen h-[100dvh] overflow-hidden overscroll-none relative font-sans bg-gray-50 flex flex-col">
         <Header
           onImport={handleImport}
           onExport={handleExport}
@@ -828,60 +285,59 @@ const App: React.FC = () => {
           onUndo={undo}
           onRedo={redo}
           onAutoLayout={handleAutoLayout}
+          onUnpinAll={unpinAllNodes}
           onOpenModelList={() => setIsModelListOpen(true)}
           currentModelName={currentModelName}
           onRenameModel={handleRenameModel}
-        />
-
-        <div className={isLayoutLoading ? 'cursor-wait' : ''}></div>
-
-        <SliceFilter
-          slices={slices}
-          selectedSliceIds={filteredSliceIds}
-          onChange={setFilteredSliceIds}
         />
 
         <GraphCanvas
           nodes={filteredNodes}
           links={filteredLinks}
           slices={slicesWithNodes}
-
           selectedIds={selectedIds}
           edgeRoutes={autoLayoutEdges}
-          onNodeClick={handleNodeClick}
-          onLinkClick={handleLinkClick}
-          onNodeDoubleClick={handleNodeDoubleClick}
-          onLinkDoubleClick={handleLinkDoubleClick}
+          onNodeClick={(node: Node, event?: any) => {
+            const isMulti = event?.shiftKey || event?.evt?.shiftKey;
+            handleNodeClick(node.id, !!isMulti);
+            setSidebarView('properties');
+          }}
+          onLinkClick={(link: Link) => handleLinkClick(link.id)}
+          onNodeDoubleClick={(node: Node) => handleNodeDoubleClick(node.id)}
+          onLinkDoubleClick={(link: Link) => handleLinkDoubleClick(link.id)}
           onNodesDrag={handleNodesDrag}
+          onUnpinNode={unpinNode}
           onAddLink={handleAddLink}
-          onCanvasClick={handleCanvasClick}
-          onMarqueeSelect={handleMarqueeSelect}
-          onValidateConnection={handleValidateConnection}
-          onViewChange={(view) => setViewState(view)}
+          onCanvasClick={() => {
+            handleClosePanel();
+            setIsToolbarOpen(false);
+          }}
+          onMarqueeSelect={(ids: string[]) => {
+            handleMarqueeSelect(ids);
+            if (ids.length > 0) setSidebarView('properties');
+          }}
+          onValidateConnection={(s: Node, t: Node) => validationService.isValidConnection(s, t)}
+          onViewChange={setViewState}
+          onSliceClick={handleSliceClick}
+          initialViewState={viewState}
           ref={graphRef}
         />
 
-        <Toolbar
-          onAddNode={handleAddNode}
-          disabled={!isReady}
-          isMenuOpen={isToolbarOpen}
-          onToggleMenu={() => setIsToolbarOpen(prev => !prev)}
-        />
+        <Box sx={{ position: 'absolute', bottom: 64, left: 32, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', pointerEvents: 'none', '& > *': { pointerEvents: 'auto' } }}>
+          <ElementFilter nodes={nodes} onNodeClick={(n: Node) => handleFocusNode(n.id)} />
+          <SliceFilter slices={slices} hiddenSliceIds={hiddenSliceIds} onChange={setHiddenSliceIds} />
+          <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => graphRef.current?.handleNavigate?.(x, y)} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
+        </Box>
+
+        <Toolbar onAddNode={handleAddNode} disabled={!isReady} isMenuOpen={isToolbarOpen} onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} />
 
         <Sidebar
           isOpen={!!sidebarView}
-          onClose={handleCloseSidebar}
+          onClose={() => { setSidebarView(null); }}
           title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
           activeTab={sidebarView || 'properties'}
-          onTabChange={(tab) => {
-            setSidebarView(tab as 'properties' | 'slices' | 'dictionary' | null);
-            if (tab) signal("Sidebar.TabChanged", { tab });
-          }}
-          tabs={[
-            { id: 'properties', label: 'Properties', title: 'Alt + P' },
-            { id: 'dictionary', label: 'Data', title: 'Alt + D' },
-            { id: 'slices', label: 'Slices', title: 'Alt + S' }
-          ]}
+          onTabChange={(tab: any) => { setSidebarView(tab as any); if (tab) signal("Sidebar.TabChanged", { tab }); }}
+          tabs={[{ id: 'properties', label: 'Properties', title: 'Alt + P' }, { id: 'dictionary', label: 'Data', title: 'Alt + D' }, { id: 'slices', label: 'Slices', title: 'Alt + S' }]}
         >
           {sidebarView === 'properties' && (
             <PropertiesPanel
@@ -891,62 +347,55 @@ const App: React.FC = () => {
               onDeleteLink={handleDeleteLink}
               onDeleteNode={handleDeleteNode}
               slices={slicesWithNodes}
-              onAddSlice={handleAddSlice}
+              onAddSlice={handleAddSliceInternal}
               focusOnRender={focusOnRender}
-              onFocusHandled={handleFocusHandled}
-              definitions={definitionsArray}
-              onAddDefinition={handleAddDefinition}
+              onFocusHandled={() => setFocusOnRender(false)}
+              definitions={definitions}
+              onAddDefinition={(def: any) => addDefinition(def) || ''}
               modelId={modelId}
+              onPinSelection={handleBatchPin}
+              onUnpinSelection={handleBatchUnpin}
             />
           )}
           {sidebarView === 'slices' && (
             <SliceList
               slices={slicesWithNodes}
-              definitions={definitionsArray}
-              onAddSlice={addSlice}
+              definitions={definitions}
+              onAddSlice={handleAddSliceInternal}
               onUpdateSlice={updateSlice}
               onDeleteSlice={deleteSlice}
-              onManageSlice={(id) => {
-                setSliceManagerInitialId(id);
-                setIsSliceManagerOpen(true);
-              }}
+              onManageSlice={(id: string) => { setSliceManagerInitialId(id); setIsSliceManagerOpen(true); }}
               modelId={modelId}
+              expandedId={activeSliceId}
             />
           )}
           {sidebarView === 'dictionary' && (
             <DataDictionaryList
               definitions={definitions}
-              onAddDefinition={handleAddDefinition}
-              onUpdateDefinition={handleUpdateDefinition}
-              onRemoveDefinition={handleDeleteDefinition}
+              onAddDefinition={(def: any) => addDefinition(def) || ''}
+              onUpdateDefinition={updateDefinition}
+              onRemoveDefinition={deleteDefinition}
               modelId={modelId}
             />
           )}
         </Sidebar>
 
         <AppTelemetry nodeCount={nodes.length} linkCount={links.length} isReady={isReady} />
-        <HelpModal isOpen={isHelpModalOpen} onClose={handleCloseHelpModal} />
+        <HelpModal isOpen={isHelpModalOpen} onClose={() => { setIsHelpModalOpen(false); localStorage.setItem('weavr-intro-shown', 'true'); }} />
         <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
-
-
-
         <SliceManagerModal
           isOpen={isSliceManagerOpen}
-          onClose={() => {
-            setIsSliceManagerOpen(false);
-            setSliceManagerInitialId(null);
-          }}
+          onClose={() => { setIsSliceManagerOpen(false); setSliceManagerInitialId(null); }}
           slices={slicesWithNodes}
-          onAddSlice={addSlice}
+          onAddSlice={handleAddSliceInternal}
           onUpdateSlice={updateSlice}
           onDeleteSlice={deleteSlice}
           initialViewingSpecsId={sliceManagerInitialId}
         />
-
         <Footer />
       </div>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

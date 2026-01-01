@@ -5,4 +5,5 @@ export { default as Toolbar } from './components/Toolbar';
 export { default as HelpModal } from './components/HelpModal';
 export { default as ModelListModal } from './components/ModelListModal';
 export * from './hooks/useKeyboardShortcuts';
+export * from './hooks/useWorkspaceManager';
 

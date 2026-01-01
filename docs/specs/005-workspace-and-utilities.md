@@ -35,6 +35,7 @@ interface WeavrProject {
     links: Link[];
     slices: Slice[];
     definitions: DataDefinition[]; // Data Dictionary
+    edgeRoutes?: Record<string, number[]>; // Persisted layout paths
 }
 ```
 
@@ -82,8 +83,10 @@ interface WeavrProject {
     *   **Introduction Tab**: Detailed Event Modeling patterns (State Change, View, Automation, Translation).
     *   **Controls Tab**: List of shortcuts and mouse interactions.
 
-## 8. Technical Design: Navigation & Accessibility
+## 8. Technical Design: Navigation & Search
 *   **Esc**: Closes any open Panel (Properties, Slices, Dictionary).
 *   **Tab**: Cycles focus through Canvas elements (Accessibility requirement).
 *   **Focus (F)**: Centers viewport on the selected node.
+*   **Search Filters**: `ElementFilter` and `SliceFilter` on the canvas provide real-time filtering. 
+    *   Inputs include a **Clear (X)** button for quick reset, consistent with the Properties panel search fields.
 

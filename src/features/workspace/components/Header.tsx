@@ -24,7 +24,8 @@ import {
   Redo as RedoIcon,
   Edit as EditIcon,
   Share as ShareIcon,
-  Folder as FolderIcon
+  Folder as FolderIcon,
+  PushPinOutlined as UnpinAllIcon
 } from '@mui/icons-material';
 
 interface HeaderProps {
@@ -37,6 +38,7 @@ interface HeaderProps {
   onUndo: () => void;
   onRedo: () => void;
   onAutoLayout: () => void;
+  onUnpinAll: () => void;
   onOpenModelList: () => void;
   currentModelName: string;
   onRenameModel: (newName: string) => void;
@@ -52,6 +54,7 @@ const Header: React.FC<HeaderProps> = ({
   onUndo,
   onRedo,
   onAutoLayout,
+  onUnpinAll,
   onOpenModelList,
   currentModelName,
   onRenameModel
@@ -226,6 +229,12 @@ const Header: React.FC<HeaderProps> = ({
               >
                 Auto Layout
               </Button>
+            </Tooltip>
+
+            <Tooltip title="Unpin All Nodes">
+              <IconButton onClick={onUnpinAll} size="small" aria-label="Unpin All" color="error">
+                <UnpinAllIcon sx={{ fontSize: 20 }} />
+              </IconButton>
             </Tooltip>
 
             <Tooltip title="Help">

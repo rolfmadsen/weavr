@@ -18,6 +18,7 @@ This spec covers the "Engine" features: how the graph arranges itself (Layout) a
 *   `weavr/models/{modelId}/nodes/{nodeId}` -> `{ x, y, name, type... }`
 *   `weavr/models/{modelId}/links/{linkId}` -> `{ source, target }`
 *   `weavr/models/{modelId}/slices/{sliceId}` -> `{ title, order... }`
+*   `weavr/models/{modelId}/edgeRoutes` -> `Map<string, number[]>` (Serialized ELK routing paths)
 
 ### 3.2. Behavior
 *   **Optimistic UI**: Local React state updates immediately on user action.
@@ -36,6 +37,7 @@ This spec covers the "Engine" features: how the graph arranges itself (Layout) a
 *   **Orthogonal**: Edges use 90-degree bends.
 *   **Inter-slice**: Edges perform a "Jump" across the gap between slices.
 *   **Computed Height**: Text height is pre-calculated on Main Thread because Worker has no DOM/Canvas access.
+*   **Synchronization**: ELK calculated routes are persisted to GunDB. Peers use these synced routes rather than local calculation to ensure visual consistency across all sessions.
 
 ## 5. Verification Plan
 

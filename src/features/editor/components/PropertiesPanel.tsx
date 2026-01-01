@@ -12,7 +12,7 @@ import {
   Chip,
   Stack
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, PushPin as PinIcon, PushPinOutlined as UnpinIcon } from '@mui/icons-material';
 import { Node, Link, Slice, DataDefinition, DefinitionType, ElementType } from '../../modeling';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import { useCrossModelData } from '../../modeling';
@@ -101,6 +101,8 @@ interface PropertiesPanelProps {
   definitions: DataDefinition[];
   onAddDefinition: (def: Omit<DataDefinition, 'id'>) => string;
   modelId: string | null;
+  onPinSelection?: () => void;
+  onUnpinSelection?: () => void;
 }
 
 interface NodePropertiesProps {
@@ -283,7 +285,18 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box>
-        <Typography variant="overline" color="text.secondary">General</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="overline" color="text.secondary">General</Typography>
+          <Button
+            size="small"
+            startIcon={node.pinned ? <PinIcon sx={{ fontSize: 16 }} /> : <UnpinIcon sx={{ fontSize: 16 }} />}
+            onClick={() => onUpdateNode(node.id, 'pinned', !node.pinned)}
+            color={node.pinned ? "primary" : "inherit"}
+            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+          >
+            {node.pinned ? 'Pinned' : 'Unpinned'}
+          </Button>
+        </Box>
         <TextField
           label="Name"
           value={node.name || ''}
@@ -498,6 +511,8 @@ interface MultiNodePropertiesProps {
   slices: Slice[];
   onAddSlice: (title: string) => string;
   crossModelSlices: any[];
+  onPinSelection?: () => void;
+  onUnpinSelection?: () => void;
 }
 
 const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
@@ -506,7 +521,9 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
   onDeleteNode,
   slices,
   onAddSlice,
-  crossModelSlices
+  crossModelSlices,
+  onPinSelection,
+  onUnpinSelection
 }) => {
   // Slice Options (Same as single node)
   const sliceOptions = useMemo(() => {
@@ -572,6 +589,29 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
       <Box>
         <Typography variant="overline" color="text.secondary">Batch Actions</Typography>
 
+        <Stack direction="row" spacing={1} sx={{ mt: 1, mb: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<PinIcon />}
+            onClick={onPinSelection}
+            disabled={!onPinSelection}
+            fullWidth
+            size="small"
+          >
+            Pin
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<UnpinIcon />}
+            onClick={onUnpinSelection}
+            disabled={!onUnpinSelection}
+            fullWidth
+            size="small"
+          >
+            Unpin
+          </Button>
+        </Stack>
+
         <Box sx={{ mt: 2, mb: 3 }}>
           <Typography variant="caption" display="block" gutterBottom>Assign to Slice</Typography>
           <SmartSelect
@@ -610,7 +650,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onFocusHandled,
   definitions,
   onAddDefinition,
-  modelId
+  modelId,
+  onPinSelection,
+  onUnpinSelection
 }) => {
   const nameInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -673,6 +715,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         slices={slices}
         onAddSlice={onAddSlice}
         crossModelSlices={crossModelSlices}
+        onPinSelection={onPinSelection}
+        onUnpinSelection={onUnpinSelection}
       />
     );
   }

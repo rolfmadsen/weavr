@@ -20,7 +20,8 @@ interface UseKeyboardShortcutsProps {
     onSelectNode: (node: Node, event?: any) => void;
     onAddNode: (type: ElementType) => void;
     onMoveNodes: (updates: Map<string, { fx: number, fy: number }>) => void;
-    onFocusNode: () => void;
+    onFocusNode: (id?: string) => void;
+    onAutoLayout: () => void;
     onUndo: () => void;
     onRedo: () => void;
 }
@@ -44,6 +45,7 @@ export function useKeyboardShortcuts({
     onAddNode,
     onMoveNodes,
     onFocusNode,
+    onAutoLayout,
     onUndo,
     onRedo
 }: UseKeyboardShortcutsProps) {
@@ -119,6 +121,8 @@ export function useKeyboardShortcuts({
                         const nextNode = sortedNodes[nextIndex];
                         if (nextNode) {
                             onSelectNode(nextNode);
+                            // Also Pan to it
+                            onFocusNode(nextNode.id);
                         }
                         shouldPreventDefault = true;
                     }
@@ -142,6 +146,16 @@ export function useKeyboardShortcuts({
                 case 'f': case 'F':
                     if (!(event.metaKey || event.ctrlKey)) {
                         onFocusNode();
+                        shouldPreventDefault = true;
+                    }
+                    break;
+
+                // NEW: Auto Layout Shortcut
+                // Changed from 'l' so it doesn't conflict with potential typing if inputs were missed
+                // But the user specifically asked for 'l', so we'll use that with the input guard above.
+                case 'l': case 'L':
+                    if (!(event.metaKey || event.ctrlKey)) {
+                        onAutoLayout();
                         shouldPreventDefault = true;
                     }
                     break;
@@ -229,6 +243,6 @@ export function useKeyboardShortcuts({
         nodes, selectedNodeIds, selectedLinkId, isPanelOpen, isToolbarOpen, isReady,
         showSlices, swimlanePositions, onDeleteSelection, onClosePanel, onToggleToolbar,
         onOpenPropertiesPanel, onOpenSlices, onOpenDictionary, onSelectNode, onAddNode, onMoveNodes, onFocusNode,
-        onUndo, onRedo
+        onAutoLayout, onUndo, onRedo
     ]);
 }

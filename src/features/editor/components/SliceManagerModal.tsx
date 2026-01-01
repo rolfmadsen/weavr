@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Slice, SliceType } from '../../modeling';
 import { CloseIcon, DeleteIcon } from '../../../shared/components/icons';
-import { Description as DescriptionIcon, ArrowBack, Edit as EditIcon } from '@mui/icons-material';
+import { Description as DescriptionIcon, ArrowBack, Edit as EditIcon, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 
 interface SliceManagerModalProps {
@@ -202,6 +202,41 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {/* Reordering Buttons */}
+                                                    <div className="flex flex-col -gap-1 mr-1">
+                                                        <button
+                                                            disabled={slices.indexOf(slice) === 0}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const idx = sortedSlices.indexOf(slice);
+                                                                if (idx > 0) {
+                                                                    const prev = sortedSlices[idx - 1];
+                                                                    onUpdateSlice(slice.id, { order: idx - 1 });
+                                                                    onUpdateSlice(prev.id, { order: idx });
+                                                                }
+                                                            }}
+                                                            className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-20"
+                                                            title="Move Up"
+                                                        >
+                                                            <ArrowUpward style={{ fontSize: 14 }} />
+                                                        </button>
+                                                        <button
+                                                            disabled={slices.indexOf(slice) === slices.length - 1}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const idx = sortedSlices.indexOf(slice);
+                                                                if (idx < sortedSlices.length - 1) {
+                                                                    const next = sortedSlices[idx + 1];
+                                                                    onUpdateSlice(slice.id, { order: idx + 1 });
+                                                                    onUpdateSlice(next.id, { order: idx });
+                                                                }
+                                                            }}
+                                                            className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-20"
+                                                            title="Move Down"
+                                                        >
+                                                            <ArrowDownward style={{ fontSize: 14 }} />
+                                                        </button>
+                                                    </div>
                                                     <button
                                                         onClick={() => setViewingSpecsId(slice.id)}
                                                         className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200 transition-colors"

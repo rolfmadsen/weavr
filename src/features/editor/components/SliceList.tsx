@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Slice, DataDefinition, SliceType, Specification, SpecificationStep } from '../../modeling';
 import {
     Delete as DeleteIcon,
@@ -37,6 +37,7 @@ interface SliceListProps {
     onDeleteSlice: (id: string) => void;
     onManageSlice?: (id: string) => void; // Optional handler to open modal
     modelId: string | null;
+    expandedId?: string | null;
 }
 
 // Sub-component for a single Specification Item (HTML details/summary style)
@@ -363,9 +364,29 @@ const SliceList: React.FC<SliceListProps> = ({
     onAddSlice,
     onUpdateSlice,
     onDeleteSlice,
-    modelId
+    modelId,
+    expandedId
 }) => {
     const { crossModelSlices } = useCrossModelData(modelId);
+
+    // State for local expansion management
+    const [localExpandedId, setLocalExpandedId] = useState<string | null>(null);
+
+    // Synchronize local expansion state with the prop and trigger focus
+    useEffect(() => {
+        if (expandedId) {
+            setLocalExpandedId(expandedId);
+            // Wait for accordion expansion animation to begin so the input is rendered
+            const timer = setTimeout(() => {
+                const input = document.getElementById(`slice-name-input-${expandedId}`);
+                if (input instanceof HTMLInputElement) {
+                    input.focus();
+                    input.select();
+                }
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [expandedId]);
 
     // State for deleting slices (which one and anchor element)
     const [deleteSliceInfo, setDeleteSliceInfo] = useState<{ id: string, anchorEl: HTMLElement } | null>(null);
@@ -455,6 +476,10 @@ const SliceList: React.FC<SliceListProps> = ({
                 {slices.map((slice, index) => (
                     <Accordion
                         key={slice.id}
+                        expanded={localExpandedId === slice.id}
+                        onChange={(_, isExpanded) => {
+                            setLocalExpandedId(isExpanded ? slice.id : null);
+                        }}
                         disableGutters
                         elevation={0}
                         sx={{
@@ -467,7 +492,7 @@ const SliceList: React.FC<SliceListProps> = ({
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
                             sx={{
-                                backgroundColor: 'rgba(0, 0, 0, .03)',
+                                backgroundColor: localExpandedId === slice.id ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0, 0, 0, .03)',
                                 flexDirection: 'row-reverse',
                                 '& .MuiAccordionSummary-content': { ml: 1, alignItems: 'center' },
                             }}
@@ -493,12 +518,9 @@ const SliceList: React.FC<SliceListProps> = ({
                                     disabled={index === 0}
                                     onClick={() => {
                                         const prevSlice = slices[index - 1];
-                                        const currentOrder = slice.order ?? index;
-                                        const prevOrder = prevSlice.order ?? (index - 1);
-
-                                        // Swap orders
-                                        onUpdateSlice(slice.id, { order: prevOrder });
-                                        onUpdateSlice(prevSlice.id, { order: currentOrder });
+                                        // Use visual indices to ensure a clean swap
+                                        onUpdateSlice(slice.id, { order: index - 1 });
+                                        onUpdateSlice(prevSlice.id, { order: index });
                                     }}
                                     sx={{ p: 0.5, opacity: 0.6, '&:hover': { opacity: 1 } }}
                                 >
@@ -509,12 +531,9 @@ const SliceList: React.FC<SliceListProps> = ({
                                     disabled={index === slices.length - 1}
                                     onClick={() => {
                                         const nextSlice = slices[index + 1];
-                                        const currentOrder = slice.order ?? index;
-                                        const nextOrder = nextSlice.order ?? (index + 1);
-
-                                        // Swap orders
-                                        onUpdateSlice(slice.id, { order: nextOrder });
-                                        onUpdateSlice(nextSlice.id, { order: currentOrder });
+                                        // Use visual indices to ensure a clean swap
+                                        onUpdateSlice(slice.id, { order: index + 1 });
+                                        onUpdateSlice(nextSlice.id, { order: index });
                                     }}
                                     sx={{ p: 0.5, opacity: 0.6, '&:hover': { opacity: 1 } }}
                                 >
@@ -527,6 +546,7 @@ const SliceList: React.FC<SliceListProps> = ({
                             {/* Properties */}
                             <Stack spacing={2} sx={{ mb: 3 }}>
                                 <TextField
+                                    id={`slice-name-input-${slice.id}`}
                                     label="Slice Name"
                                     size="small"
                                     fullWidth

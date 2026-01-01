@@ -1,9 +1,11 @@
+import type { LayoutOptions } from 'elkjs';
 import { Node, Link, Slice } from '../types';
 import { NODE_WIDTH } from '../../../shared/constants';
 import { calculateNodeHeight } from './textUtils';
 
 // Singleton worker instance
 let layoutWorker: Worker | null = null;
+let currentRequestId = 0;
 
 const getWorker = () => {
     if (!layoutWorker) {
@@ -12,22 +14,31 @@ const getWorker = () => {
     return layoutWorker;
 };
 
+export interface LayoutResult {
+    positions: Map<string, { x: number; y: number }>;
+    edgeRoutes: Map<string, number[]>;
+}
+
 export const calculateElkLayout = async (
     nodes: Node[],
     links: Link[],
     slices: Slice[] = [],
-    options: any = {}
-): Promise<{ positions: Map<string, { x: number; y: number }>, edgeRoutes: Map<string, number[]> }> => {
+    options: LayoutOptions = {}
+): Promise<LayoutResult> => {
 
     return new Promise((resolve, reject) => {
+        const requestId = ++currentRequestId;
+
         // 1. Prepare Nodes with Dimensions
         const workerNodes = nodes.map(node => ({
             id: node.id,
-            width: NODE_WIDTH, // Fixed width
+            width: NODE_WIDTH,
             computedHeight: calculateNodeHeight(node.name),
-            // Pass type for potential partitioning logic in worker
-            type: node.type,
-            sliceId: node.sliceId
+            type: String(node.type || ''),
+            sliceId: node.sliceId,
+            pinned: node.pinned,
+            x: node.fx ?? node.x ?? 0,
+            y: node.fy ?? node.y ?? 0
         }));
 
         // 2. Prepare Edges
@@ -42,20 +53,23 @@ export const calculateElkLayout = async (
 
         // 4. Handle Worker Messages
         const handleMessage = (event: MessageEvent) => {
-            const { type, positions, edgeRoutes, message } = event.data;
+            const { type, positions, edgeRoutes, message, requestId: respId } = event.data;
 
-            // Clean up listener to avoid memory leaks
+            // Only process if this is the response for our current request
+            if (respId !== requestId) return;
+
+            // Clean up listener
             worker.removeEventListener('message', handleMessage);
 
             if (type === 'SUCCESS') {
                 const positionMap = new Map<string, { x: number; y: number }>();
-                Object.entries(positions).forEach(([id, pos]: [string, any]) => {
+                Object.entries(positions as Record<string, { x: number, y: number }>).forEach(([id, pos]) => {
                     positionMap.set(id, pos);
                 });
 
                 const edgeRoutesMap = new Map<string, number[]>();
                 if (edgeRoutes) {
-                    Object.entries(edgeRoutes).forEach(([id, route]: [string, any]) => {
+                    Object.entries(edgeRoutes as Record<string, number[]>).forEach(([id, route]) => {
                         edgeRoutesMap.set(id, route);
                     });
                 }
@@ -71,14 +85,15 @@ export const calculateElkLayout = async (
 
         // 5. Send Data to Worker
         worker.postMessage({
+            requestId,
             nodes: workerNodes,
             links: workerLinks,
             slices: slices.map(s => ({
                 id: s.id,
-                nodeIds: Array.from(s.nodeIds), // Convert Set to Array
+                nodeIds: Array.from(s.nodeIds),
                 order: s.order
             })),
-            direction: 'DOWN', // Default internal direction
+            //direction: 'DOWN',
             globalOptions: options
         });
     });

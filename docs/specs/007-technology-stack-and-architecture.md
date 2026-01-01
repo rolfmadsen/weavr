@@ -37,9 +37,13 @@ Weavr is a Local-First, Peer-to-Peer Event Modeling tool. It runs entirely in th
     *   *Isolation*: Runs inside the Web Worker to prevent UI freezing.
 
 ### 2.5. Optimization
-*   **Rbush**: R-Tree spatial indexing.
-    *   *Role*: Fast collision detection and viewport culling (rendering only visible nodes).
-    *   *Location*: `useSpatialIndex.ts`.
+- **Rbush**: R-Tree spatial indexing.
+    - *Role*: Fast collision detection and viewport culling (rendering only visible nodes).
+    - *Location*: `useSpatialIndex.ts`.
+- **Category-Based Layering**: Dividing the canvas into specialized layers (Nodes, Links, Slices, HUD).
+    - *Role*: Prevents unnecessary full-scene redraws by isolating frequently changing elements (like links during a node drag) from static ones.
+- **Node Caching**: Converting complex Konva Groups into bitmap images.
+    - *Role*: drastically reduces draw calls for static nodes, offloading work to the GPU.
 
 ## 3. High-Level Data Flow
 1.  **User Action**: Drag Node -> React Event.
@@ -48,8 +52,9 @@ Weavr is a Local-First, Peer-to-Peer Event Modeling tool. It runs entirely in th
 4.  **Render Loop**: 
     *   `useGraphSync` hook subscribes to Gun changes.
     *   Updates local React state.
-    *   `Rbush` filters visible nodes.
-    *   `Konva` draws the scene.
+    *   `Rbush` filters visible nodes (with debouncing for smooth pan/zoom).
+    *   `Konva` draws the scene across optimized Layers.
+    *   Static nodes are rendered from Cache to minimize draw calls.
 
 ## 4. Key Libraries Map
 | Feature | Library |

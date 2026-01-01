@@ -146,12 +146,16 @@ export const exportWeavrProject = (
     const layout: Record<string, any> = {};
 
     // Map Nodes
+    // Map Nodes
     nodes.forEach(node => {
-        // Layout Sidecar
+        // Layout Sidecar (Enriched with Metadata as requested)
         layout[node.id] = {
             x: node.x,
             y: node.y,
-            height: node.computedHeight // Extension to schema
+            height: node.computedHeight,
+            // redundant meta data for readability in raw JSON
+            type: mapTypeToSchema(node.type),
+            title: node.name
         };
 
         // Event Model Element
@@ -164,7 +168,30 @@ export const exportWeavrProject = (
             fields: [] // Required by schema
         };
 
-        const sId = node.sliceId && sliceMap.has(node.sliceId) ? node.sliceId : null;
+        let sId = node.sliceId && sliceMap.has(node.sliceId) ? node.sliceId : null;
+
+        // Handle Orphans: If no valid slice, put in "Unassigned" slice
+        if (!sId) {
+            const unassignedId = 'unassigned';
+            if (!sliceMap.has(unassignedId)) {
+                sliceMap.set(unassignedId, {
+                    id: unassignedId,
+                    title: 'Unassigned',
+                    sliceType: 'App',
+                    commands: [],
+                    events: [],
+                    readmodels: [],
+                    screens: [],
+                    screenImages: [],
+                    processors: [],
+                    tables: [],
+                    specifications: [],
+                    actors: [],
+                    aggregates: []
+                });
+            }
+            sId = unassignedId;
+        }
 
         if (sId) {
             const slice = sliceMap.get(sId);
