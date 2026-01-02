@@ -300,7 +300,6 @@ const App: React.FC = () => {
           onNodeClick={(node: Node, event?: any) => {
             const isMulti = event?.shiftKey || event?.evt?.shiftKey;
             handleNodeClick(node.id, !!isMulti);
-            setSidebarView('properties');
           }}
           onLinkClick={(link: Link) => handleLinkClick(link.id)}
           onNodeDoubleClick={(node: Node) => handleNodeDoubleClick(node.id)}

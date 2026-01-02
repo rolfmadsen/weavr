@@ -81,7 +81,12 @@ export function calculateSmartPoints(
     const GRID = 20;
     const bendX = Math.round(gapCenter / GRID) * GRID;
 
-    return [startX, startY, bendX, startY, bendX, endY, endX, endY];
+    // ADD BUNDLE OFFSET: Spreads vertical segments in the gap to prevent overlaps
+    const horizontalStep = 8;
+    const bundleWidth = (sTot - 1) * horizontalStep;
+    const offsetBendX = bendX - (bundleWidth / 2) + (sIdx * horizontalStep);
+
+    return [startX, startY, offsetBendX, startY, offsetBendX, endY, endX, endY];
 }
 
 export function calculateDynamicPoints(

@@ -83,6 +83,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     onUnpinNode
 }, ref) => {
     // console.log(`[GraphCanvasKonva Render] selectedIds=${selectedIds.length}`);
+
     const stageRef = useRef<Konva.Stage>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -149,7 +150,14 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             const t = safeNodes.find(n => n.id === link.target);
             if (!s || !t) return;
 
-            const sides = getLogicalSide(s, t);
+            let sides = getLogicalSide(s, t);
+
+            // FORCE inter-slice links to E/W departure/arrival.
+            // This ensures they always sort together on the vertical axis in the slice gap.
+            if (s.sliceId !== t.sliceId) {
+                const isForward = (t.x ?? 0) >= (s.x ?? 0);
+                sides = { s: isForward ? 'E' : 'W', t: isForward ? 'W' : 'E' };
+            }
 
             // Initialize collections for source and target nodes
             if (!usage.has(s.id)) usage.set(s.id, { N: [], S: [], E: [], W: [] });
@@ -164,7 +172,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             const node = safeNodes.find(n => n.id === nodeId);
             if (!node) return;
 
-            // Sort North/South ports by target X coordinate
+            // Sort North/South ports by target X coordinate (robust logic)
             ['N', 'S'].forEach(side => {
                 sides[side].sort((aId, bId) => {
                     const lA = links.find(l => l.id === aId)!;
@@ -173,11 +181,13 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     const otherIdB = lB.source === nodeId ? lB.target : lB.source;
                     const otherA = safeNodes.find(n => n.id === otherIdA);
                     const otherB = safeNodes.find(n => n.id === otherIdB);
-                    return (otherA?.x || 0) - (otherB?.x || 0);
+                    const ax = (otherA?.fx ?? otherA?.x ?? 0);
+                    const bx = (otherB?.fx ?? otherB?.x ?? 0);
+                    return ax - bx;
                 });
             });
 
-            // Sort East/West ports by target Y coordinate
+            // Sort East/West ports by target Y coordinate (robust logic)
             ['E', 'W'].forEach(side => {
                 sides[side].sort((aId, bId) => {
                     const lA = links.find(l => l.id === aId)!;
@@ -186,24 +196,32 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     const otherIdB = lB.source === nodeId ? lB.target : lB.source;
                     const otherA = safeNodes.find(n => n.id === otherIdA);
                     const otherB = safeNodes.find(n => n.id === otherIdB);
-                    return (otherA?.y || 0) - (otherB?.y || 0);
+                    const ay = (otherA?.fy ?? otherA?.y ?? 0);
+                    const by = (otherB?.fy ?? otherB?.y ?? 0);
+                    return ay - by;
                 });
             });
         });
 
         // Convert usage into a lookup map for each link's indices
-        // Map<linkId, { sIdx, sTot, tIdx, tTot }>
-        const lookupMap = new Map<string, { sIdx: number, sTot: number, tIdx: number, tTot: number }>();
+        // Map<linkId, { sIdx: number, sTot: number, tIdx: number, tTot: number, sSide: string, tSide: string }>
+        const lookupMap = new Map<string, { sIdx: number, sTot: number, tIdx: number, tTot: number, sSide: string, tSide: string }>();
 
         links.forEach(link => {
+            const s = safeNodes.find(n => n.id === link.source);
+            const t = safeNodes.find(n => n.id === link.target);
+            if (!s || !t) return;
+
+            let sides = getLogicalSide(s, t);
+            if (s.sliceId !== t.sliceId) {
+                const isForward = (t.x ?? 0) >= (s.x ?? 0);
+                sides = { s: isForward ? 'E' : 'W', t: isForward ? 'W' : 'E' };
+            }
+
             const sSideData = usage.get(link.source);
             const tSideData = usage.get(link.target);
 
             if (sSideData && tSideData) {
-                const s = safeNodes.find(n => n.id === link.source)!;
-                const t = safeNodes.find(n => n.id === link.target)!;
-                const sides = getLogicalSide(s, t);
-
                 const sList = sSideData[sides.s];
                 const tList = tSideData[sides.t];
 
@@ -211,7 +229,9 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     sIdx: sList.indexOf(link.id),
                     sTot: sList.length,
                     tIdx: tList.indexOf(link.id),
-                    tTot: tList.length
+                    tTot: tList.length,
+                    sSide: sides.s,
+                    tSide: sides.t
                 });
             }
         });
@@ -423,38 +443,107 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         updateVisibleNodes(true);
     }, [nodes.length, updateVisibleNodes]);
 
-    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            e.stopPropagation();
-            const direction = e.shiftKey ? -1 : 1;
-            if (safeNodes.length === 0) return;
+    // NEW: Predictable Navigation Order (Slice Order -> Vertical Y)
+    const sortedNavigationNodes = useMemo(() => {
+        if (!slices || slices.length === 0) {
+            // Fallback: Sort all nodes by Y if no slices
+            return [...safeNodes].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+        }
 
-            let nextIndex = 0;
-            const currentId = selectedIds[0];
-            if (currentId) {
-                const currentIndex = safeNodes.findIndex(n => n.id === currentId);
-                if (currentIndex !== -1) {
-                    nextIndex = currentIndex + direction;
-                    if (nextIndex >= safeNodes.length) nextIndex = 0;
-                    if (nextIndex < 0) nextIndex = safeNodes.length - 1;
+        // 1. Sort Slices by Order
+        const sortedSlices = [...slices].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+        // 2. Build Robust Lookup Maps
+        const sliceOrderMap = new Map<string, number>();
+        const nodeToSliceOrderMap = new Map<string, number>();
+
+        sortedSlices.forEach((slice, index) => {
+            sliceOrderMap.set(slice.id, index);
+            if (slice.nodeIds) {
+                slice.nodeIds.forEach(nodeId => {
+                    nodeToSliceOrderMap.set(nodeId, index);
+                });
+            }
+        });
+
+        // Helper: Get robust rank for a node
+        const getRank = (n: Node) => {
+            // Priority 1: Direct Slice ID match
+            if (n.sliceId) {
+                const rank = sliceOrderMap.get(n.sliceId);
+                if (rank !== undefined) return rank;
+            }
+            // Priority 2: Reverse lookup from Slice's node list
+            const reverseRank = nodeToSliceOrderMap.get(n.id);
+            return reverseRank !== undefined ? reverseRank : Infinity;
+        };
+
+        // 3. Sort Nodes
+        return [...safeNodes].sort((a, b) => {
+            const rankA = getRank(a);
+            const rankB = getRank(b);
+
+            if (rankA !== rankB) {
+                // Different Slices: Sort by Slice Order
+                return rankA - rankB;
+            }
+
+            // Same Slice: Sort by Vertical Position (Y)
+            return (a.y ?? 0) - (b.y ?? 0);
+        });
+    }, [safeNodes, slices]);
+
+    // NEW: Global Keyboard Listener (Bypasses focus issues)
+    useEffect(() => {
+        const handleWindowKeyDown = (e: KeyboardEvent) => {
+            // Ignore if typing in an input
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                return;
+            }
+
+
+
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const direction = e.shiftKey ? -1 : 1;
+                if (sortedNavigationNodes.length === 0) return;
+
+                let nextIndex = 0;
+                const currentId = selectedIds[0];
+                console.log(`[Tab Debug] currentId="${currentId}", sortedNodes=${sortedNavigationNodes.length}`);
+
+                if (currentId) {
+                    const currentIndex = sortedNavigationNodes.findIndex(n => n.id === currentId);
+                    console.log(`[Tab Debug] Found currentIndex=${currentIndex}`);
+
+                    if (currentIndex !== -1) {
+                        nextIndex = currentIndex + direction;
+                        if (nextIndex >= sortedNavigationNodes.length) nextIndex = 0;
+                        if (nextIndex < 0) nextIndex = sortedNavigationNodes.length - 1;
+                    }
+                }
+
+                const nextNode = sortedNavigationNodes[nextIndex];
+                if (nextNode) {
+                    onNodeClick(nextNode);
+                    panToNodeInternal(nextNode.id);
                 }
             }
+        };
 
-            const nextNode = safeNodes[nextIndex];
-            if (nextNode) {
-                onNodeClick(nextNode);
-                panToNodeInternal(nextNode.id);
-            }
-        }
-    }, [safeNodes, selectedIds, onNodeClick, panToNodeInternal]);
+        window.addEventListener('keydown', handleWindowKeyDown);
+        return () => window.removeEventListener('keydown', handleWindowKeyDown);
+    }, [sortedNavigationNodes, selectedIds, onNodeClick, panToNodeInternal, slices]);
 
     return (
         <div
             ref={containerRef}
             className="w-full flex-1 bg-gray-50 overflow-hidden relative outline-none"
-            tabIndex={0}
-            onKeyDown={handleKeyDown}
+            // tabIndex={0} // No longer needed
+            // onKeyDown={handleKeyDown} // Removed, using global listener
             onContextMenu={(e) => e.preventDefault()}
         >
             <Stage
@@ -490,7 +579,11 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         }
                     }
                 }}
-                onMouseDown={handleMouseDown}
+                onMouseDown={(e) => {
+                    handleMouseDown(e);
+                    // Ensure keyboard focus is on the container when clicking the canvas
+                    containerRef.current?.focus();
+                }}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
             >

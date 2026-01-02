@@ -144,14 +144,62 @@ self.onmessage = async (e: MessageEvent) => {
         const rootChildren: ElkNode[] = [];
         const rootEdges: ElkExtendedEdge[] = [];
 
-        // Build containers (Slices)
+        // Pre-calculate inter-slice edges for rank calculation
         const allSliceIds = [...slices.map(s => s.id), DEFAULT_SLICE_ID];
+        const interSliceLinksForRoot: { source: string, target: string, id: string }[] = [];
+        const sliceIncoming = new Map<string, Set<string>>();
+
+        links.forEach(link => {
+            const sourceSliceId = nodeSliceMap.get(link.source);
+            const targetSliceId = nodeSliceMap.get(link.target);
+
+            if (sourceSliceId && targetSliceId && sourceSliceId !== targetSliceId) {
+                interSliceLinksForRoot.push({ source: sourceSliceId, target: targetSliceId, id: link.id });
+                if (!sliceIncoming.has(targetSliceId)) sliceIncoming.set(targetSliceId, new Set());
+                sliceIncoming.get(targetSliceId)!.add(sourceSliceId);
+            }
+        });
+
+        // 2. Calculate Slice Ranks (to allow vertical stacking/centering)
+        const sliceRanks = new Map<string, number>();
+        let lastAutoRank = -1;
+
         allSliceIds.forEach((sliceId, index) => {
+            const sources = sliceIncoming.get(sliceId);
+
+            // We only care about FORWARD dependencies for ranking
+            let maxSourceRank = -1;
+            if (sources) {
+                sources.forEach(srcId => {
+                    const srcIdx = allSliceIds.indexOf(srcId);
+                    if (srcIdx < index) { // Only forward links influence rank
+                        const srcRank = sliceRanks.get(srcId);
+                        if (srcRank !== undefined) {
+                            maxSourceRank = Math.max(maxSourceRank, srcRank);
+                        }
+                    }
+                });
+            }
+
+            let rank: number;
+            if (maxSourceRank !== -1) {
+                // Hierarchical rank based on dependencies
+                rank = maxSourceRank + 1;
+            } else {
+                // Sequential rank based on model order
+                rank = lastAutoRank + 1;
+            }
+
+            sliceRanks.set(sliceId, rank);
+            lastAutoRank = rank;
+        });
+
+        // Build containers (Slices)
+        allSliceIds.forEach((sliceId) => {
             const children = sliceNodesMap.get(sliceId) || [];
             if (children.length === 0) return;
 
-            // Strict use of index for horizontal partitioning (Left -> Right)
-            const sliceOrder = index;
+            const sliceOrder = sliceRanks.get(sliceId) ?? 0;
 
             rootChildren.push({
                 id: sliceId,
@@ -186,12 +234,10 @@ self.onmessage = async (e: MessageEvent) => {
             };
 
             // Detect Feedback Edges (Upwards in hierarchy or Backwards in slices)
-            const sourceSliceIndex = slices.findIndex(s => s.id === sourceSliceId);
-            const targetSliceIndex = slices.findIndex(s => s.id === targetSliceId);
-            const sourceSliceOrder = sourceSliceIndex !== -1 ? (slices[sourceSliceIndex].order ?? sourceSliceIndex) : 999;
-            const targetSliceOrder = targetSliceIndex !== -1 ? (slices[targetSliceIndex].order ?? targetSliceIndex) : 999;
+            const sourceSliceIndex = allSliceIds.indexOf(sourceSliceId!);
+            const targetSliceIndex = allSliceIds.indexOf(targetSliceId!);
 
-            if (sourceRank > targetRank || sourceSliceOrder > targetSliceOrder) {
+            if (sourceRank > targetRank || sourceSliceIndex > targetSliceIndex) {
                 elkEdge.layoutOptions!['org.eclipse.elk.layered.feedbackEdges'] = 'true';
             }
 
@@ -201,15 +247,25 @@ self.onmessage = async (e: MessageEvent) => {
                 if (slice && slice.edges) {
                     slice.edges.push(elkEdge);
                 }
-            } else {
-                // Root edge (Inter-slice)
-                // WE DO NOT ADD EDGES TO ROOT GRAPH to prevent UnsupportedGraphException.
-                // We rely on 'org.eclipse.elk.partitioning.partition' in the Slices to ensure correct ordering.
+            } else if (sourceSliceId && targetSliceId) {
+                // Inter-slice edge -> Add as an edge between slices to the root graph
+                // This informs ELK about the interdependence of slices for centering
+                const existing = rootEdges.find(e => e.sources![0] === sourceSliceId && e.targets![0] === targetSliceId);
+                if (!existing) {
+                    rootEdges.push({
+                        id: `root-edge-${sourceSliceId}-${targetSliceId}`,
+                        sources: [sourceSliceId],
+                        targets: [targetSliceId],
+                        layoutOptions: {
+                            ...(sourceSliceIndex > targetSliceIndex ? { 'org.eclipse.elk.layered.feedbackEdges': 'true' } : {})
+                        }
+                    });
+                }
             }
         });
 
         // ---------------------------------------------------------------------
-        // 2. Root Graph Configuration (Horizontal Flow of Slices)
+        // 3. Root Graph Configuration (Horizontal Flow of Slices)
         // ---------------------------------------------------------------------
         const rootGraph: ElkNode = {
             id: 'root',
@@ -219,7 +275,7 @@ self.onmessage = async (e: MessageEvent) => {
                 'elk.direction': 'RIGHT',
                 'org.eclipse.elk.hierarchyHandling': 'SEPARATE_CHILDREN',
                 'org.eclipse.elk.partitioning.activate': 'true', // EXPLICITLY ACTIVATE PARTITIONING
-                'org.eclipse.elk.layered.layering.strategy': 'LONGEST_PATH', // Simplest strategy for partitions
+                'org.eclipse.elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
                 'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
                 'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '80',
                 'org.eclipse.elk.spacing.nodeNode': '75',
@@ -229,6 +285,10 @@ self.onmessage = async (e: MessageEvent) => {
                 'org.eclipse.elk.spacing.edgeNode': '24',
                 'org.eclipse.elk.layered.edgeLabels.sideSelection': 'ALWAYS_UP',
                 'org.eclipse.elk.spacing.portPort': '5',
+                'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+                'org.eclipse.elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+                'org.eclipse.elk.padding': '[top=20,left=20,bottom=20,right=20]',
+
                 ...globalOptions
             }),
             children: rootChildren,

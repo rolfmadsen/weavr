@@ -95,14 +95,26 @@ export function useLayoutManager({
         }
     }, [nodes, links, slicesWithNodes, gunUpdateNodePosition, updateEdgeRoutes, addToHistory, signal]);
 
+    const lastNodeCount = useRef(nodes.length);
+    const lastLinkCount = useRef(links.length);
+
     // Simplified Trigger: Listens to explicit `layoutRequestId` OR significant count changes (init/add/delete)
     useEffect(() => {
         const requestChanged = layoutRequestId !== lastLayoutRequestId.current;
+        const nodesChanged = nodes.length !== lastNodeCount.current;
+        const linksChanged = links.length !== lastLinkCount.current;
         const isFirstLoad = !hasInitialLayoutRun.current && nodes.length > 0;
 
-        if (requestChanged || isFirstLoad) {
-            console.log("LayoutManager: Triggered by", requestChanged ? "Request Signal" : "Initial Load");
+        if (requestChanged || isFirstLoad || nodesChanged || linksChanged) {
+            console.log("LayoutManager: Triggered by",
+                requestChanged ? "Request Signal" :
+                    isFirstLoad ? "Initial Load" :
+                        nodesChanged ? "Node Count Change" : "Link Count Change"
+            );
+
             lastLayoutRequestId.current = layoutRequestId;
+            lastNodeCount.current = nodes.length;
+            lastLinkCount.current = links.length;
             hasInitialLayoutRun.current = true; // Mark as run trigger-wise
 
             if (debounceTimer.current) clearTimeout(debounceTimer.current);

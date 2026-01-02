@@ -93,40 +93,8 @@ export function useKeyboardShortcuts({
                     }
                     break;
 
-                case 'Tab':
-                    if (nodes.length > 0 && !isPanelOpen) {
-                        const getNodePosition = (node: Node) => {
-                            if (showSlices) {
-                                return swimlanePositions.get(node.id) || { x: node.x ?? 0, y: node.y ?? 0 };
-                            }
-                            return { x: node.fx ?? node.x ?? 0, y: node.fy ?? node.y ?? 0 };
-                        };
+                // Tab navigation is now handled in GraphCanvas.tsx with slice-aware logic
 
-                        const sortedNodes = [...nodes].sort((a, b) => {
-                            const posA = getNodePosition(a);
-                            const posB = getNodePosition(b);
-                            if (posA.y !== posB.y) return posA.y - posB.y;
-                            return posA.x - posB.x;
-                        });
-
-                        let currentIndex = -1;
-                        if (selectedNodeIds.length === 1) {
-                            currentIndex = sortedNodes.findIndex(n => n.id === selectedNodeIds[0]);
-                        }
-
-                        const nextIndex = event.shiftKey
-                            ? (currentIndex - 1 + sortedNodes.length) % sortedNodes.length
-                            : (currentIndex + 1) % sortedNodes.length;
-
-                        const nextNode = sortedNodes[nextIndex];
-                        if (nextNode) {
-                            onSelectNode(nextNode);
-                            // Also Pan to it
-                            onFocusNode(nextNode.id);
-                        }
-                        shouldPreventDefault = true;
-                    }
-                    break;
 
                 case 'Delete':
                 case 'Backspace':
