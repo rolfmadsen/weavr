@@ -16,10 +16,10 @@ const Footer: React.FC = () => {
         <span className="mx-2">2025</span>
         <span className="mx-2">|</span>
         <a
-          href="mailto:support@weavr.dk"
+          href="mailto:contact@weavr.dk"
           className="text-indigo-600 hover:underline"
         >
-          support@weavr.dk
+          contact@weavr.dk
         </a>
       </span>
     </footer>
