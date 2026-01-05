@@ -29,7 +29,8 @@ import {
 } from '@mui/icons-material';
 
 interface HeaderProps {
-  onImport: (file: File) => void;
+  onOpen: (file: File) => void;
+  onMerge: (file: File) => void;
   onExport: () => void;
   onStandardExport?: () => void; // Optional for backward compatibility
   onOpenHelp: () => void;
@@ -45,7 +46,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({
-  onImport,
+  onOpen,
+  onMerge,
   onExport,
   onStandardExport,
   onOpenHelp,
@@ -67,6 +69,9 @@ const Header: React.FC<HeaderProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(currentModelName);
 
+  // Track which import action triggered the file input
+  const [importMode, setImportMode] = useState<'open' | 'merge'>('open');
+
   // Mobile menu state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
@@ -81,7 +86,14 @@ const Header: React.FC<HeaderProps> = ({
     setAnchorEl(null);
   };
 
-  const handleImportClick = () => {
+  const handleOpenClick = () => {
+    setImportMode('open');
+    fileInputRef.current?.click();
+    handleMenuClose();
+  };
+
+  const handleMergeClick = () => {
+    setImportMode('merge');
     fileInputRef.current?.click();
     handleMenuClose();
   };
@@ -89,7 +101,11 @@ const Header: React.FC<HeaderProps> = ({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      onImport(file);
+      if (importMode === 'open') {
+        onOpen(file);
+      } else {
+        onMerge(file);
+      }
     }
     event.target.value = '';
   };
@@ -257,15 +273,19 @@ const Header: React.FC<HeaderProps> = ({
               onClose={handleMenuClose}
             >
               <MenuItem onClick={onExport}>
-                <ExportIcon sx={{ mr: 1 }} /> Export Project (Weavr)
+                <ExportIcon sx={{ mr: 1 }} /> Export Model
               </MenuItem>
               {onStandardExport && (
                 <MenuItem onClick={onStandardExport}>
                   <ExportIcon sx={{ mr: 1 }} /> Export Standard (Strict)
                 </MenuItem>
               )}
-              <MenuItem onClick={handleImportClick}>
-                <ImportIcon sx={{ mr: 1 }} /> Import JSON
+              <Divider />
+              <MenuItem onClick={handleOpenClick}>
+                <FolderIcon sx={{ mr: 1 }} /> Open Project...
+              </MenuItem>
+              <MenuItem onClick={handleMergeClick}>
+                <ImportIcon sx={{ mr: 1 }} /> Import to Current
               </MenuItem>
             </Menu>
           </Box>
@@ -297,15 +317,19 @@ const Header: React.FC<HeaderProps> = ({
               </MenuItem>
               <Divider />
               <MenuItem onClick={() => { onExport(); handleMenuClose(); }}>
-                <ExportIcon sx={{ mr: 1 }} /> Export Project (Weavr)
+                <ExportIcon sx={{ mr: 1 }} /> Export Model
               </MenuItem>
               {onStandardExport && (
                 <MenuItem onClick={() => { onStandardExport(); handleMenuClose(); }}>
                   <ExportIcon sx={{ mr: 1 }} /> Export Standard (Strict)
                 </MenuItem>
               )}
-              <MenuItem onClick={handleImportClick}>
-                <ImportIcon sx={{ mr: 1 }} /> Import JSON
+              <Divider />
+              <MenuItem onClick={handleOpenClick}>
+                <FolderIcon sx={{ mr: 1 }} /> Open Project...
+              </MenuItem>
+              <MenuItem onClick={handleMergeClick}>
+                <ImportIcon sx={{ mr: 1 }} /> Import to Current
               </MenuItem>
               <Divider />
               <MenuItem onClick={() => { onOpenHelp(); handleMenuClose(); }}>

@@ -1,0 +1,2025 @@
+{
+    "meta": {
+        "version": "1.0.0",
+        "generator": "Weavr",
+        "createdAt": "2026-01-04T12:00:00.000Z",
+        "updatedAt": "2026-01-04T12:00:00.000Z",
+        "projectId": "weavr-self-model-complete",
+        "projectName": "Weavr Architecture (Complete)"
+    },
+    "eventModel": {
+        "slices": [
+            {
+                "id": "slice-add-node",
+                "title": "Add Element",
+                "sliceType": "STATE_CHANGE",
+                "context": "Workspace",
+                "processors": [
+                    {
+                        "id": "proc-auto-select",
+                        "title": "Selection Logic",
+                        "type": "AUTOMATION",
+                        "description": "Selects new node.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-auto-select-node",
+                                "type": "OUTBOUND",
+                                "title": "Issues",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "commands": [
+                    {
+                        "id": "cmd-select-type",
+                        "title": "Select Type",
+                        "type": "COMMAND",
+                        "description": "Via Menu.",
+                        "dependencies": [
+                            {
+                                "id": "evt-node-added",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "cmd-hotkey-add",
+                        "title": "Hotkey 'A'/'N'",
+                        "type": "COMMAND",
+                        "description": "Keyboard trigger.",
+                        "dependencies": [
+                            {
+                                "id": "evt-node-added",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "cmd-auto-select-node",
+                        "title": "Select Node",
+                        "type": "COMMAND",
+                        "description": "System action.",
+                        "dependencies": [
+                            {
+                                "id": "evt-selection-focus",
+                                "type": "OUTBOUND",
+                                "title": "Results in",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-node-added",
+                        "title": "Node Added",
+                        "type": "EVENT",
+                        "description": "Persisted to GunDB.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            },
+                            {
+                                "id": "proc-auto-select",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "AUTOMATION"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "evt-selection-focus",
+                        "title": "Selection Updated",
+                        "type": "EVENT",
+                        "description": "Auto-select new node.",
+                        "dependencies": [
+                            {
+                                "id": "rm-sel-state",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "Nodes/Links Map.",
+                        "dependencies": [],
+                        "fields": []
+                    },
+                    {
+                        "id": "rm-sel-state",
+                        "title": "Selection State",
+                        "type": "READMODEL",
+                        "description": "Active selection.",
+                        "dependencies": [
+                            {
+                                "id": "scr-prop-panel-add",
+                                "type": "OUTBOUND",
+                                "title": "Opens",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-toolbar-open",
+                        "title": "Toolbar",
+                        "type": "SCREEN",
+                        "description": "Open state.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-select-type",
+                                "type": "OUTBOUND",
+                                "title": "Click",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-visible",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Global view.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-hotkey-add",
+                                "type": "OUTBOUND",
+                                "title": "Press",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-prop-panel-add",
+                        "title": "Properties",
+                        "type": "SCREEN",
+                        "description": "Editing new node.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-move-node",
+                "title": "Move Node",
+                "sliceType": "STATE_CHANGE",
+                "context": "Canvas",
+                "commands": [
+                    {
+                        "id": "cmd-drag-node",
+                        "title": "Drag Node",
+                        "type": "COMMAND",
+                        "description": "Mouse interaction.",
+                        "dependencies": [
+                            {
+                                "id": "evt-pos-updated",
+                                "type": "OUTBOUND",
+                                "title": "Drop",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "cmd-nudge-node",
+                        "title": "Nudge (Arrows)",
+                        "type": "COMMAND",
+                        "description": "Keyboard interaction.",
+                        "dependencies": [
+                            {
+                                "id": "evt-pos-updated",
+                                "type": "OUTBOUND",
+                                "title": "Key Up",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "cmd-request-layout-mv",
+                        "title": "Request Layout",
+                        "type": "COMMAND",
+                        "description": "System command.",
+                        "dependencies": [
+                            {
+                                "id": "evt-layout-req-move",
+                                "type": "OUTBOUND",
+                                "title": "Results in",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "cmd-update-layout-mv",
+                        "title": "Update Layout",
+                        "type": "COMMAND",
+                        "description": "Apply new positions.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-pos-updated",
+                        "title": "Position Updated",
+                        "type": "EVENT",
+                        "description": "Coordinates changed.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model-mv",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            },
+                            {
+                                "id": "proc-layout-req",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "AUTOMATION"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "evt-layout-req-move",
+                        "title": "Layout Requested",
+                        "type": "EVENT",
+                        "description": "If unpinned/changed.",
+                        "dependencies": [
+                            {
+                                "id": "proc-elk-mv",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "AUTOMATION"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model-mv",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "New positions.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-moved",
+                                "type": "OUTBOUND",
+                                "title": "Renders",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "processors": [
+                    {
+                        "id": "proc-layout-req",
+                        "title": "Layout Policy",
+                        "type": "AUTOMATION",
+                        "description": "Checks if pinned.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-request-layout-mv",
+                                "type": "OUTBOUND",
+                                "title": "Issues",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "proc-elk-mv",
+                        "title": "ELK Service",
+                        "type": "AUTOMATION",
+                        "description": "Background worker.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-update-layout-mv",
+                                "type": "OUTBOUND",
+                                "title": "Issues",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-canvas-idle",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Nodes selected.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-drag-node",
+                                "type": "OUTBOUND",
+                                "title": "Drag",
+                                "elementType": "COMMAND"
+                            },
+                            {
+                                "id": "cmd-nudge-node",
+                                "type": "OUTBOUND",
+                                "title": "Press",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-moved",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Nodes moved.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-edit-props",
+                "title": "Edit Properties",
+                "sliceType": "STATE_CHANGE",
+                "context": "Editor",
+                "commands": [
+                    {
+                        "id": "cmd-edit-field",
+                        "title": "Update Field",
+                        "type": "COMMAND",
+                        "description": "Input change.",
+                        "dependencies": [
+                            {
+                                "id": "evt-node-updated",
+                                "type": "OUTBOUND",
+                                "title": "Blur/Enter",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-node-updated",
+                        "title": "Node Updated",
+                        "type": "EVENT",
+                        "description": "Metadata changed.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model-edit",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model-edit",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "Updated metadata.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-edit",
+                                "type": "OUTBOUND",
+                                "title": "Refreshes",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-prop-panel-edit",
+                        "title": "Properties",
+                        "type": "SCREEN",
+                        "description": "Form input.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-edit-field",
+                                "type": "OUTBOUND",
+                                "title": "Type",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-edit",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Updated label/color.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-connect",
+                "title": "Connect Elements",
+                "sliceType": "STATE_CHANGE",
+                "context": "Canvas",
+                "commands": [
+                    {
+                        "id": "cmd-drag-link",
+                        "title": "Drag Link",
+                        "type": "COMMAND",
+                        "description": "Handle to Target.",
+                        "dependencies": [
+                            {
+                                "id": "evt-link-added",
+                                "type": "OUTBOUND",
+                                "title": "Drop",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-link-added",
+                        "title": "Link Added",
+                        "type": "EVENT",
+                        "description": "New edge created.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model-link",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model-link",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "Includes new link.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-linked",
+                                "type": "OUTBOUND",
+                                "title": "Renders Edge",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-canvas-hover",
+                        "title": "Canvas (Handle)",
+                        "type": "SCREEN",
+                        "description": "Hovering port.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-drag-link",
+                                "type": "OUTBOUND",
+                                "title": "Drag",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-linked",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Link visible.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-delete",
+                "title": "Delete Element",
+                "sliceType": "STATE_CHANGE",
+                "context": "Editor",
+                "commands": [
+                    {
+                        "id": "cmd-hotkey-del",
+                        "title": "Delete Key",
+                        "type": "COMMAND",
+                        "description": "Keyboard.",
+                        "dependencies": [
+                            {
+                                "id": "evt-node-deleted",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "cmd-btn-del",
+                        "title": "Delete Button",
+                        "type": "COMMAND",
+                        "description": "Panel Action.",
+                        "dependencies": [
+                            {
+                                "id": "evt-node-deleted",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-node-deleted",
+                        "title": "Node Deleted",
+                        "type": "EVENT",
+                        "description": "Node removed.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model-del",
+                                "type": "OUTBOUND",
+                                "title": "Removes",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model-del",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "Reduced graph.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-del",
+                                "type": "OUTBOUND",
+                                "title": "Refreshes",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-canvas-sel",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Selection active.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-hotkey-del",
+                                "type": "OUTBOUND",
+                                "title": "Press",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-prop-panel-del",
+                        "title": "Properties",
+                        "type": "SCREEN",
+                        "description": "Panel open.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-btn-del",
+                                "type": "OUTBOUND",
+                                "title": "Click",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-del",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Element gone.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-sync",
+                "title": "Remote Sync",
+                "sliceType": "INTEGRATION",
+                "context": "Collaboration",
+                "commands": [
+                    {
+                        "id": "cmd-gundb-put",
+                        "title": "Merge Data",
+                        "type": "COMMAND",
+                        "description": "Internal Gun merge.",
+                        "dependencies": [
+                            {
+                                "id": "evt-graph-updated-remote",
+                                "type": "OUTBOUND",
+                                "title": "Results in",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-graph-updated-remote",
+                        "title": "Graph Updated",
+                        "type": "EVENT",
+                        "description": "External change applied.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model-sync",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model-sync",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "Synced state.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-sync",
+                                "type": "OUTBOUND",
+                                "title": "Live Update",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-canvas-sync",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Shows peer changes.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ],
+                "processors": [
+                    {
+                        "id": "proc-sync-listener",
+                        "title": "GunDB Listener",
+                        "type": "AUTOMATION",
+                        "description": "Listens for peer deltas.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-gundb-put",
+                                "type": "OUTBOUND",
+                                "title": "Invokes",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "integrationEvents": [
+                    {
+                        "id": "iev-peer-data",
+                        "title": "Peer Data",
+                        "type": "EVENT",
+                        "description": "Data from another user.",
+                        "dependencies": [
+                            {
+                                "id": "proc-sync-listener",
+                                "type": "OUTBOUND",
+                                "title": "Receives",
+                                "elementType": "AUTOMATION"
+                            }
+                        ],
+                        "fields": [],
+                        "context": "EXTERNAL"
+                    }
+                ]
+            },
+            {
+                "id": "slice-undo-redo",
+                "title": "Undo / Redo",
+                "sliceType": "STATE_CHANGE",
+                "context": "History",
+                "commands": [
+                    {
+                        "id": "cmd-undo",
+                        "title": "Undo Action",
+                        "type": "COMMAND",
+                        "description": "Click or Ctrl+Z.",
+                        "dependencies": [
+                            {
+                                "id": "evt-history-reverted",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-history-reverted",
+                        "title": "History Reverted",
+                        "type": "EVENT",
+                        "description": "Pop stack.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model-u",
+                                "type": "OUTBOUND",
+                                "title": "Restores",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model-u",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "Reverted state.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-reverted",
+                                "type": "OUTBOUND",
+                                "title": "Refreshes",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-header",
+                        "title": "Header",
+                        "type": "SCREEN",
+                        "description": "Toolbar.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-undo",
+                                "type": "OUTBOUND",
+                                "title": "Click",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-reverted",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Previous state.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-dictionary",
+                "title": "Data Dictionary",
+                "sliceType": "STATE_CHANGE",
+                "context": "Editor",
+                "commands": [
+                    {
+                        "id": "cmd-add-def",
+                        "title": "Add Definition",
+                        "type": "COMMAND",
+                        "description": "Create entity type.",
+                        "dependencies": [
+                            {
+                                "id": "evt-def-added",
+                                "type": "OUTBOUND",
+                                "title": "Creates",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-def-added",
+                        "title": "Definition Added",
+                        "type": "EVENT",
+                        "description": "New schema defined.",
+                        "dependencies": [
+                            {
+                                "id": "rm-dict-list",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-dict-list",
+                        "title": "Dictionary List",
+                        "type": "READMODEL",
+                        "description": "All definitions.",
+                        "dependencies": [
+                            {
+                                "id": "scr-dict-panel-updated",
+                                "type": "OUTBOUND",
+                                "title": "Lists",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-dict-panel",
+                        "title": "Dictionary",
+                        "type": "SCREEN",
+                        "description": "Empty form.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-add-def",
+                                "type": "OUTBOUND",
+                                "title": "Submit",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-dict-panel-updated",
+                        "title": "Dictionary",
+                        "type": "SCREEN",
+                        "description": "Shows new item.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-slice-mgmt",
+                "title": "Slice Management",
+                "sliceType": "STATE_CHANGE",
+                "context": "Editor",
+                "commands": [
+                    {
+                        "id": "cmd-add-slice",
+                        "title": "Add Slice",
+                        "type": "COMMAND",
+                        "description": "Create new swimlane.",
+                        "dependencies": [
+                            {
+                                "id": "evt-slice-added",
+                                "type": "OUTBOUND",
+                                "title": "Creates",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-slice-added",
+                        "title": "Slice Added",
+                        "type": "EVENT",
+                        "description": "New container.",
+                        "dependencies": [
+                            {
+                                "id": "rm-slice-list",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-slice-list",
+                        "title": "Slice List",
+                        "type": "READMODEL",
+                        "description": "Available slices.",
+                        "dependencies": [
+                            {
+                                "id": "scr-slice-panel-updated",
+                                "type": "OUTBOUND",
+                                "title": "Lists",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-slice-panel",
+                        "title": "Slices Panel",
+                        "type": "SCREEN",
+                        "description": "Form input.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-add-slice",
+                                "type": "OUTBOUND",
+                                "title": "Submit",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-slice-panel-updated",
+                        "title": "Slices Panel",
+                        "type": "SCREEN",
+                        "description": "With new slice.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-auto-layout",
+                "title": "Auto Layout",
+                "sliceType": "AUTOMATION",
+                "context": "Layout Engine",
+                "commands": [
+                    {
+                        "id": "cmd-request-layout",
+                        "title": "Request Layout",
+                        "type": "COMMAND",
+                        "description": "Magic Wand / 'L'.",
+                        "dependencies": [
+                            {
+                                "id": "evt-layout-requested",
+                                "type": "OUTBOUND",
+                                "title": "Results in",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "cmd-update-layout-lo",
+                        "title": "Update Layout",
+                        "type": "COMMAND",
+                        "description": "Apply new positions.",
+                        "dependencies": [
+                            {
+                                "id": "evt-layout-calculated",
+                                "type": "OUTBOUND",
+                                "title": "Results in",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-layout-requested",
+                        "title": "Layout Requested",
+                        "type": "EVENT",
+                        "description": "User trigger.",
+                        "dependencies": [
+                            {
+                                "id": "proc-elk-lo",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "AUTOMATION"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "evt-layout-calculated",
+                        "title": "Layout Calculated",
+                        "type": "EVENT",
+                        "description": "Worker output.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model-lo",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model-lo",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "Optimized positions.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-lo",
+                                "type": "OUTBOUND",
+                                "title": "Refreshes",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-header-lo",
+                        "title": "Header",
+                        "type": "SCREEN",
+                        "description": "Layout button.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-request-layout",
+                                "type": "OUTBOUND",
+                                "title": "Click",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-lo",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Organized.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ],
+                "processors": [
+                    {
+                        "id": "proc-elk-lo",
+                        "title": "ELK Worker",
+                        "type": "AUTOMATION",
+                        "description": "Calculates Nodes & Edges.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-update-layout-lo",
+                                "type": "OUTBOUND",
+                                "title": "Issues",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-export-import",
+                "title": "Export / Import",
+                "sliceType": "STATE_CHANGE",
+                "context": "System",
+                "commands": [
+                    {
+                        "id": "cmd-export",
+                        "title": "Export JSON",
+                        "type": "COMMAND",
+                        "description": "Download file.",
+                        "dependencies": [
+                            {
+                                "id": "evt-project-exported",
+                                "type": "OUTBOUND",
+                                "title": "Results in",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "cmd-import",
+                        "title": "Import JSON",
+                        "type": "COMMAND",
+                        "description": "Upload file.",
+                        "dependencies": [
+                            {
+                                "id": "evt-project-loaded",
+                                "type": "OUTBOUND",
+                                "title": "Results in",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-project-exported",
+                        "title": "Project Exported",
+                        "type": "EVENT",
+                        "description": "File generated.",
+                        "dependencies": [],
+                        "fields": []
+                    },
+                    {
+                        "id": "evt-project-loaded",
+                        "title": "Project Loaded",
+                        "type": "EVENT",
+                        "description": "Graph replaced.",
+                        "dependencies": [
+                            {
+                                "id": "rm-graph-model-imp",
+                                "type": "OUTBOUND",
+                                "title": "Replaces",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-graph-model-imp",
+                        "title": "Graph Model",
+                        "type": "READMODEL",
+                        "description": "New project state.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-imp",
+                                "type": "OUTBOUND",
+                                "title": "Renders",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-export-menu",
+                        "title": "Menu",
+                        "type": "SCREEN",
+                        "description": "Export option.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-export",
+                                "type": "OUTBOUND",
+                                "title": "Click",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-import-menu",
+                        "title": "Menu",
+                        "type": "SCREEN",
+                        "description": "Import option.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-import",
+                                "type": "OUTBOUND",
+                                "title": "Upload",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-imp",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "New project.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-navigation",
+                "title": "Navigation",
+                "sliceType": "STATE_CHANGE",
+                "context": "Canvas",
+                "commands": [
+                    {
+                        "id": "cmd-pan-zoom",
+                        "title": "Pan / Zoom",
+                        "type": "COMMAND",
+                        "description": "Mouse wheel/drag.",
+                        "dependencies": [
+                            {
+                                "id": "evt-view-updated",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-view-updated",
+                        "title": "View Updated",
+                        "type": "EVENT",
+                        "description": "Viewport changed.",
+                        "dependencies": [
+                            {
+                                "id": "rm-view-state",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-view-state",
+                        "title": "View State",
+                        "type": "READMODEL",
+                        "description": "x, y, scale.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-view",
+                                "type": "OUTBOUND",
+                                "title": "Transforms",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-canvas-nav",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Interactive area.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-pan-zoom",
+                                "type": "OUTBOUND",
+                                "title": "Interact",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-view",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Transformed view.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            },
+            {
+                "id": "slice-focused-nav",
+                "title": "Focused Navigation",
+                "sliceType": "STATE_CHANGE",
+                "context": "Canvas",
+                "commands": [
+                    {
+                        "id": "cmd-hotkey-focus",
+                        "title": "Focus (F)",
+                        "type": "COMMAND",
+                        "description": "Center on node.",
+                        "dependencies": [
+                            {
+                                "id": "evt-view-centered",
+                                "type": "OUTBOUND",
+                                "title": "Triggers",
+                                "elementType": "EVENT"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "events": [
+                    {
+                        "id": "evt-view-centered",
+                        "title": "View Centered",
+                        "type": "EVENT",
+                        "description": "Viewport target matched.",
+                        "dependencies": [
+                            {
+                                "id": "rm-view-state-foc",
+                                "type": "OUTBOUND",
+                                "title": "Updates",
+                                "elementType": "READ_MODEL"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "readmodels": [
+                    {
+                        "id": "rm-view-state-foc",
+                        "title": "View State",
+                        "type": "READMODEL",
+                        "description": "Centered on node.",
+                        "dependencies": [
+                            {
+                                "id": "scr-canvas-centered",
+                                "type": "OUTBOUND",
+                                "title": "Zooms to",
+                                "elementType": "SCREEN"
+                            }
+                        ],
+                        "fields": []
+                    }
+                ],
+                "screens": [
+                    {
+                        "id": "scr-canvas-foc",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Selection active.",
+                        "dependencies": [
+                            {
+                                "id": "cmd-hotkey-focus",
+                                "type": "OUTBOUND",
+                                "title": "Press F",
+                                "elementType": "COMMAND"
+                            }
+                        ],
+                        "fields": []
+                    },
+                    {
+                        "id": "scr-canvas-centered",
+                        "title": "Canvas",
+                        "type": "SCREEN",
+                        "description": "Centered view.",
+                        "dependencies": [],
+                        "fields": []
+                    }
+                ]
+            }
+        ]
+    },
+    "layout": {
+        "cmd-select-type": {
+            "x": 250,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Select Type"
+        },
+        "cmd-hotkey-add": {
+            "x": 250,
+            "y": 280,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Hotkey 'A'/'N'"
+        },
+        "cmd-auto-select-node": {
+            "x": 250,
+            "y": 460,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Select Node"
+        },
+        "evt-node-added": {
+            "x": 500,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Node Added"
+        },
+        "evt-selection-focus": {
+            "x": 500,
+            "y": 280,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Selection Updated"
+        },
+        "rm-graph-model": {
+            "x": 750,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "rm-sel-state": {
+            "x": 750,
+            "y": 280,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Selection State"
+        },
+        "scr-toolbar-open": {
+            "x": 0,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Toolbar"
+        },
+        "scr-canvas-visible": {
+            "x": 0,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "scr-prop-panel-add": {
+            "x": 0,
+            "y": 460,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Properties"
+        },
+        "proc-auto-select": {
+            "x": 500,
+            "y": 100,
+            "height": 120,
+            "type": "AUTOMATION",
+            "title": "Selection Logic"
+        },
+        "cmd-drag-node": {
+            "x": 1550,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Drag Node"
+        },
+        "cmd-nudge-node": {
+            "x": 1550,
+            "y": 280,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Nudge (Arrows)"
+        },
+        "cmd-request-layout-mv": {
+            "x": 1550,
+            "y": 460,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Request Layout"
+        },
+        "cmd-update-layout-mv": {
+            "x": 1550,
+            "y": 640,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Update Layout"
+        },
+        "evt-pos-updated": {
+            "x": 1800,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Position Updated"
+        },
+        "evt-layout-req-move": {
+            "x": 1800,
+            "y": 280,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Layout Requested"
+        },
+        "rm-graph-model-mv": {
+            "x": 2050,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "scr-canvas-idle": {
+            "x": 1300,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "scr-canvas-moved": {
+            "x": 1300,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "proc-layout-req": {
+            "x": 1800,
+            "y": 100,
+            "height": 120,
+            "type": "AUTOMATION",
+            "title": "Layout Policy"
+        },
+        "proc-elk-mv": {
+            "x": 1800,
+            "y": 280,
+            "height": 120,
+            "type": "AUTOMATION",
+            "title": "ELK Service"
+        },
+        "cmd-edit-field": {
+            "x": 2850,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Update Field"
+        },
+        "evt-node-updated": {
+            "x": 3100,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Node Updated"
+        },
+        "rm-graph-model-edit": {
+            "x": 3350,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "scr-prop-panel-edit": {
+            "x": 2600,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Properties"
+        },
+        "scr-canvas-edit": {
+            "x": 2600,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "cmd-drag-link": {
+            "x": 4150,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Drag Link"
+        },
+        "evt-link-added": {
+            "x": 4400,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Link Added"
+        },
+        "rm-graph-model-link": {
+            "x": 4650,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "scr-canvas-hover": {
+            "x": 3900,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas (Handle)"
+        },
+        "scr-canvas-linked": {
+            "x": 3900,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "cmd-hotkey-del": {
+            "x": 5450,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Delete Key"
+        },
+        "cmd-btn-del": {
+            "x": 5450,
+            "y": 280,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Delete Button"
+        },
+        "evt-node-deleted": {
+            "x": 5700,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Node Deleted"
+        },
+        "rm-graph-model-del": {
+            "x": 5950,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "scr-canvas-sel": {
+            "x": 5200,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "scr-prop-panel-del": {
+            "x": 5200,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Properties"
+        },
+        "scr-canvas-del": {
+            "x": 5200,
+            "y": 460,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "cmd-gundb-put": {
+            "x": 6750,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Merge Data"
+        },
+        "evt-graph-updated-remote": {
+            "x": 7000,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Graph Updated"
+        },
+        "rm-graph-model-sync": {
+            "x": 7250,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "scr-canvas-sync": {
+            "x": 6500,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "proc-sync-listener": {
+            "x": 7000,
+            "y": 100,
+            "height": 120,
+            "type": "AUTOMATION",
+            "title": "GunDB Listener"
+        },
+        "iev-peer-data": {
+            "x": 7000,
+            "y": 280,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Peer Data"
+        },
+        "cmd-undo": {
+            "x": 8050,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Undo Action"
+        },
+        "evt-history-reverted": {
+            "x": 8300,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "History Reverted"
+        },
+        "rm-graph-model-u": {
+            "x": 8550,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "scr-header": {
+            "x": 7800,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Header"
+        },
+        "scr-canvas-reverted": {
+            "x": 7800,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "cmd-add-def": {
+            "x": 9350,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Add Definition"
+        },
+        "evt-def-added": {
+            "x": 9600,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Definition Added"
+        },
+        "rm-dict-list": {
+            "x": 9850,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Dictionary List"
+        },
+        "scr-dict-panel": {
+            "x": 9100,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Dictionary"
+        },
+        "scr-dict-panel-updated": {
+            "x": 9100,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Dictionary"
+        },
+        "cmd-add-slice": {
+            "x": 10650,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Add Slice"
+        },
+        "evt-slice-added": {
+            "x": 10900,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Slice Added"
+        },
+        "rm-slice-list": {
+            "x": 11150,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Slice List"
+        },
+        "scr-slice-panel": {
+            "x": 10400,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Slices Panel"
+        },
+        "scr-slice-panel-updated": {
+            "x": 10400,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Slices Panel"
+        },
+        "cmd-request-layout": {
+            "x": 11950,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Request Layout"
+        },
+        "cmd-update-layout-lo": {
+            "x": 11950,
+            "y": 280,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Update Layout"
+        },
+        "evt-layout-requested": {
+            "x": 12200,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Layout Requested"
+        },
+        "evt-layout-calculated": {
+            "x": 12200,
+            "y": 280,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Layout Calculated"
+        },
+        "rm-graph-model-lo": {
+            "x": 12450,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "scr-header-lo": {
+            "x": 11700,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Header"
+        },
+        "scr-canvas-lo": {
+            "x": 11700,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "proc-elk-lo": {
+            "x": 12200,
+            "y": 100,
+            "height": 120,
+            "type": "AUTOMATION",
+            "title": "ELK Worker"
+        },
+        "cmd-export": {
+            "x": 13250,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Export JSON"
+        },
+        "cmd-import": {
+            "x": 13250,
+            "y": 280,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Import JSON"
+        },
+        "evt-project-exported": {
+            "x": 13500,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Project Exported"
+        },
+        "evt-project-loaded": {
+            "x": 13500,
+            "y": 280,
+            "height": 120,
+            "type": "EVENT",
+            "title": "Project Loaded"
+        },
+        "rm-graph-model-imp": {
+            "x": 13750,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "Graph Model"
+        },
+        "scr-export-menu": {
+            "x": 13000,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Menu"
+        },
+        "scr-import-menu": {
+            "x": 13000,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Menu"
+        },
+        "scr-canvas-imp": {
+            "x": 13000,
+            "y": 460,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "cmd-pan-zoom": {
+            "x": 14550,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Pan / Zoom"
+        },
+        "evt-view-updated": {
+            "x": 14800,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "View Updated"
+        },
+        "rm-view-state": {
+            "x": 15050,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "View State"
+        },
+        "scr-canvas-nav": {
+            "x": 14300,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "scr-canvas-view": {
+            "x": 14300,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "cmd-hotkey-focus": {
+            "x": 15850,
+            "y": 100,
+            "height": 120,
+            "type": "COMMAND",
+            "title": "Focus (F)"
+        },
+        "evt-view-centered": {
+            "x": 16100,
+            "y": 100,
+            "height": 120,
+            "type": "EVENT",
+            "title": "View Centered"
+        },
+        "rm-view-state-foc": {
+            "x": 16350,
+            "y": 100,
+            "height": 120,
+            "type": "READMODEL",
+            "title": "View State"
+        },
+        "scr-canvas-foc": {
+            "x": 15600,
+            "y": 100,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        },
+        "scr-canvas-centered": {
+            "x": 15600,
+            "y": 280,
+            "height": 120,
+            "type": "SCREEN",
+            "title": "Canvas"
+        }
+    },
+    "dataDictionary": {
+        "definitions": [
+            {
+                "id": "def-node",
+                "name": "Node",
+                "type": "Entity",
+                "description": "Graph element.",
+                "attributes": []
+            },
+            {
+                "id": "def-link",
+                "name": "Link",
+                "type": "Entity",
+                "description": "Connection.",
+                "attributes": []
+            }
+        ]
+    }
+}

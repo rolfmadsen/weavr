@@ -59,6 +59,7 @@ function getModelIdFromUrl(): string {
 
 const App: React.FC = () => {
   const [modelId, setModelId] = React.useState<string | null>(null);
+  const [pendingFitView, setPendingFitView] = React.useState(false);
 
   // 1. Initial Load
   useEffect(() => {
@@ -136,9 +137,12 @@ const App: React.FC = () => {
     canUndo,
     canRedo,
     gunUpdateNodePosition,
+    gunUpdateNodePositionsBatch, // Add this
     unpinAllNodes,
     unpinNode,
-    addToHistory // Add this to destructuring
+    addToHistory,
+    modelName: syncedModelName,
+    updateModelName: syncUpdateModelName
   } = useModelManager({
     modelId,
     viewState,
@@ -150,20 +154,34 @@ const App: React.FC = () => {
     onRequestAutoLayout: handleRequestAutoLayout
   });
 
+  // Fit View Effect whenever pendingFitView is true and nodes are present
+  useEffect(() => {
+    if (pendingFitView && nodes.length > 0) {
+      // Debounce slightly to ensure all nodes from the import batch are loaded
+      const timer = setTimeout(() => {
+        graphRef.current?.panToCenter();
+        setPendingFitView(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingFitView, nodes.length]);
+
   // 4. Layout Logic
   const { handleAutoLayout } = useLayoutManager({
     nodes,
     links,
     slicesWithNodes,
     gunUpdateNodePosition,
+    gunUpdateNodePositionsBatch, // Pass batch function
     updateEdgeRoutes,
-    addToHistory, // Pass real addToHistory
+    addToHistory,
     signal,
     layoutRequestId
   });
 
   // 5. Serialization
-  const { handleExport, handleStandardExport, handleImport } = useImportExport({
+  // 5. Serialization
+  const { handleExport, handleOpenProject, handleMergeImport } = useImportExport({
     modelId,
     nodes,
     links,
@@ -174,7 +192,8 @@ const App: React.FC = () => {
     clearSelection: () => { },
     handleClosePanel,
     manualPositionsRef,
-    updateEdgeRoutes
+    updateEdgeRoutes,
+    onImportComplete: () => setPendingFitView(true)
   });
 
   // Help Modal logic
@@ -271,14 +290,21 @@ const App: React.FC = () => {
     return id;
   };
 
+  // Sync GunDB name to Local Storage
+  useEffect(() => {
+    if (syncedModelName && syncedModelName !== 'Untitled Model' && syncedModelName !== currentModelName) {
+      handleRenameModel(syncedModelName);
+    }
+  }, [syncedModelName, currentModelName, handleRenameModel]);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <div className="w-screen h-[100dvh] overflow-hidden overscroll-none relative font-sans bg-gray-50 flex flex-col">
         <Header
-          onImport={handleImport}
+          onOpen={handleOpenProject}
+          onMerge={handleMergeImport}
           onExport={handleExport}
-          onStandardExport={handleStandardExport}
           onOpenHelp={() => setIsHelpModalOpen(true)}
           canUndo={canUndo}
           canRedo={canRedo}
@@ -288,7 +314,7 @@ const App: React.FC = () => {
           onUnpinAll={unpinAllNodes}
           onOpenModelList={() => setIsModelListOpen(true)}
           currentModelName={currentModelName}
-          onRenameModel={handleRenameModel}
+          onRenameModel={syncUpdateModelName} // connect to GunDB write
         />
 
         <GraphCanvas
@@ -380,7 +406,11 @@ const App: React.FC = () => {
         </Sidebar>
 
         <AppTelemetry nodeCount={nodes.length} linkCount={links.length} isReady={isReady} />
-        <HelpModal isOpen={isHelpModalOpen} onClose={() => { setIsHelpModalOpen(false); localStorage.setItem('weavr-intro-shown', 'true'); }} />
+        <HelpModal
+          isOpen={isHelpModalOpen}
+          onClose={() => { setIsHelpModalOpen(false); localStorage.setItem('weavr-intro-shown', 'true'); }}
+          onImport={handleOpenProject}
+        />
         <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
         <SliceManagerModal
           isOpen={isSliceManagerOpen}

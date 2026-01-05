@@ -52,7 +52,10 @@ export const useModelManager = ({
         deleteSlice,
         updateEdgeRoutes,
         unpinNode,
-        unpinAllNodes
+        unpinAllNodes,
+        updateNodePositionsBatch: gunUpdateNodePositionsBatch,
+        modelName,
+        updateModelName
     } = useGraphSync(modelId || '');
 
     // Derived: Slices with nodes
@@ -222,10 +225,11 @@ export const useModelManager = ({
     }, [selectedNodeIds, selectedLinkId, handleDeleteNode, handleDeleteLink, clearSelection]);
 
     const handleNodesDrag = useCallback((updates: { nodeId: string; pos: { x: number; y: number } }[]) => {
+        const batchUpdates: { id: string, x: number, y: number }[] = [];
         let shouldTriggerLayout = false;
 
         updates.forEach(({ nodeId, pos }) => {
-            gunUpdateNodePosition(nodeId, pos.x, pos.y);
+            batchUpdates.push({ id: nodeId, x: pos.x, y: pos.y });
             if (manualPositionsRef.current) {
                 manualPositionsRef.current.set(nodeId, pos);
             }
@@ -237,14 +241,22 @@ export const useModelManager = ({
             }
         });
 
+        if (batchUpdates.length > 0) {
+            gunUpdateNodePositionsBatch(batchUpdates);
+        }
+
         if (edgeRoutesMap && edgeRoutesMap.size > 0) {
             updateEdgeRoutes(new Map());
         }
 
         if (shouldTriggerLayout) {
-            onRequestAutoLayout?.();
+            // Debounce layout trigger for drags
+            const timer = setTimeout(() => {
+                onRequestAutoLayout?.();
+            }, 300);
+            return () => clearTimeout(timer);
         }
-    }, [gunUpdateNodePosition, manualPositionsRef, edgeRoutesMap, updateEdgeRoutes, onRequestAutoLayout, links]);
+    }, [gunUpdateNodePositionsBatch, manualPositionsRef, edgeRoutesMap, updateEdgeRoutes, onRequestAutoLayout, links]);
 
     const handleNodeClick = useCallback((nodeId: string, multi: boolean = false) => {
         selectNode(nodeId, multi);
@@ -295,8 +307,6 @@ export const useModelManager = ({
         onRequestAutoLayout?.();
     }, [unpinAllNodes, onRequestAutoLayout]);
 
-    // ...
-
     return {
         nodes,
         links,
@@ -340,7 +350,10 @@ export const useModelManager = ({
         clearSelection,
         setSelection,
         gunUpdateNodePosition,
+        gunUpdateNodePositionsBatch,
         unpinNode: handleUnpinNode,
-        unpinAllNodes: handleUnpinAllNodes
+        unpinAllNodes: handleUnpinAllNodes,
+        modelName,
+        updateModelName
     };
 };

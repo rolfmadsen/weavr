@@ -82,6 +82,12 @@ export function useGraphSync(modelId: string | null) {
     // Ref to track current definitions state for merging partial updates
     const definitionsRef = useRef<DataDefinition[]>([]);
 
+    // Ref to track last local update time per node for Echo Cancellation
+    const lastLocalUpdateRef = useRef(new Map<string, number>());
+
+    // State for Model Metadata
+    const [modelName, setModelName] = useState<string>('Untitled Model');
+
     // Sync nodesRef, linksRef, slicesRef, definitionsRef with state
     useEffect(() => {
         nodesRef.current = nodes;
@@ -124,9 +130,23 @@ export function useGraphSync(modelId: string | null) {
         let definitionUpdateTimer: ReturnType<typeof setTimeout> | null = null;
         let edgeRoutesUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 
+        // Subscription: Meta (Name)
+        const metaSub = model.get('meta').on((data: any) => {
+            if (data && data.name) {
+                setModelName(data.name);
+            }
+        });
+
         // 1. Subscribe to nodes
-        model.get('nodes').map().on((nodeData: GunNode | null, nodeId: string) => {
+        const nodesSub = model.get('nodes').map().on((nodeData: GunNode | null, nodeId: string) => {
             try {
+                // Echo Cancellation: Ignore updates if we modified this node locally recently (2s)
+                const lastLocal = lastLocalUpdateRef.current.get(nodeId);
+                if (lastLocal && Date.now() - lastLocal < 2000) {
+                    // console.log(`Ignoring echo/stale update for ${nodeId}`);
+                    return;
+                }
+
                 if (nodeData === null) {
                     tempNodesRef.current.delete(nodeId);
                     manualPositionsRef.current.delete(nodeId);
@@ -138,13 +158,15 @@ export function useGraphSync(modelId: string | null) {
 
                     // We need either an existing node to merge into, OR a full node definition (type & name)
                     if (existingNode || (nodeData.type && nodeData.name)) {
-                        const newNode: Partial<Node> = {
+                        const newNode: Node = {
                             id: nodeId,
                             type: (nodeData.type || existingNode?.type) as ElementType,
-                            name: nodeData.name || existingNode?.name,
+                            name: nodeData.name || existingNode?.name || '',
                             description: nodeData.description !== undefined ? nodeData.description : (existingNode?.description || ''),
-                            x: typeof nodeData.x === 'number' ? nodeData.x : existingNode?.x,
-                            y: typeof nodeData.y === 'number' ? nodeData.y : existingNode?.y,
+                            x: typeof nodeData.x === 'number' ? nodeData.x : (existingNode?.x || 0),
+                            y: typeof nodeData.y === 'number' ? nodeData.y : (existingNode?.y || 0),
+                            // width/height are computed properties not in DB usually, or handled by layout
+                            computedHeight: 0, // Will be recalc-ed by UI or hook consumers
                             fx: typeof nodeData.fx === 'number' ? nodeData.fx : existingNode?.fx,
                             fy: typeof nodeData.fy === 'number' ? nodeData.fy : existingNode?.fy,
                             sliceId: nodeData.sliceId !== undefined ? nodeData.sliceId : existingNode?.sliceId,
@@ -163,7 +185,9 @@ export function useGraphSync(modelId: string | null) {
                             if (newNode.fx != null && newNode.fy != null) {
                                 manualPositionsRef.current.set(nodeId, { x: newNode.fx!, y: newNode.fy! });
                             }
-                            tempNodesRef.current.set(nodeId, newNode as Node);
+                            // Recalculate computedHeight if possible (simple approx) or leave for UI
+                            newNode.computedHeight = 40; // Default
+                            tempNodesRef.current.set(nodeId, newNode);
                         }
                     }
                 }
@@ -181,7 +205,7 @@ export function useGraphSync(modelId: string | null) {
         });
 
         // 2. Subscribe to links
-        model.get('links').map().on((linkData: GunLink | null, linkId: string) => {
+        const linksSub = model.get('links').map().on((linkData: GunLink | null, linkId: string) => {
             try {
                 if (linkData === null) {
                     tempLinksRef.current.delete(linkId);
@@ -189,16 +213,16 @@ export function useGraphSync(modelId: string | null) {
                     const existingLink = tempLinksRef.current.get(linkId) || linksRef.current.find(l => l.id === linkId);
 
                     if (existingLink || (linkData.source && linkData.target)) {
-                        const newLink: Partial<Link> = {
+                        const newLink: Link = {
                             id: linkId,
-                            source: linkData.source || existingLink?.source,
-                            target: linkData.target || existingLink?.target,
+                            source: linkData.source || existingLink?.source || '',
+                            target: linkData.target || existingLink?.target || '',
                             label: linkData.label !== undefined ? linkData.label : (existingLink?.label || ''),
                             type: (linkData.type || existingLink?.type) as "FLOW" | "DATA_DEPENDENCY",
                         };
 
                         if (newLink.source && newLink.target) {
-                            tempLinksRef.current.set(linkId, newLink as Link);
+                            tempLinksRef.current.set(linkId, newLink);
                         }
                     }
                 }
@@ -215,8 +239,8 @@ export function useGraphSync(modelId: string | null) {
         });
 
         // 3. Subscribe to slices
-        console.log(`[Sync] Subscribing to slices for model ${modelId}`);
-        model.get('slices').map().on((sliceData: GunSlice | null, sliceId: string) => {
+        // console.log(`[Sync] Subscribing to slices for model ${modelId}`);
+        const slicesSub = model.get('slices').map().on((sliceData: GunSlice | null, sliceId: string) => {
             // console.log(`[Sync] Received slice update:`, sliceId, sliceData);
             try {
                 if (sliceData === null) {
@@ -251,7 +275,7 @@ export function useGraphSync(modelId: string | null) {
         });
 
         // 4. Subscribe to definitions
-        model.get('definitions').map().on((defData: GunDefinition | null, defId: string) => {
+        const defsSub = model.get('definitions').map().on((defData: GunDefinition | null, defId: string) => {
             try {
                 if (defData === null) {
                     tempDefinitionsRef.current.delete(defId);
@@ -291,7 +315,7 @@ export function useGraphSync(modelId: string | null) {
         });
 
         // 5. Subscribe to Edge Routes (Snapshot)
-        model.get('edgeRoutes').on((data: GunEdgeRoutes | null) => {
+        const routesSub = model.get('edgeRoutes').on((data: GunEdgeRoutes | null) => {
             try {
                 if (data === null || !data.routes) {
                     tempEdgeRoutesRef.current.clear();
@@ -323,14 +347,27 @@ export function useGraphSync(modelId: string | null) {
             if (sliceUpdateTimer) clearTimeout(sliceUpdateTimer);
             if (definitionUpdateTimer) clearTimeout(definitionUpdateTimer);
             if (edgeRoutesUpdateTimer) clearTimeout(edgeRoutesUpdateTimer);
+
+            metaSub.off();
+            nodesSub.off();
+            linksSub.off();
+            slicesSub.off();
+            defsSub.off();
+            routesSub.off();
         };
 
+    }, [modelId]);
+
+    const updateModelName = useCallback((name: string) => {
+        if (!modelId) return;
+        gunClient.getModel(modelId).get('meta').put({ name });
     }, [modelId]);
 
     const addNode = useCallback((type: ElementType, x: number, y: number, id?: string, sliceId?: string) => {
         if (!modelId) return;
         const model = gunClient.getModel(modelId);
         const nodeId = id || uuidv4();
+        if (!nodeId) return nodeId;
 
         const formattedTypeName = type.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 
@@ -363,7 +400,7 @@ export function useGraphSync(modelId: string | null) {
     }, [modelId]);
 
     const updateNode = useCallback((nodeId: string, updates: Partial<Node>) => {
-        if (!modelId) return;
+        if (!modelId || !nodeId) return;
 
         // Special handling for pinning: if unpinning, clear fixed coordinates
         const enhancedUpdates = { ...updates };
@@ -396,13 +433,18 @@ export function useGraphSync(modelId: string | null) {
         if (updates.pinned === false) {
             sanitizedUpdates.fx = null;
             sanitizedUpdates.fy = null;
+            // Also clear manual override ref
+            manualPositionsRef.current.delete(nodeId);
         }
 
         gunClient.getModel(modelId).get('nodes').get(nodeId).put(sanitizedUpdates);
+
+        // Echo Cancellation
+        lastLocalUpdateRef.current.set(nodeId, Date.now());
     }, [modelId]);
 
     const deleteNode = useCallback((nodeId: string) => {
-        if (!modelId) return;
+        if (!modelId || !nodeId) return;
         const model = gunClient.getModel(modelId);
 
         setNodes(prev => prev.filter(n => n.id !== nodeId)); // Optimistic update
@@ -434,6 +476,7 @@ export function useGraphSync(modelId: string | null) {
         }
 
         const linkId = id || uuidv4();
+        if (!linkId) return linkId;
         const newLinkData = { source: sourceId, target: targetId, label: label || '' };
 
         const newLink: Link = { id: linkId, ...newLinkData };
@@ -447,7 +490,7 @@ export function useGraphSync(modelId: string | null) {
 
 
     const updateLink = useCallback((linkId: string, updates: Partial<Link>) => {
-        if (!modelId) return;
+        if (!modelId || !linkId) return;
         setLinks(currentLinks => currentLinks.map(link => (link.id === linkId ? { ...link, ...updates } : link)));
 
         // Update temp ref
@@ -470,7 +513,7 @@ export function useGraphSync(modelId: string | null) {
     }, [modelId]);
 
     const deleteLink = useCallback((linkId: string) => {
-        if (!modelId) return;
+        if (!modelId || !linkId) return;
 
         setLinks(prev => prev.filter(l => l.id !== linkId)); // Optimistic update
         linksRef.current = linksRef.current.filter(l => l.id !== linkId); // Immediate ref update
@@ -481,7 +524,7 @@ export function useGraphSync(modelId: string | null) {
 
 
     const updateNodePosition = useCallback((nodeId: string, x: number, y: number, pinned?: boolean) => {
-        if (!modelId) return;
+        if (!modelId || !nodeId) return;
 
         // If pinned is not provided, we assume it's a user action (default to true)
         const finalPinned = pinned !== undefined ? pinned : true;
@@ -525,16 +568,89 @@ export function useGraphSync(modelId: string | null) {
             fy: finalPinned ? safeY : null,
             pinned: finalPinned
         });
+
+        // Echo Cancellation
+        lastLocalUpdateRef.current.set(nodeId, Date.now());
+    }, [modelId]);
+
+    const updateNodePositionsBatch = useCallback((updates: { id: string, x: number, y: number, pinned?: boolean }[]) => {
+        if (!modelId || updates.length === 0) return;
+
+        const batch: Record<string, any> = {};
+
+        updates.forEach(({ id, x, y, pinned }) => {
+            if (!id) return;
+            // Echo Cancellation
+            lastLocalUpdateRef.current.set(id, Date.now());
+
+            const safeX = isNaN(x) ? 0 : x;
+            const safeY = isNaN(y) ? 0 : y;
+            const finalPinned = pinned !== undefined ? pinned : true;
+
+            // Prepare GunDB batch payload
+            batch[id] = {
+                x: safeX,
+                y: safeY,
+                fx: finalPinned ? safeX : null,
+                fy: finalPinned ? safeY : null,
+                pinned: finalPinned
+            };
+
+            // Update local refs
+            const existing = tempNodesRef.current.get(id);
+            if (existing) {
+                tempNodesRef.current.set(id, {
+                    ...existing,
+                    x: safeX,
+                    y: safeY,
+                    fx: finalPinned ? safeX : undefined,
+                    fy: finalPinned ? safeY : undefined,
+                    pinned: finalPinned
+                });
+            }
+            manualPositionsRef.current.set(id, { x: safeX, y: safeY });
+        });
+
+        // Optimistic State Update
+        setNodes(currentNodes => {
+            const updateMap = new Map(updates.map(u => [u.id, u]));
+            return currentNodes.map(node => {
+                const update = updateMap.get(node.id);
+                if (update) {
+                    const finalPinned = update.pinned !== undefined ? update.pinned : true;
+                    return {
+                        ...node,
+                        x: update.x,
+                        y: update.y,
+                        fx: finalPinned ? update.x : undefined,
+                        fy: finalPinned ? update.y : undefined,
+                        pinned: finalPinned
+                    };
+                }
+                return node;
+            });
+        });
+
+        // Execute Batch Update
+        gunClient.getModel(modelId).get('nodes').put(batch);
+
     }, [modelId]);
 
     const unpinNode = useCallback((nodeId: string) => {
-        if (!modelId) return;
+        if (!modelId || !nodeId) return;
+
+        // Set echo cancellation lock
+        lastLocalUpdateRef.current.set(nodeId, Date.now());
+
+        // Optimistic State Update
         setNodes(currentNodes => currentNodes.map(node => (node.id === nodeId ? { ...node, pinned: false, fx: undefined, fy: undefined } : node)));
 
-        // Update temp ref to prevent subscription from overwriting with stale data
-        const existing = tempNodesRef.current.get(nodeId);
-        if (existing) {
-            tempNodesRef.current.set(nodeId, { ...existing, pinned: false, fx: undefined, fy: undefined });
+        // Immediate Ref Update (Race Condition Protection)
+        const updatedNode = nodesRef.current.find(n => n.id === nodeId);
+        if (updatedNode) {
+            const newNodeState = { ...updatedNode, pinned: false, fx: undefined, fy: undefined };
+            nodesRef.current = nodesRef.current.map(n => n.id === nodeId ? newNodeState : n); // Update array in place/ref
+            tempNodesRef.current.set(nodeId, newNodeState as Node); // Force update temp ref
         }
 
         manualPositionsRef.current.delete(nodeId);
@@ -543,26 +659,29 @@ export function useGraphSync(modelId: string | null) {
 
     const unpinAllNodes = useCallback(() => {
         if (!modelId) return;
-        nodes.forEach(node => {
+
+        // Immediate Ref Update & Temp Ref Update
+        const newNodes = nodesRef.current.map(node => {
             if (node.pinned) {
-                // Update temp ref for each node
-                const existing = tempNodesRef.current.get(node.id);
-                if (existing) {
-                    tempNodesRef.current.set(node.id, { ...existing, pinned: false, fx: undefined, fy: undefined });
-                }
-
-                gunClient.getModel(modelId).get('nodes').get(node.id).put({ pinned: false, fx: null, fy: null });
+                lastLocalUpdateRef.current.set(node.id, Date.now()); // Lock each node in Echo Cancellation
                 manualPositionsRef.current.delete(node.id);
+                gunClient.getModel(modelId).get('nodes').get(node.id).put({ pinned: false, fx: null, fy: null });
+                const newNodeState = { ...node, pinned: false, fx: undefined, fy: undefined };
+                tempNodesRef.current.set(node.id, newNodeState as Node);
+                return newNodeState;
             }
+            return node;
         });
-        setNodes(currentNodes => currentNodes.map(node => ({ ...node, pinned: false, fx: undefined, fy: undefined })));
-    }, [modelId, nodes]);
 
+        nodesRef.current = newNodes;
+        setNodes(newNodes);
+    }, [modelId]);
     // --- Slice Management ---
 
     const addSlice = useCallback((title: string, order: number, type?: SliceType, context?: string) => {
         if (!modelId) return;
         const sliceId = uuidv4();
+        if (!sliceId) return;
         const gunPayload = {
             title: title || 'Untitled',
             order: order || 0,
@@ -590,7 +709,7 @@ export function useGraphSync(modelId: string | null) {
     }, [modelId]);
 
     const updateSlice = useCallback((sliceId: string, updates: Partial<Slice>) => {
-        if (!modelId) return;
+        if (!modelId || !sliceId) return;
         // Optimistic update
         setSlices(currentSlices => currentSlices.map(s => (s.id === sliceId ? { ...s, ...updates } : s)).sort((a, b) => (a.order || 0) - (b.order || 0)));
 
@@ -619,7 +738,7 @@ export function useGraphSync(modelId: string | null) {
     }, [modelId]);
 
     const deleteSlice = useCallback((sliceId: string) => {
-        if (!modelId) return;
+        if (!modelId || !sliceId) return;
 
         setSlices(prev => prev.filter(s => s.id !== sliceId)); // Optimistic update
         slicesRef.current = slicesRef.current.filter(s => s.id !== sliceId); // Immediate ref update
@@ -637,6 +756,7 @@ export function useGraphSync(modelId: string | null) {
         if (!modelId) return;
         // Use UUID for ID to allow renaming without breaking references
         const defId = uuidv4();
+        if (!defId) return;
         const newDefData = {
             name: def.name,
             type: def.type || DefinitionType.Entity,
@@ -654,7 +774,7 @@ export function useGraphSync(modelId: string | null) {
     }, [modelId]);
 
     const updateDefinition = useCallback((defId: string, updates: Partial<DataDefinition>) => {
-        if (!modelId) return;
+        if (!modelId || !defId) return;
         setDefinitions(currentDefs => currentDefs.map(d => (d.id === defId ? { ...d, ...updates } : d)));
 
         // Update temp ref
@@ -678,7 +798,7 @@ export function useGraphSync(modelId: string | null) {
     }, [modelId]);
 
     const deleteDefinition = useCallback((defId: string) => {
-        if (!modelId) return;
+        if (!modelId || !defId) return;
 
         setDefinitions(prev => prev.filter(d => d.id !== defId)); // Optimistic update
         definitionsRef.current = definitionsRef.current.filter(d => d.id !== defId); // Immediate ref update
@@ -702,6 +822,7 @@ export function useGraphSync(modelId: string | null) {
         updateLink,
         deleteLink,
         updateNodePosition,
+        updateNodePositionsBatch,
         addSlice,
         updateSlice,
         deleteSlice,
@@ -721,6 +842,8 @@ export function useGraphSync(modelId: string | null) {
             setEdgeRoutesMap(new Map(routes));
             tempEdgeRoutesRef.current = new Map(routes);
         },
-        edgeRoutesMap
+        edgeRoutesMap,
+        modelName,
+        updateModelName
     };
 }

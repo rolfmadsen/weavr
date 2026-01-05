@@ -8,12 +8,14 @@ import {
   DomainEventIcon,
   ReadModelIcon,
   IntegrationEventIcon,
-  AutomationIcon
+  AutomationIcon,
+  ExportIcon as LoadIcon
 } from '../../../shared/components/icons';
 
 interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onImport: (file: File) => void;
 }
 
 const Kbd: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -29,8 +31,24 @@ const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> 
   [ElementType.Automation]: { name: 'Automation', icon: <AutomationIcon /> },
 };
 
-const IntroductionContent = () => (
+const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadExample }) => (
   <div className="space-y-6">
+    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <h3 className="text-lg font-bold text-indigo-900">New to Event Modeling?</h3>
+        <p className="text-indigo-700 text-sm mt-1">
+          Load a complete example project to see how Weavr models itself.
+        </p>
+      </div>
+      <button
+        onClick={onLoadExample}
+        className="shrink-0 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+      >
+        <LoadIcon className="w-5 h-5" />
+        Load Example Project
+      </button>
+    </div>
+
     <p className="text-base">
       <strong className="font-semibold text-indigo-600">Event Modeling</strong> is a visual way to design systems by focusing on how information changes over time. You build a complete "story" of your system with each chapter being a slice or building block told from left to right.
     </p>
@@ -40,7 +58,7 @@ const IntroductionContent = () => (
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
         <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
           <li>
-            <strong>Local-First:</strong> Data is stored exclusively in your browser (IndexedDB). We have no access to it.
+            <strong>Local-First:</strong> Data is stored exclusively in your browser (IndexedDB). Weavr has no access to it.
           </li>
           <li>
             <strong>Persistence:</strong> Your data remains here as long as you don't clear your browser's "Site Data" or "Cache".
@@ -49,6 +67,33 @@ const IntroductionContent = () => (
             <strong>Backups:</strong> To keep your data safe from accidental deletion, use the <strong>Export</strong> button in the top header to save a <code>.json</code> file to your computer.
           </li>
         </ul>
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={async () => {
+              if (confirm("DANGER: This will delete ALL local projects and settings. This cannot be undone. Are you sure?")) {
+                if (confirm("Double Check: Have you exported your work? This will wipe your browser database.")) {
+                  // Clear LocalStorage
+                  localStorage.clear();
+
+                  // Clear IndexedDB (GunDB default)
+                  try {
+                    const databases = await window.indexedDB.databases();
+                    for (const db of databases) {
+                      if (db.name) window.indexedDB.deleteDatabase(db.name);
+                    }
+                  } catch (e) {
+                    console.error("Failed to clear IndexedDB", e);
+                  }
+
+                  window.location.reload();
+                }
+              }
+            }}
+            className="text-xs text-red-600 hover:text-red-800 font-semibold underline decoration-red-300 hover:decoration-red-800"
+          >
+            Reset Application Data (Troubleshooting Only)
+          </button>
+        </div>
       </div>
     </div>
 
@@ -82,7 +127,7 @@ const IntroductionContent = () => (
             <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Domain Event(s)</span>
           </div>
           <p className="text-gray-600 text-sm">
-            State Change Pattern describes a state change and its way from the start (what is the trigger?) to the end (what is the state change?). It starts with a white box (Screen), followed by a blue box (Command) and then one or multiple yellow boxes (Event). At first each box should be given a name in order to give the use case a meaning in the context of the business.
+            State Change Pattern describes a state change and its way from the start (what is the trigger?) to the end (what is the state change?). It starts with a white box (Screen), followed by a blue box (Command) and then one or multiple yellow boxes (Event).
           </p>
         </div>
 
@@ -95,7 +140,7 @@ const IntroductionContent = () => (
             <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>View</span>
           </div>
           <p className="text-gray-600 text-sm">
-            State View Pattern connects existing events from the board to a green “Read Model (View)” box. That leads to a quick overview of what information will be used by it. On the other hand that means that only information that already exists can be interpreted and presented in the view. So it should be noticed quickly if anything is missing or forgotton.
+            State View Pattern connects existing events from the board to a green “Read Model (View)” box. That leads to a quick overview of what information will be used by it.
           </p>
         </div>
 
@@ -111,10 +156,7 @@ const IntroductionContent = () => (
             <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Domain Event(s)</span>
           </div>
           <p className="text-gray-600 text-sm">
-            Use this pattern whenever the system should do something automatically.
-            If you look at the chain of the pattern, you see that it´s nearly the same as a combined
-            form of a Command and View Pattern. With a robot sitting in the middle.
-            You could describe the same thing, replacing only the triggering robot by a user.
+            Use this pattern whenever the system should do something automatically. It is essentially a combined Command and View Pattern with an automated trigger in the middle.
           </p>
         </div>
 
@@ -130,13 +172,66 @@ const IntroductionContent = () => (
             <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event(s)</span>
           </div>
           <p className="text-gray-600 text-sm">
-            The chain of building blocks looks the same as with the automation pattern in the first place. That´s because it is the same thing. The only difference in this pattern is, that the translation pattern is used for transferring knowledge from one system into another system. Whenever you have to tell another system that something happened, use this pattern.
+            Used for transferring knowledge from one system into another. Whenever you have to tell another system that something happened, use this pattern.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 className="text-lg font-bold text-red-800 mb-2 pt-4 border-t border-gray-100">
+        The 4 Anti-Patterns (Overcomplication)
+      </h3>
+      <div className="space-y-6">
+        <div>
+          <h4 className="font-bold text-gray-800 mb-1">The Left Chair</h4>
+          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+            <span className="font-semibold">Screen</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> +
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> +
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event...</span>
+          </div>
+          <p className="text-gray-600 text-sm">
+            One command triggering too many events. This often happens when business logic is crammed into one place instead of being broken down into separate state changes.
           </p>
         </div>
 
+        <div>
+          <h4 className="font-bold text-gray-800 mb-1">The Right Chair</h4>
+          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> +
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> +
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>View</span>
+          </div>
+          <p className="text-gray-600 text-sm">
+            Many events feeding into a single read model. This indicates a "Summary View" that knows everything, potentially creating high coupling.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-bold text-gray-800 mb-1">The Bed</h4>
+          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+            <span className="font-semibold">Screen</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> +
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> +
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span>
+          </div>
+          <p className="text-gray-600 text-sm">
+            One UI component firing multiple commands in sequence. This reveals orchestration happening in the front-end instead of letting the event flow handle the sequence.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-bold text-gray-800 mb-1">The Bookshelf</h4>
+          <p className="text-gray-600 text-sm">
+            One slice contains all your business rules and logic (Given-When-Thens), while others are anemic. This is a "God-Object" in visual form where one slice does everything.
+          </p>
+        </div>
       </div>
     </div>
-  </div >
+  </div>
 );
 
 const ControlsContent = () => (
@@ -189,7 +284,6 @@ const ControlsContent = () => (
       <ul className="list-disc list-inside space-y-1">
         <li>Hover over an element to see its connection handles.</li>
         <li>Drag a handle from a source element to a target element to create a link.</li>
-        <li>The canvas provides feedback on valid connections.</li>
       </ul>
     </div>
   </div>
@@ -212,8 +306,22 @@ const TabButton: React.FC<{
   </button>
 );
 
-const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
+const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
   const [activeTab, setActiveTab] = useState<'introduction' | 'controls'>('introduction');
+
+  const handleLoadExample = async () => {
+    try {
+      const response = await fetch(`/examples/weavr-model.json?t=${Date.now()}`);
+      if (!response.ok) throw new Error('Failed to load example');
+      const blob = await response.blob();
+      const file = new File([blob], 'Weavr-Self-Model.json', { type: 'application/json' });
+      onImport(file);
+      onClose();
+    } catch (error) {
+      console.error('Error loading example:', error);
+      alert('Failed to load example project. Please try again.');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -251,7 +359,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-6 overflow-y-auto text-gray-700">
-          {activeTab === 'introduction' && <IntroductionContent />}
+          {activeTab === 'introduction' && <IntroductionContent onLoadExample={handleLoadExample} />}
           {activeTab === 'controls' && <ControlsContent />}
         </div>
 

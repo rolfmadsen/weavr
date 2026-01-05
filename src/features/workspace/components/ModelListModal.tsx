@@ -46,7 +46,28 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
 
     const confirmDelete = () => {
         if (deleteModelId) {
+            // Check if we are deleting the CURRENT active model
+            const isDeletingCurrent = deleteModelId === currentModelId;
+
+            // Remove the model
             removeModel(deleteModelId);
+
+            if (isDeletingCurrent) {
+                // Determine restart strategy
+                const remainingModels = models
+                    .filter(m => m.id !== deleteModelId)
+                    .sort((a, b) => b.updatedAt - a.updatedAt);
+
+                if (remainingModels.length > 0) {
+                    // Switch to newest model
+                    const nextModel = remainingModels[0];
+                    window.location.hash = nextModel.id;
+                } else {
+                    // No models left, start fresh
+                    window.location.hash = uuidv4();
+                }
+            }
+
             setDeleteModelId(null);
             setDeleteAnchorEl(null);
         }

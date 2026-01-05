@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useCallback, useMemo } from 'react';
 import RBush from 'rbush';
 import { Node } from '../../modeling';
 import { NODE_WIDTH, MIN_NODE_HEIGHT } from '../../../shared/constants';
@@ -14,15 +14,11 @@ export interface SpatialNode {
 }
 
 export const useSpatialIndex = (nodes: Node[]) => {
-    const treeRef = useRef<RBush<SpatialNode>>(new RBush());
-
-    // Rebuild index when nodes change
-    // Note: If nodes change frequently (e.g. every drag frame), this might be too heavy.
-    // But usually 'nodes' state in React updates on drag END or via optimistic updates.
-    // If we use optimistic updates on drag, we need to be careful.
-    // For now, let's assume full rebuild is okay for < 5000 nodes.
-    useEffect(() => {
-        const tree = new RBush<SpatialNode>();
+    // Rebuild index whenever nodes change.
+    // usage of useMemo ensures the tree is ready during render, preventing race conditions
+    // where the canvas tries to query the tree before a useEffect would have updated it.
+    const tree = useMemo(() => {
+        const t = new RBush<SpatialNode>();
         const bulk: SpatialNode[] = nodes.map(node => {
             const height = calculateNodeHeight(node.name) || MIN_NODE_HEIGHT;
             return {
@@ -34,13 +30,13 @@ export const useSpatialIndex = (nodes: Node[]) => {
                 node: node
             };
         });
-        tree.load(bulk);
-        treeRef.current = tree;
+        t.load(bulk);
+        return t;
     }, [nodes]);
 
     const search = useCallback((rect: { minX: number, minY: number, maxX: number, maxY: number }): SpatialNode[] => {
-        return treeRef.current.search(rect);
-    }, []);
+        return tree.search(rect);
+    }, [tree]);
 
     return { search };
 };

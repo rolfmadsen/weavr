@@ -339,12 +339,13 @@ export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record
     }
 
     // 1. Reconstruct Slices
-    sourceSlices.forEach((s: any) => {
+    sourceSlices.forEach((s: any, index: number) => {
         slices.push({
             id: s.id,
             title: s.title,
+            order: typeof s.order === 'number' ? s.order : index, // Preserve order or default to index
             nodeIds: new Set(), // Will populate
-            color: '#ffffff' // Default
+            color: s.color || '#e5e7eb' // Default to visible gray
         });
 
         // Flatten elements

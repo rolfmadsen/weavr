@@ -396,7 +396,66 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 setStageScale(scale);
             }
         },
-        panToCenter: () => { },
+        panToCenter: () => {
+            if (!stageRef.current || safeNodes.length === 0) return;
+            const stage = stageRef.current;
+
+            const padding = 50;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+            safeNodes.forEach(node => {
+                const x = node.x ?? 0;
+                const y = node.y ?? 0;
+                const w = NODE_WIDTH;
+                const h = node.computedHeight || MIN_NODE_HEIGHT;
+
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x + w > maxX) maxX = x + w;
+                if (y + h > maxY) maxY = y + h;
+            });
+
+            if (minX === Infinity) return; // Should likely be covered by length check
+
+            const contentWidth = maxX - minX;
+            const contentHeight = maxY - minY;
+            const availableWidth = dimensions.width - padding * 2;
+            const availableHeight = dimensions.height - padding * 2;
+
+            const scaleX = availableWidth / contentWidth;
+            const scaleY = availableHeight / contentHeight;
+            // Clamp scale to reasonable limits (e.g. don't zoom in too much if few nodes)
+            const scale = Math.min(Math.min(scaleX, scaleY), 1.5);
+
+            // Center the content
+            const cx = minX + contentWidth / 2;
+            const cy = minY + contentHeight / 2;
+
+            const newX = dimensions.width / 2 - cx * scale;
+            const newY = dimensions.height / 2 - cy * scale;
+
+            stage.to({
+                x: newX,
+                y: newY,
+                scaleX: scale,
+                scaleY: scale,
+                duration: 0.5,
+                easing: Konva.Easings.EaseInOut,
+                onFinish: () => {
+                    setStagePos({ x: newX, y: newY });
+                    setStageScale(scale);
+                    updateVisibleNodes();
+
+                    onViewChange?.({
+                        x: newX,
+                        y: newY,
+                        scale,
+                        width: stage.width(),
+                        height: stage.height()
+                    });
+                }
+            });
+        },
         handleNavigate: (x: number, y: number) => {
             if (!stageRef.current) return;
             const stage = stageRef.current;
@@ -565,7 +624,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 }}
                 onDragMove={(e) => {
                     handleDragMove(e);
-                    // REMOVED setStagePos to prevents rerenders
+                    updateVisibleNodes(false); // Update virtualization during drag (throttled)
                 }}
                 onDragEnd={(e) => {
                     if (e.target === e.target.getStage()) {
