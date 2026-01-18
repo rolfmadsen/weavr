@@ -18,6 +18,15 @@ export const usePlausible = () => {
                 hashBasedRouting: true,
                 // Enable localhost tracking for testing purposes
                 captureOnLocalhost: true,
+                // Redact sensitive hash (Model ID) from URL
+                transformRequest: (eventData: any) => {
+                    const url = new URL(eventData.url);
+                    if (url.hash && url.hash.length > 2) {
+                        url.hash = '#/model'; // Replace specific ID with generic placeholder
+                        eventData.url = url.toString();
+                    }
+                    return eventData;
+                },
             });
             initialized.current = true;
         }
