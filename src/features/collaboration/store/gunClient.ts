@@ -10,6 +10,25 @@ import 'gun/lib/radisk';
 import 'gun/lib/store';
 import 'gun/lib/rindexed';
 
+// --- MONKEY PATCH START ---
+// ADR: 0003-patch-gun-radix-corruption.md
+// Prevent "TypeError: Cannot create property '' on number" when Radix encounters a primitive where an object is expected.
+if (typeof window !== 'undefined' && (window as any).Radix) {
+  const OriginalRadixMap = (window as any).Radix.map;
+  let hasWarned = false;
+  (window as any).Radix.map = function (radix: any, cb: any, opt: any, pre: any) {
+    if (radix && typeof radix !== 'object' && typeof radix !== 'function') {
+      if (!hasWarned) {
+        console.warn('[GunDB Recovery] Encounted primitive in Radix tree branch. Ignoring to prevent crash (logging once only):', radix);
+        hasWarned = true;
+      }
+      return;
+    }
+    return OriginalRadixMap(radix, cb, opt, pre);
+  };
+}
+// --- MONKEY PATCH END ---
+
 // 3. Create a single, configured Gun instance for the entire application.
 // The `localStorage: false` option is critical to ensure the IndexedDB adapter is used.
 const gun = Gun({

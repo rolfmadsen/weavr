@@ -18,14 +18,20 @@ export const usePlausible = () => {
                 hashBasedRouting: true,
                 // Enable localhost tracking for testing purposes
                 captureOnLocalhost: true,
+                // Disable auto-capture to ensure full control via manual tracking and transformation
+                autoCapturePageviews: false,
                 // Redact sensitive hash (Model ID) from URL
                 transformRequest: (eventData: any) => {
                     try {
-                        // Use window.location.origin as base in case url is relative
-                        const url = new URL(eventData.url, window.location.origin);
-                        if (url.hash && url.hash.length > 2) {
+                        // Plausible uses 'u' for the URL in the payload
+                        // We use window.location.origin as base in case url is relative
+                        const url = new URL(eventData.u, window.location.origin);
+
+                        // Check if we have a hash which is likely a Model ID (UUID)
+                        // A UUID is 36 chars, so we check for significant length
+                        if (url.hash && url.hash.length > 10) {
                             url.hash = '#/model'; // Replace specific ID with generic placeholder
-                            eventData.url = url.toString();
+                            eventData.u = url.toString();
                         }
                     } catch (error) {
                         // If URL parsing fails, ignore and return original data
@@ -34,6 +40,8 @@ export const usePlausible = () => {
                     return eventData;
                 },
             });
+            // Manually track pageview after init to ensure transformRequest is applied
+            track('pageview', {});
             initialized.current = true;
         }
     }, []);

@@ -44,6 +44,7 @@ interface HeaderProps {
   currentModelName: string;
   onRenameModel: (newName: string) => void;
   onGenerateDocs: () => void;
+  onShare: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -61,7 +62,8 @@ const Header: React.FC<HeaderProps> = ({
   onOpenModelList,
   currentModelName,
   onRenameModel,
-  onGenerateDocs
+  onGenerateDocs,
+  onShare
 }) => {
   // ... (existing code)
 
@@ -124,6 +126,7 @@ const Header: React.FC<HeaderProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+    onShare();
     handleMenuClose();
   };
 

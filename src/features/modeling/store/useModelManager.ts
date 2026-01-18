@@ -301,40 +301,41 @@ export const useModelManager = ({
 
     const handleUnpinNode = useCallback((id: string) => {
         unpinNode(id);
+        signal("Node.Unpinned", { id });
         onRequestAutoLayout?.();
-    }, [unpinNode, onRequestAutoLayout]);
+    }, [unpinNode, onRequestAutoLayout, signal]);
 
     const handleUnpinAllNodes = useCallback(() => {
         unpinAllNodes();
+        signal("Node.UnpinnedAll");
         onRequestAutoLayout?.();
-    }, [unpinAllNodes, onRequestAutoLayout]);
+    }, [unpinAllNodes, onRequestAutoLayout, signal]);
 
     const handleAddSlice = useCallback((title: string) => {
+        signal("Slice.Added", { title });
         return addSlice(title, slices.length);
-    }, [addSlice, slices.length]);
+    }, [addSlice, slices.length, signal]);
 
     const handlePinSelection = useCallback(() => {
-        selectedNodeIdsArray.forEach(id => {
-            gunUpdateNode(id, { pinned: true });
-            // Should we add history here? Individual updates might flood history.
-            // Ideally we want batch history. For now, individually.
-            // gunUpdateNode doesn't add to history automatically? 
-            // handleUpdateNode does. gunUpdateNode is raw.
-            // If I use handleUpdateNode, I get history.
-            // But I cannot call handleUpdateNode easily inside here as it is defined above? 
-            // Yes I can, it is defined before this.
-            // But handleUpdateNode takes (id, key, value).
-        });
-        // Actually, let's use gunUpdateNode directly to avoid implicit history if we want batch.
-        // But we want history. 
-        // For Vibe-Safe, simplest is just loop.
         selectedNodeIdsArray.forEach(id => handleUpdateNode(id, 'pinned', true));
-    }, [selectedNodeIdsArray, handleUpdateNode]);
+        signal("Selection.Pinned", { count: selectedNodeIdsArray.length });
+    }, [selectedNodeIdsArray, handleUpdateNode, signal]);
 
     const handleUnpinSelection = useCallback(() => {
         selectedNodeIdsArray.forEach(id => unpinNode(id));
+        signal("Selection.Unpinned", { count: selectedNodeIdsArray.length });
         onRequestAutoLayout?.();
-    }, [selectedNodeIdsArray, unpinNode, onRequestAutoLayout]);
+    }, [selectedNodeIdsArray, unpinNode, onRequestAutoLayout, signal]);
+
+    const handleUndo = useCallback(() => {
+        undo();
+        signal("History.Undo");
+    }, [undo, signal]);
+
+    const handleRedo = useCallback(() => {
+        redo();
+        signal("History.Redo");
+    }, [redo, signal]);
 
     return {
         nodes,
@@ -363,14 +364,23 @@ export const useModelManager = ({
         handleMarqueeSelect,
         handleFocusNode,
         handleClosePanel,
-        addDefinition,
-        updateDefinition,
-        deleteDefinition,
+        addDefinition: (def: any) => {
+            signal("Definition.Added", { name: def.name });
+            return addDefinition(def);
+        },
+        updateDefinition: (id: string, def: any) => {
+            updateDefinition(id, def);
+            signal("Definition.Updated", { id });
+        },
+        deleteDefinition: (id: string) => {
+            deleteDefinition(id);
+            signal("Definition.Deleted", { id });
+        },
         updateSlice,
         deleteSlice,
         updateEdgeRoutes,
-        undo,
-        redo,
+        undo: handleUndo,
+        redo: handleRedo,
         canUndo,
         canRedo,
         addToHistory,

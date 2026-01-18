@@ -112,5 +112,25 @@ VITE_PLAUSIBLE_DOMAIN=your-domain.com
 ```
 
 If not set, it defaults to `weavr.dk`.
-
 Analytics are automatically enabled, but you can see them working on `localhost`.
+
+### Tracked Events
+
+Weavr tracks the following custom events to understand feature usage:
+
+| Feature | Event Name | Properties |
+| :--- | :--- | :--- |
+| **Add Element** | `Node.Added` | `type`, `id` |
+| **Add Slice** | `Slice.Added` | `title` |
+| **Undo / Redo** | `History.Undo`, `History.Redo` | - |
+| **Auto Layout** | `Layout.Requested` | `method: 'MANUAL'` |
+| **Export Model** | `Export.Started` | `format`, `nodeCount` |
+| **Import / Merge** | `Import.Started` | `type: 'OPEN' | 'MERGE'` |
+| **Documentation** | `Documentation.Generated` | `fileSize` |
+| **Unpin Node** | `Node.Unpinned` | `id` |
+| **Pin/Unpin Select** | `Selection.Pinned`, `Selection.Unpinned` | `count` |
+| **Filter** | `Filter.ElementSelected`, `Filter.SlicesChanged` | `type`, `hiddenCount` |
+| **Share Link** | `Share.Clicked` | - |
+| **Rename Model** | `Model.Renamed` | - |
+| **Data Dictionary** | `Definition.Added`, `.Updated`, `.Deleted` | `name`, `id` |
+| **Minimap** | `Minimap.Navigated` | - |

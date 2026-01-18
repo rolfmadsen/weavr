@@ -42,6 +42,10 @@ import { usePlausible } from './features/analytics';
 
 function getModelIdFromUrl(): string {
   const hash = window.location.hash.slice(1);
+  if (hash === 'model') {
+    window.history.replaceState(null, '', ' ');
+    return '';
+  }
   if (hash) return hash;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -102,7 +106,10 @@ const App: React.FC = () => {
 
   // 3. Model Logic
   const [layoutRequestId, setLayoutRequestId] = React.useState(0);
-  const handleRequestAutoLayout = useCallback(() => setLayoutRequestId(prev => prev + 1), []);
+  const handleRequestAutoLayout = useCallback(() => {
+    setLayoutRequestId(prev => prev + 1);
+    signal("Layout.Requested", { method: 'MANUAL' });
+  }, [signal]);
 
   const modelingStore = useModelingStore({
     modelId,
@@ -237,6 +244,7 @@ const App: React.FC = () => {
       a.click();
       URL.revokeObjectURL(url);
       msg.innerText = 'Documentation Generated!';
+      signal("Documentation.Generated", { fileSize: html.length });
       setTimeout(() => document.body.removeChild(msg), 3000);
     } catch (e) {
       console.error(e);
@@ -350,17 +358,18 @@ const App: React.FC = () => {
             onOpen={handleOpenProject}
             onMerge={handleMergeImport}
             onExport={handleExport}
-            onOpenHelp={() => setIsHelpModalOpen(true)}
+            onOpenHelp={() => { setIsHelpModalOpen(true); signal("Help.Opened"); }}
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={undo}
             onRedo={redo}
             onAutoLayout={handleAutoLayout}
             onUnpinAll={unpinAllNodes}
-            onOpenModelList={() => setIsModelListOpen(true)}
+            onOpenModelList={() => { setIsModelListOpen(true); signal("ModelList.Opened"); }}
             currentModelName={currentModelName}
-            onRenameModel={syncUpdateModelName} // connect to GunDB write
+            onRenameModel={(name) => { syncUpdateModelName(name); signal("Model.Renamed"); }} // connect to GunDB write
             onGenerateDocs={handleGenerateDocs}
+            onShare={() => signal("Share.Clicked")}
           />
 
           <GraphCanvas
@@ -394,9 +403,18 @@ const App: React.FC = () => {
           />
 
           <Box sx={{ position: 'absolute', bottom: 64, left: 32, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', pointerEvents: 'none', '& > *': { pointerEvents: 'auto' } }}>
-            <ElementFilter nodes={nodes} onNodeClick={(n: Node) => handleFocusNode(n.id)} />
-            <SliceFilter slices={slices} hiddenSliceIds={hiddenSliceIds} onChange={setHiddenSliceIds} />
-            <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => graphRef.current?.handleNavigate?.(x, y)} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
+            <ElementFilter nodes={nodes} onNodeClick={(n: Node) => {
+              handleFocusNode(n.id);
+              signal("Filter.ElementSelected", { type: n.type });
+            }} />
+            <SliceFilter slices={slices} hiddenSliceIds={hiddenSliceIds} onChange={(ids) => {
+              setHiddenSliceIds(ids);
+              signal("Filter.SlicesChanged", { hiddenCount: ids.length });
+            }} />
+            <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => {
+              graphRef.current?.handleNavigate?.(x, y);
+              signal("Minimap.Navigated");
+            }} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
           </Box>
 
           <Toolbar onAddNode={handleAddNode} disabled={!isReady} isMenuOpen={isToolbarOpen} onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} />
