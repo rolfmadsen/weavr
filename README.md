@@ -103,12 +103,14 @@ This project uses Vite for a modern, fast development experience.
 
 ### Analytics (Optional)
 
-This project uses [TelemetryDeck](https://telemetrydeck.com/) for privacy-first analytics.
+This project uses [Plausible.io](https://plausible.io/) for privacy-first analytics.
 
-To enable analytics, create a `.env` file in the root directory (or set the environment variable in your deployment platform) with your App ID:
+To configure analytics for your own domain, set the following environment variable in your `.env` file or deployment platform:
 
 ```env
-VITE_TELEMETRYDECK_APP_ID=your-app-id-here
+VITE_PLAUSIBLE_DOMAIN=your-domain.com
 ```
 
-If this variable is missing, analytics will be automatically disabled, and the application will function normally. Use this for local development or testing.
+If not set, it defaults to `weavr.dk`.
+
+Analytics are automatically enabled, but you can see them working on `localhost`.

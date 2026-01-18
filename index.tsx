@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './src/App';
 import './index.css';
-import { TelemetryProvider } from './src/features/telemetry';
+
 
 // Polyfill global for Gun.js
 (window as any).global = window;
@@ -16,9 +16,7 @@ if (rootElement) {
 
   root.render(
     <React.StrictMode>
-      <TelemetryProvider>
-        <App />
-      </TelemetryProvider>
+      <App />
     </React.StrictMode>
   );
 } else {

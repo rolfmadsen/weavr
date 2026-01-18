@@ -27,7 +27,7 @@ import {
   DataDictionaryList,
   SliceManagerModal
 } from './features/editor';
-import { AppTelemetry, useTelemetry } from './features/telemetry';
+
 import {
   Header,
   Footer,
@@ -38,6 +38,7 @@ import {
   useKeyboardShortcuts,
   useWorkspaceManager
 } from './features/workspace';
+import { usePlausible } from './features/analytics';
 
 function getModelIdFromUrl(): string {
   const hash = window.location.hash.slice(1);
@@ -72,7 +73,8 @@ const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const { signal } = useTelemetry();
+  // Plausible.io analytics
+  const { signal } = usePlausible();
   const graphRef = React.useRef<GraphCanvasKonvaRef>(null);
   const [windowSize, setWindowSize] = React.useState({ width: window.innerWidth, height: window.innerHeight });
 
@@ -437,7 +439,7 @@ const App: React.FC = () => {
             )}
           </Sidebar>
 
-          <AppTelemetry nodeCount={nodes.length} linkCount={links.length} isReady={isReady} />
+
           <HelpModal
             isOpen={isHelpModalOpen}
             onClose={() => { setIsHelpModalOpen(false); localStorage.setItem('weavr-intro-shown', 'true'); }}
