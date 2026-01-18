@@ -1,1 +1,1 @@
-export * from './useDataMigration';
+export * from './store/useDataMigration';

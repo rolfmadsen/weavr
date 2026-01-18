@@ -1,13 +1,12 @@
-# Weavr
+# Weavr - Event Modeling Editor
 
 ![Local-First](https://img.shields.io/badge/Local--First-Yes-success)
 ![Open Source](https://img.shields.io/badge/Open%20Source-MIT-blue)
 ![GunDB](https://img.shields.io/badge/Tech-GunDB-orange)
 
-> **"Draft Event Sourcing systems and DDD architectures directly in your browser without a server."**
+> **"Model Event Sourcing systems and DDD architectures directly in your browser without a server."**
 
-<!-- TODO: Add a high-quality GIF here showing: Adding a node -> Dragging a link -> Seeing it sync in a second window. -->
-<!-- ![Weavr Demo](https://weavr.dk/demo.gif) -->
+![Preview](public/preview-screenshot.png)
 
 Weavr is an Event Modelling tool with a real-time, peer-to-peer feature for collaboration with your team. It provides a canvas to design and document business processes with your team, all directly within the browser.
 

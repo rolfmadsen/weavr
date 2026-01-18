@@ -1,4 +1,4 @@
-import { ElementType } from '../features/modeling/types';
+import { ElementType } from '../features/modeling';
 
 type LegacyType = 'EVENT_INTERNAL' | 'EVENT_EXTERNAL';
 export const ELEMENT_STYLE: Record<ElementType | LegacyType, { color: string; textColor: string; shape: 'rect' | 'circle' | 'diamond' | 'beveled-rect' }> = {

@@ -1,4 +1,4 @@
-export { default as GraphCanvas, type GraphCanvasKonvaRef } from './components/GraphCanvas';
-export { default as Minimap } from './components/Minimap';
-export * from './hooks/useSpatialIndex';
-export * from './hooks/useSelection';
+export { default as GraphCanvas, type GraphCanvasKonvaRef } from './ui/GraphCanvas';
+export { default as Minimap } from './ui/Minimap';
+export * from './store/useSpatialIndex';
+export * from './store/useSelection';

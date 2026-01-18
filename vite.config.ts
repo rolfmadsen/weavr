@@ -51,6 +51,8 @@ export default defineConfig({
       'gun/lib/store',
       'gun/lib/rindexed',
       'elkjs/lib/elk-api.js',
+      'elkjs/lib/elk.bundled.js',
+      'elkjs/lib/elk-worker.js',
     ],
   },
   // 3. The Build Config (Fixes the "Large Chunk" warning)
@@ -66,5 +68,17 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 2000,
+  },
+  server: {
+    proxy: {
+      '/gun': {
+        target: 'http://localhost:8080',
+        ws: true,
+      },
+    },
+  },
+  worker: {
+    format: 'es',
+    plugins: () => [moduleExclude('text-encoding')],
   },
 })

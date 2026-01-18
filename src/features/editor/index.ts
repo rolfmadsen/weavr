@@ -1,9 +1,9 @@
-export { default as PropertiesPanel } from './components/PropertiesPanel';
-export { default as DataDictionaryList } from './components/DataDictionaryList';
+export { default as PropertiesPanel } from './ui/PropertiesPanel';
+export { default as DataDictionaryList } from './ui/DataDictionaryList';
 
-export { default as SliceList } from './components/SliceList';
-export { default as SliceManagerModal } from './components/SliceManagerModal';
-export { default as SliceFilter } from './components/SliceFilter';
-export { default as ElementFilter } from './components/ElementFilter';
+export { default as SliceList } from './ui/SliceList';
+export { default as SliceManagerModal } from './ui/SliceManagerModal';
+export { default as SliceFilter } from './ui/SliceFilter';
+export { default as ElementFilter } from './ui/ElementFilter';
 
-export * from './services/dataDictionaryService';
+export * from './store/dataDictionaryService';

@@ -8,13 +8,15 @@ import {
   validationService,
   STORAGE_KEY,
   type ModelMetadata,
-  useModelManager,
-  useLayoutManager,
   useImportExport,
   type Node,
   type Link,
-  type Slice
+  type Slice,
+  ModelingProvider,
+  useModelingStore
 } from './features/modeling';
+import { DocumentationGenerator } from './features/modeling/services/DocumentationGenerator';
+import { useLayoutManager } from './features/modeling/store/useLayoutManagerHook';
 import { GraphCanvas, type GraphCanvasKonvaRef } from './features/canvas';
 import { Minimap } from './features/canvas';
 import {
@@ -25,7 +27,7 @@ import {
   DataDictionaryList,
   SliceManagerModal
 } from './features/editor';
-import { AppTelemetry, useTelemetry } from './features/telemetry/AppTelemetry';
+import { AppTelemetry, useTelemetry } from './features/telemetry';
 import {
   Header,
   Footer,
@@ -100,6 +102,17 @@ const App: React.FC = () => {
   const [layoutRequestId, setLayoutRequestId] = React.useState(0);
   const handleRequestAutoLayout = useCallback(() => setLayoutRequestId(prev => prev + 1), []);
 
+  const modelingStore = useModelingStore({
+    modelId,
+    viewState,
+    signal,
+    setSidebarView,
+    setFocusOnRender,
+    graphRef,
+    setIsToolbarOpen,
+    onRequestAutoLayout: handleRequestAutoLayout
+  });
+
   const {
     nodes,
     links,
@@ -112,11 +125,7 @@ const App: React.FC = () => {
     selectedNodeIdsArray,
     selectedLinkId,
     handleAddNode,
-    handleDeleteNode,
-    handleUpdateNode,
-    handleUpdateLink,
     handleAddLink,
-    handleDeleteLink,
     handleDeleteSelection,
     handleNodesDrag,
     handleNodeClick,
@@ -136,23 +145,13 @@ const App: React.FC = () => {
     redo,
     canUndo,
     canRedo,
-    gunUpdateNodePosition,
-    gunUpdateNodePositionsBatch, // Add this
     unpinAllNodes,
     unpinNode,
-    addToHistory,
     modelName: syncedModelName,
-    updateModelName: syncUpdateModelName
-  } = useModelManager({
-    modelId,
-    viewState,
-    signal,
-    setSidebarView,
-    setFocusOnRender,
-    graphRef,
-    setIsToolbarOpen,
-    onRequestAutoLayout: handleRequestAutoLayout
-  });
+    updateModelName: syncUpdateModelName,
+    gunUpdateNodePositionsBatch,
+    addToHistory
+  } = modelingStore;
 
   // Fit View Effect whenever pendingFitView is true and nodes are present
   useEffect(() => {
@@ -171,15 +170,14 @@ const App: React.FC = () => {
     nodes,
     links,
     slicesWithNodes,
-    gunUpdateNodePosition,
-    gunUpdateNodePositionsBatch, // Pass batch function
+    layoutRequestId,
     updateEdgeRoutes,
+    gunUpdateNodePositionsBatch,
+    gunUpdateNodePosition: modelingStore.gunUpdateNodePosition,
     addToHistory,
-    signal,
-    layoutRequestId
+    signal
   });
 
-  // 5. Serialization
   // 5. Serialization
   const { handleExport, handleOpenProject, handleMergeImport } = useImportExport({
     modelId,
@@ -196,6 +194,56 @@ const App: React.FC = () => {
     onImportComplete: () => setPendingFitView(true)
   });
 
+  const handleGenerateDocs = async () => {
+    if (!graphRef.current) return;
+    const generator = new DocumentationGenerator(
+      graphRef.current,
+      slicesWithNodes,
+      nodes,
+      definitions,
+      setHiddenSliceIds
+    );
+
+    // Initial message
+    const msg = document.createElement('div');
+    msg.id = 'doc-progress';
+    msg.style.position = 'fixed';
+    msg.style.bottom = '20px';
+    msg.style.right = '20px';
+    msg.style.background = '#333';
+    msg.style.color = '#fff';
+    msg.style.padding = '12px 24px';
+    msg.style.borderRadius = '4px';
+    msg.style.zIndex = '9999';
+    msg.innerText = 'Initializing Documentation Generator...';
+    document.body.appendChild(msg);
+
+    try {
+      const html = await generator.generate({
+        projectTitle: currentModelName || 'Event Model',
+        description: `<a href="https://weavr.dk">Weavr.dk ${new Date().getFullYear()}`
+      }, (_curr, _total, text) => {
+        msg.innerText = text;
+      });
+
+      // Download
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(currentModelName || 'model').replace(/\s+/g, '_')}_docs.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      msg.innerText = 'Documentation Generated!';
+      setTimeout(() => document.body.removeChild(msg), 3000);
+    } catch (e) {
+      console.error(e);
+      msg.innerText = 'Error Generating Documentation';
+      msg.style.background = 'red';
+      setTimeout(() => document.body.removeChild(msg), 3000);
+    }
+  };
+
   // Help Modal logic
   useEffect(() => {
     if (isReady && nodes.length === 0 && localStorage.getItem('weavr-intro-shown') !== 'true') {
@@ -204,22 +252,6 @@ const App: React.FC = () => {
   }, [isReady, nodes, setIsHelpModalOpen]);
 
   // Derived Selection State
-  const selectedItemData = useMemo(() => {
-    if (selectedNodeIdsArray.length === 1 && !selectedLinkId) {
-      const node = nodes.find((n: Node) => n.id === selectedNodeIdsArray[0]);
-      return node ? { type: 'node' as const, data: node } : null;
-    }
-    if (selectedNodeIdsArray.length > 1 && !selectedLinkId) {
-      const selectedNodes = nodes.filter((n: Node) => selectedNodeIdsArray.includes(n.id));
-      return { type: 'multi-node' as const, data: selectedNodes };
-    }
-    if (selectedLinkId && selectedNodeIdsArray.length === 0) {
-      const link = links.find((l: Link) => l.id === selectedLinkId);
-      return link ? { type: 'link' as const, data: link } : null;
-    }
-    return null;
-  }, [selectedNodeIdsArray, selectedLinkId, nodes, links]);
-
   const selectedIds = useMemo(() => {
     return selectedLinkId ? [...selectedNodeIdsArray, selectedLinkId] : selectedNodeIdsArray;
   }, [selectedNodeIdsArray, selectedLinkId]);
@@ -236,19 +268,29 @@ const App: React.FC = () => {
     return links.filter((link: Link) => nodeIds.has(link.source) && nodeIds.has(link.target));
   }, [links, filteredNodes, hiddenSliceIds]);
 
+  // Auto-Zoom on Filter Change
+  useEffect(() => {
+    if (slices.length === 0) return;
+
+    // Determine visible slices
+    const visibleSlices = slices.filter(s => !hiddenSliceIds.includes(s.id));
+
+    // Allow the canvas to update its nodes first
+    setTimeout(() => {
+      if (visibleSlices.length === 1) {
+        graphRef.current?.panToSlice(visibleSlices[0].id);
+      } else {
+        // If filtering changed (even to "Show All"), fit the view to the new visible set
+        graphRef.current?.panToCenter();
+      }
+    }, 100);
+  }, [hiddenSliceIds, slices]);
+
   const handleSliceClick = useCallback((slice: Slice) => {
     setSidebarView('slices');
     setActiveSliceId(slice.id);
   }, [setSidebarView, setActiveSliceId]);
 
-  const handleBatchPin = useCallback(() => {
-    selectedNodeIdsArray.forEach(id => handleUpdateNode(id, 'pinned', true));
-  }, [selectedNodeIdsArray, handleUpdateNode]);
-
-  const handleBatchUnpin = useCallback(() => {
-    selectedNodeIdsArray.forEach(id => unpinNode(id));
-    handleRequestAutoLayout();
-  }, [selectedNodeIdsArray, unpinNode, handleRequestAutoLayout]);
 
   // Keyboard Shortcuts
   useKeyboardShortcuts({
@@ -284,12 +326,6 @@ const App: React.FC = () => {
     onRedo: redo
   });
 
-  const handleAddSliceInternal = (title: string) => {
-    const id = uuidv4();
-    updateSlice(id, { title, order: slices.length });
-    return id;
-  };
-
   // Sync GunDB name to Local Storage
   useEffect(() => {
     if (syncedModelName && syncedModelName !== 'Untitled Model' && syncedModelName !== currentModelName) {
@@ -297,132 +333,129 @@ const App: React.FC = () => {
     }
   }, [syncedModelName, currentModelName, handleRenameModel]);
 
+  const handleAddSliceInternal = (title: string) => {
+    const id = uuidv4();
+    updateSlice(id, { title, order: slices.length });
+    return id;
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="w-screen h-[100dvh] overflow-hidden overscroll-none relative font-sans bg-gray-50 flex flex-col">
-        <Header
-          onOpen={handleOpenProject}
-          onMerge={handleMergeImport}
-          onExport={handleExport}
-          onOpenHelp={() => setIsHelpModalOpen(true)}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onUndo={undo}
-          onRedo={redo}
-          onAutoLayout={handleAutoLayout}
-          onUnpinAll={unpinAllNodes}
-          onOpenModelList={() => setIsModelListOpen(true)}
-          currentModelName={currentModelName}
-          onRenameModel={syncUpdateModelName} // connect to GunDB write
-        />
+      <ModelingProvider store={modelingStore}>
+        <div className="w-screen h-[100dvh] overflow-hidden overscroll-none relative font-sans bg-gray-50 flex flex-col">
+          <Header
+            onOpen={handleOpenProject}
+            onMerge={handleMergeImport}
+            onExport={handleExport}
+            onOpenHelp={() => setIsHelpModalOpen(true)}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
+            onAutoLayout={handleAutoLayout}
+            onUnpinAll={unpinAllNodes}
+            onOpenModelList={() => setIsModelListOpen(true)}
+            currentModelName={currentModelName}
+            onRenameModel={syncUpdateModelName} // connect to GunDB write
+            onGenerateDocs={handleGenerateDocs}
+          />
 
-        <GraphCanvas
-          nodes={filteredNodes}
-          links={filteredLinks}
-          slices={slicesWithNodes}
-          selectedIds={selectedIds}
-          edgeRoutes={autoLayoutEdges}
-          onNodeClick={(node: Node, event?: any) => {
-            const isMulti = event?.shiftKey || event?.evt?.shiftKey;
-            handleNodeClick(node.id, !!isMulti);
-          }}
-          onLinkClick={(link: Link) => handleLinkClick(link.id)}
-          onNodeDoubleClick={(node: Node) => handleNodeDoubleClick(node.id)}
-          onLinkDoubleClick={(link: Link) => handleLinkDoubleClick(link.id)}
-          onNodesDrag={handleNodesDrag}
-          onUnpinNode={unpinNode}
-          onAddLink={handleAddLink}
-          onCanvasClick={() => {
-            handleClosePanel();
-            setIsToolbarOpen(false);
-          }}
-          onMarqueeSelect={(ids: string[]) => {
-            handleMarqueeSelect(ids);
-            if (ids.length > 0) setSidebarView('properties');
-          }}
-          onValidateConnection={(s: Node, t: Node) => validationService.isValidConnection(s, t)}
-          onViewChange={setViewState}
-          onSliceClick={handleSliceClick}
-          initialViewState={viewState}
-          ref={graphRef}
-        />
+          <GraphCanvas
+            nodes={filteredNodes}
+            links={filteredLinks}
+            slices={slicesWithNodes}
+            selectedIds={selectedIds}
+            edgeRoutes={autoLayoutEdges}
+            onNodeClick={(node: Node, event?: any) => {
+              const isMulti = event?.shiftKey || event?.evt?.shiftKey;
+              handleNodeClick(node.id, !!isMulti);
+            }}
+            onLinkClick={(link: Link) => handleLinkClick(link.id)}
+            onNodeDoubleClick={(node: Node) => handleNodeDoubleClick(node.id)}
+            onLinkDoubleClick={(link: Link) => handleLinkDoubleClick(link.id)}
+            onUnpinNode={unpinNode}
+            onAddLink={handleAddLink}
+            onCanvasClick={() => {
+              handleClosePanel();
+              setIsToolbarOpen(false);
+            }}
+            onMarqueeSelect={(ids: string[]) => {
+              handleMarqueeSelect(ids);
+              if (ids.length > 0) setSidebarView('properties');
+            }}
+            onValidateConnection={(s: Node, t: Node) => validationService.isValidConnection(s, t)}
+            onViewChange={setViewState}
+            onSliceClick={handleSliceClick}
+            initialViewState={viewState}
+            ref={graphRef}
+          />
 
-        <Box sx={{ position: 'absolute', bottom: 64, left: 32, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', pointerEvents: 'none', '& > *': { pointerEvents: 'auto' } }}>
-          <ElementFilter nodes={nodes} onNodeClick={(n: Node) => handleFocusNode(n.id)} />
-          <SliceFilter slices={slices} hiddenSliceIds={hiddenSliceIds} onChange={setHiddenSliceIds} />
-          <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => graphRef.current?.handleNavigate?.(x, y)} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
-        </Box>
+          <Box sx={{ position: 'absolute', bottom: 64, left: 32, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', pointerEvents: 'none', '& > *': { pointerEvents: 'auto' } }}>
+            <ElementFilter nodes={nodes} onNodeClick={(n: Node) => handleFocusNode(n.id)} />
+            <SliceFilter slices={slices} hiddenSliceIds={hiddenSliceIds} onChange={setHiddenSliceIds} />
+            <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => graphRef.current?.handleNavigate?.(x, y)} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
+          </Box>
 
-        <Toolbar onAddNode={handleAddNode} disabled={!isReady} isMenuOpen={isToolbarOpen} onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} />
+          <Toolbar onAddNode={handleAddNode} disabled={!isReady} isMenuOpen={isToolbarOpen} onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} />
 
-        <Sidebar
-          isOpen={!!sidebarView}
-          onClose={() => { setSidebarView(null); }}
-          title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
-          activeTab={sidebarView || 'properties'}
-          onTabChange={(tab: any) => { setSidebarView(tab as any); if (tab) signal("Sidebar.TabChanged", { tab }); }}
-          tabs={[{ id: 'properties', label: 'Properties', title: 'Alt + P' }, { id: 'dictionary', label: 'Data', title: 'Alt + D' }, { id: 'slices', label: 'Slices', title: 'Alt + S' }]}
-        >
-          {sidebarView === 'properties' && (
-            <PropertiesPanel
-              selectedItem={selectedItemData}
-              onUpdateNode={handleUpdateNode}
-              onUpdateLink={handleUpdateLink}
-              onDeleteLink={handleDeleteLink}
-              onDeleteNode={handleDeleteNode}
-              slices={slicesWithNodes}
-              onAddSlice={handleAddSliceInternal}
-              focusOnRender={focusOnRender}
-              onFocusHandled={() => setFocusOnRender(false)}
-              definitions={definitions}
-              onAddDefinition={(def: any) => addDefinition(def) || ''}
-              modelId={modelId}
-              onPinSelection={handleBatchPin}
-              onUnpinSelection={handleBatchUnpin}
-            />
-          )}
-          {sidebarView === 'slices' && (
-            <SliceList
-              slices={slicesWithNodes}
-              definitions={definitions}
-              onAddSlice={handleAddSliceInternal}
-              onUpdateSlice={updateSlice}
-              onDeleteSlice={deleteSlice}
-              onManageSlice={(id: string) => { setSliceManagerInitialId(id); setIsSliceManagerOpen(true); }}
-              modelId={modelId}
-              expandedId={activeSliceId}
-            />
-          )}
-          {sidebarView === 'dictionary' && (
-            <DataDictionaryList
-              definitions={definitions}
-              onAddDefinition={(def: any) => addDefinition(def) || ''}
-              onUpdateDefinition={updateDefinition}
-              onRemoveDefinition={deleteDefinition}
-              modelId={modelId}
-            />
-          )}
-        </Sidebar>
+          <Sidebar
+            isOpen={!!sidebarView}
+            onClose={() => { setSidebarView(null); }}
+            title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
+            activeTab={sidebarView || 'properties'}
+            onTabChange={(tab: any) => { setSidebarView(tab as any); if (tab) signal("Sidebar.TabChanged", { tab }); }}
+            tabs={[{ id: 'properties', label: 'Properties', title: 'Alt + P' }, { id: 'dictionary', label: 'Data', title: 'Alt + D' }, { id: 'slices', label: 'Slices', title: 'Alt + S' }]}
+          >
+            {sidebarView === 'properties' && (
+              <PropertiesPanel
+                focusOnRender={focusOnRender}
+                onFocusHandled={() => setFocusOnRender(false)}
+                modelId={modelId}
+              />
+            )}
+            {sidebarView === 'slices' && (
+              <SliceList
+                slices={slicesWithNodes}
+                definitions={definitions}
+                onAddSlice={handleAddSliceInternal}
+                onUpdateSlice={updateSlice}
+                onDeleteSlice={deleteSlice}
+                onManageSlice={(id: string) => { setSliceManagerInitialId(id); setIsSliceManagerOpen(true); }}
+                modelId={modelId}
+                expandedId={activeSliceId}
+              />
+            )}
+            {sidebarView === 'dictionary' && (
+              <DataDictionaryList
+                definitions={definitions}
+                onAddDefinition={(def: any) => addDefinition(def) || ''}
+                onUpdateDefinition={updateDefinition}
+                onRemoveDefinition={deleteDefinition}
+                modelId={modelId}
+              />
+            )}
+          </Sidebar>
 
-        <AppTelemetry nodeCount={nodes.length} linkCount={links.length} isReady={isReady} />
-        <HelpModal
-          isOpen={isHelpModalOpen}
-          onClose={() => { setIsHelpModalOpen(false); localStorage.setItem('weavr-intro-shown', 'true'); }}
-          onImport={handleOpenProject}
-        />
-        <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
-        <SliceManagerModal
-          isOpen={isSliceManagerOpen}
-          onClose={() => { setIsSliceManagerOpen(false); setSliceManagerInitialId(null); }}
-          slices={slicesWithNodes}
-          onAddSlice={handleAddSliceInternal}
-          onUpdateSlice={updateSlice}
-          onDeleteSlice={deleteSlice}
-          initialViewingSpecsId={sliceManagerInitialId}
-        />
-        <Footer />
-      </div>
+          <AppTelemetry nodeCount={nodes.length} linkCount={links.length} isReady={isReady} />
+          <HelpModal
+            isOpen={isHelpModalOpen}
+            onClose={() => { setIsHelpModalOpen(false); localStorage.setItem('weavr-intro-shown', 'true'); }}
+            onImport={handleOpenProject}
+          />
+          <ModelListModal isOpen={isModelListOpen} onClose={() => setIsModelListOpen(false)} currentModelId={modelId} />
+          <SliceManagerModal
+            isOpen={isSliceManagerOpen}
+            onClose={() => { setIsSliceManagerOpen(false); setSliceManagerInitialId(null); }}
+            slices={slicesWithNodes}
+            onAddSlice={handleAddSliceInternal}
+            onUpdateSlice={updateSlice}
+            onDeleteSlice={deleteSlice}
+            initialViewingSpecsId={sliceManagerInitialId}
+          />
+          <Footer />
+        </div>
+      </ModelingProvider>
     </ThemeProvider>
   );
 };

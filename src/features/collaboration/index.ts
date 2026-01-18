@@ -1,3 +1,3 @@
-export { default as gunClient } from './services/gunClient';
-export * from './hooks/useGraphSync';
-export * from './hooks/useHistory';
+export { default as gunClient } from './store/gunClient';
+export * from './store/useGraphSync';
+export * from './store/useHistory';
