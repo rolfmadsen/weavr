@@ -73,7 +73,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             setSelectedIndex(prev => (prev - 1 + displayedNodes.length) % displayedNodes.length);
-        } else if (e.key === 'Enter' || e.key === ' ') {
+        } else if (e.key === 'Enter') {
             e.preventDefault();
             if (selectedIndex >= 0 && selectedIndex < displayedNodes.length) {
                 onNodeClick(displayedNodes[selectedIndex]);

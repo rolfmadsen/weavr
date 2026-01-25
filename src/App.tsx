@@ -159,7 +159,8 @@ const App: React.FC = () => {
     modelName: syncedModelName,
     updateModelName: syncUpdateModelName,
     gunUpdateNodePositionsBatch,
-    addToHistory
+    addToHistory,
+    pasteNodes
   } = modelingStore;
 
   // Fit View Effect whenever pendingFitView is true and nodes are present
@@ -333,7 +334,8 @@ const App: React.FC = () => {
     onFocusNode: (id: string | undefined) => id && handleFocusNode(id),
     onAutoLayout: handleAutoLayout,
     onUndo: undo,
-    onRedo: redo
+    onRedo: redo,
+    onPaste: pasteNodes
   });
 
   // Sync GunDB name to Local Storage (Bi-directional)

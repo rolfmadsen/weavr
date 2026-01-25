@@ -232,6 +232,7 @@ const ControlsContent = () => (
         <li><strong>Delete:</strong> Select one or more elements and press <Kbd>Delete</Kbd> or <Kbd>Backspace</Kbd>.</li>
         <li><strong>Navigate:</strong> Use <Kbd>Tab</Kbd> and <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> to cycle through elements.</li>
         <li><strong>Focus Node:</strong> Press <Kbd>F</Kbd> to center the view on the selected element.</li>
+        <li><strong>Copy/Paste:</strong> Press <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> to Copy, <Kbd>Ctrl</Kbd>+<Kbd>V</Kbd> to Paste.</li>
         <li><strong>Undo/Redo:</strong> Press <Kbd>Ctrl</Kbd>+<Kbd>Z</Kbd> to Undo, <Kbd>Ctrl</Kbd>+<Kbd>Y</Kbd> (or <Kbd>Shift</Kbd>+<Kbd>Z</Kbd>) to Redo.</li>
       </ul>
     </div>

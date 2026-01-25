@@ -80,7 +80,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({ slices, hiddenSliceIds, onCha
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             setSelectedIndex(prev => (prev - 1 + displayedSlices.length) % displayedSlices.length);
-        } else if (e.key === 'Enter' || e.key === ' ') {
+        } else if (e.key === 'Enter') {
             e.preventDefault();
             if (selectedIndex >= 0 && selectedIndex < displayedSlices.length) {
                 handleToggleSlice(displayedSlices[selectedIndex].id);

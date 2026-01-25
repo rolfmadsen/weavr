@@ -5,6 +5,7 @@ import Konva from 'konva';
 import { Node, calculateNodeHeight } from '../../modeling';
 import { ELEMENT_STYLE, NODE_WIDTH, GRID_SIZE, FONT_FAMILY, FONT_SIZE, LINE_HEIGHT, NODE_PADDING } from '../../../shared/constants';
 import { safeNum, safeStr } from '../domain/canvasUtils';
+import { setCanvasCursor } from '../domain/cursorUtils';
 
 interface NodeGroupProps {
     node: Node;
@@ -104,23 +105,23 @@ const NodeGroup = React.memo(({
                         e.cancelBubble = true;
                         // Use the Stage's relative pointer pos to find where we clicked
                         const stage = e.target.getStage();
-                        const pointer = stage ? (stage as any).getRelativePointerPosition() : null;
-                        if (pointer) {
-                            const localX = pointer.x - x;
-                            const localY = pointer.y - y;
-
-                            // Find closest predefined handle
-                            let minDist = Infinity;
-                            let closest = handlePositions[0];
-                            handlePositions.forEach(pos => {
-                                const dist = Math.pow(pos.x - localX, 2) + Math.pow(pos.y - localY, 2);
-                                if (dist < minDist) {
-                                    minDist = dist;
-                                    closest = pos;
-                                }
-                            });
-
-                            onLinkStart({ x: x + closest.x, y: y + closest.y });
+                        if (stage) {
+                            const pointer = (stage as any).getRelativePointerPosition();
+                            if (pointer) {
+                                // Logic for alt-drag link finding
+                                const localX = pointer.x - x;
+                                const localY = pointer.y - y;
+                                let minDist = Infinity;
+                                let closest = handlePositions[0];
+                                handlePositions.forEach(pos => {
+                                    const dist = Math.pow(pos.x - localX, 2) + Math.pow(pos.y - localY, 2);
+                                    if (dist < minDist) {
+                                        minDist = dist;
+                                        closest = pos;
+                                    }
+                                });
+                                onLinkStart({ x: x + closest.x, y: y + closest.y });
+                            }
                         }
                     }
                 }}
@@ -128,28 +129,24 @@ const NodeGroup = React.memo(({
                     if (!isDraggable) return;
                     setIsDragging(true);
                     setShowHandles(false);
-                    const stage = e.target.getStage();
-                    if (stage) stage.container().style.cursor = 'grabbing';
+                    setCanvasCursor(e, 'grabbing');
                 }}
                 onDragMove={(e) => {
                     onDragMove(node.id, e.target.x(), e.target.y());
                 }}
                 onDragEnd={(e) => {
                     setIsDragging(false);
-                    const stage = e.target.getStage();
-                    if (stage) stage.container().style.cursor = 'grab';
+                    setCanvasCursor(e, 'grab');
                     onDragEnd(safeStr(node.id), e.target.x(), e.target.y());
                 }}
                 onClick={(e) => { e.cancelBubble = true; onNodeClick(node, e); }}
                 onDblClick={(e) => { e.cancelBubble = true; onNodeDoubleClick(node); }}
                 onMouseEnter={(e) => {
-                    const stage = e.target.getStage();
-                    if (stage) stage.container().style.cursor = 'grab';
+                    setCanvasCursor(e, 'grab');
                     setShowHandles(true);
                 }}
                 onMouseLeave={(e) => {
-                    const stage = e.target.getStage();
-                    if (stage) stage.container().style.cursor = 'default';
+                    setCanvasCursor(e, 'grab'); // Maintain grab as we exit the node back to canvas (which is grab)
                     setShowHandles(false);
                 }}
                 dragBoundFunc={(pos) => {
@@ -199,14 +196,8 @@ const NodeGroup = React.memo(({
                             e.cancelBubble = true;
                             onUnpin(node.id);
                         }}
-                        onMouseEnter={(e) => {
-                            const stage = e.target.getStage();
-                            if (stage) stage.container().style.cursor = 'pointer';
-                        }}
-                        onMouseLeave={(e) => {
-                            const stage = e.target.getStage();
-                            if (stage) stage.container().style.cursor = 'grab';
-                        }}
+                        onMouseEnter={(e) => setCanvasCursor(e, 'pointer')}
+                        onMouseLeave={(e) => setCanvasCursor(e, 'grab')}
                     >
                         <Circle radius={14} fill="#ef4444" shadowBlur={4} shadowOpacity={0.3} stroke="white" strokeWidth={2} />
                         <Path
@@ -226,14 +217,8 @@ const NodeGroup = React.memo(({
                             e.cancelBubble = true;
                             onNodeDoubleClick(node);
                         }}
-                        onMouseEnter={(e) => {
-                            const stage = e.target.getStage();
-                            if (stage) stage.container().style.cursor = 'pointer';
-                        }}
-                        onMouseLeave={(e) => {
-                            const stage = e.target.getStage();
-                            if (stage) stage.container().style.cursor = 'grab';
-                        }}
+                        onMouseEnter={(e) => setCanvasCursor(e, 'pointer')}
+                        onMouseLeave={(e) => setCanvasCursor(e, 'grab')}
                     >
                         <Circle radius={14} fill="#4f46e5" shadowBlur={4} shadowOpacity={0.3} stroke="white" strokeWidth={2} />
                         <Path
@@ -254,12 +239,14 @@ const NodeGroup = React.memo(({
                             onLinkStart({ x: x + pos.x, y: y + pos.y });
                         }}
                         onMouseEnter={(e) => {
-                            const stage = e.target.getStage();
-                            if (stage) stage.container().style.cursor = 'crosshair';
+                            setCanvasCursor(e, 'crosshair');
+                        }}
+                        onMouseMove={(e) => {
+                            e.cancelBubble = true;
+                            setCanvasCursor(e, 'crosshair');
                         }}
                         onMouseLeave={(e) => {
-                            const stage = e.target.getStage();
-                            if (stage) stage.container().style.cursor = 'default';
+                            setCanvasCursor(e, 'grab');
                         }}
                     />
                 ))}

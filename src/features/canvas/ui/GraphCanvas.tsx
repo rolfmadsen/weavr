@@ -24,6 +24,7 @@ import ChapterGroup from './ChapterGroup';
 
 // NEW: Utilities
 import { safeNum, safeStr } from '../domain/canvasUtils';
+import { setCanvasCursor } from '../domain/cursorUtils';
 
 export interface GraphCanvasKonvaRef {
     panToNode: (nodeId: string) => void;
@@ -724,8 +725,8 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     return (
         <div
             ref={containerRef}
-            className="w-full flex-1 bg-gray-50 dark:bg-slate-950 overflow-hidden relative outline-none"
-            // tabIndex={0} // No longer needed
+            className="w-full flex-1 bg-gray-50 dark:bg-slate-950 overflow-hidden relative outline-none cursor-grab active:cursor-grabbing"
+            tabIndex={-1} // Required to receive focus (and blur sidebar inputs)
             // onKeyDown={handleKeyDown} // Removed, using global listener
             onContextMenu={(e) => e.preventDefault()}
         >
@@ -742,6 +743,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         return;
                     }
                     if (e.target === e.target.getStage()) {
+                        setCanvasCursor(e, 'grabbing');
                         const stage = e.target.getStage();
                         if (stage) stage.container().style.cursor = 'grabbing';
                     }
@@ -752,9 +754,9 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 }}
                 onDragEnd={(e) => {
                     if (e.target === e.target.getStage()) {
+                        setCanvasCursor(e, 'grab');
                         const stage = e.target.getStage();
                         if (stage) {
-                            stage.container().style.cursor = 'default';
                             const newPos = { x: stage.x(), y: stage.y() };
                             setStagePos(newPos);
                             updateVisibleNodes(); // Update once at end
@@ -769,6 +771,10 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 }}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
+                onMouseEnter={(e) => {
+                    // Ensure cursor is grab when entering the stage area
+                    setCanvasCursor(e, 'grab');
+                }}
             >
                 <Layer>
                     {/* Infinite Grid Background */}

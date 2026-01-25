@@ -35,8 +35,10 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
+    const [focusedIndex, setFocusedIndex] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
 
     // Sync internal input value with selected external value ID when not open/typing
     useEffect(() => {
@@ -74,10 +76,13 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
             o.label.toLowerCase().includes(lowerInput) ||
             (o.subLabel && o.subLabel.toLowerCase().includes(lowerInput))
         );
-
-        // Grouping logic (naive)
         return filtered;
     }, [options, inputValue]);
+
+    // Reset focused index when filtering changes
+    useEffect(() => {
+        setFocusedIndex(0);
+    }, [filteredOptions.length]);
 
     const groupedOptions = useMemo(() => {
         const groups: Record<string, Option[]> = {};
@@ -88,6 +93,11 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
         });
         return groups;
     }, [filteredOptions]);
+
+    // Flatten options for easy index-based navigation
+    const flatOptions = useMemo(() => {
+        return Object.values(groupedOptions).flat();
+    }, [groupedOptions]);
 
     const handleSelect = (option: Option) => {
         onChange(option.id, option);
@@ -108,15 +118,47 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
         setIsOpen(false);
     };
 
+    // Auto-scroll to focused item
+    useEffect(() => {
+        if (isOpen && listRef.current) {
+            const list = listRef.current;
+            // Find the element with data-index=focusedIndex
+            const element = list.querySelector(`[data-index="${focusedIndex}"]`) as HTMLElement;
+            if (element) {
+                const listTop = list.scrollTop;
+                const listBottom = listTop + list.clientHeight;
+                const elTop = element.offsetTop;
+                const elBottom = elTop + element.clientHeight;
+
+                if (elTop < listTop) {
+                    list.scrollTop = elTop;
+                } else if (elBottom > listBottom) {
+                    list.scrollTop = elBottom - list.clientHeight;
+                }
+            }
+        }
+    }, [focusedIndex, isOpen]);
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'ArrowDown') {
             e.preventDefault();
-            // If exact match exists, select it
-            const exactMatch = filteredOptions.find(o => o.label.toLowerCase() === inputValue.toLowerCase());
-            if (exactMatch) {
-                handleSelect(exactMatch);
+            setFocusedIndex(prev => (prev + 1) % flatOptions.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setFocusedIndex(prev => (prev - 1 + flatOptions.length) % flatOptions.length);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            // If we have filtered options and valid index, select it
+            if (flatOptions.length > 0 && focusedIndex >= 0 && focusedIndex < flatOptions.length) {
+                handleSelect(flatOptions[focusedIndex]);
             } else {
-                handleCreate();
+                // Determine if we should create
+                const exactMatch = filteredOptions.find(o => o.label.toLowerCase() === inputValue.toLowerCase());
+                if (exactMatch) {
+                    handleSelect(exactMatch);
+                } else {
+                    handleCreate();
+                }
             }
         } else if (e.key === 'Escape') {
             setIsOpen(false);
@@ -150,42 +192,54 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
 
             {isOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-[100] perspective-[1000px]">
-                    <GlassCard variant="panel" className="max-h-60 overflow-y-auto p-1 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 origin-top">
-                        {Object.entries(groupedOptions).map(([group, opts]) => (
-                            <div key={group}>
-                                {Object.keys(groupedOptions).length > 1 && (
-                                    <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{group}</div>
-                                )}
-                                {opts.map(opt => (
+                    <GlassCard variant="panel" className="p-1 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 origin-top">
+                        <div ref={listRef} className="max-h-60 overflow-y-auto custom-scrollbar">
+                            {Object.entries(groupedOptions).map(([group, opts]) => (
+                                <div key={group}>
+                                    {Object.keys(groupedOptions).length > 1 && (
+                                        <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{group}</div>
+                                    )}
+                                    {opts.map(opt => {
+                                        // Calculate global index for highlighting
+                                        const globalIndex = flatOptions.indexOf(opt);
+                                        const isFocused = globalIndex === focusedIndex;
+
+                                        return (
+                                            <button
+                                                key={opt.id}
+                                                data-index={globalIndex}
+                                                onClick={() => handleSelect(opt)}
+                                                className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex flex-col group ${isFocused
+                                                        ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300'
+                                                        : 'hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-300'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-purple-700 dark:group-hover:text-purple-300">{opt.label}</span>
+                                                    {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
+                                                </div>
+                                                {opt.subLabel && <span className="text-xs text-slate-500">{opt.subLabel}</span>}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+
+                            {showCreateOption && (
+                                <div className="pt-1 mt-1 border-t border-slate-100 dark:border-white/10">
                                     <button
-                                        key={opt.id}
-                                        onClick={() => handleSelect(opt)}
-                                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-300 transition-colors flex flex-col group"
+                                        onClick={handleCreate}
+                                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-500/10 text-green-600 font-medium flex items-center gap-2"
                                     >
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-purple-700 dark:group-hover:text-purple-300">{opt.label}</span>
-                                            {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
-                                        </div>
-                                        {opt.subLabel && <span className="text-xs text-slate-500">{opt.subLabel}</span>}
+                                        <Plus size={16} /> Add "{inputValue}"
                                     </button>
-                                ))}
-                            </div>
-                        ))}
+                                </div>
+                            )}
 
-                        {showCreateOption && (
-                            <div className="pt-1 mt-1 border-t border-slate-100 dark:border-white/10">
-                                <button
-                                    onClick={handleCreate}
-                                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-500/10 text-green-600 font-medium flex items-center gap-2"
-                                >
-                                    <Plus size={16} /> Add "{inputValue}"
-                                </button>
-                            </div>
-                        )}
-
-                        {!showCreateOption && filteredOptions.length === 0 && (
-                            <div className="p-3 text-center text-xs text-slate-400 italic">No options found.</div>
-                        )}
+                            {!showCreateOption && filteredOptions.length === 0 && (
+                                <div className="p-3 text-center text-xs text-slate-400 italic">No options found.</div>
+                            )}
+                        </div>
                     </GlassCard>
                 </div>
             )}

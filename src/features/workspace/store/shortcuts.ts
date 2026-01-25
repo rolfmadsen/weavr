@@ -24,6 +24,7 @@ interface UseKeyboardShortcutsProps {
     onAutoLayout: () => void;
     onUndo: () => void;
     onRedo: () => void;
+    onPaste: (nodes: Node[]) => void;
 }
 
 export function useKeyboardShortcuts({
@@ -47,7 +48,8 @@ export function useKeyboardShortcuts({
     onFocusNode,
     onAutoLayout,
     onUndo,
-    onRedo
+    onRedo,
+    onPaste
 }: UseKeyboardShortcutsProps) {
 
     useEffect(() => {
@@ -203,6 +205,44 @@ export function useKeyboardShortcuts({
                 }
             }
 
+            if ((event.metaKey || event.ctrlKey) && (event.key === 'c' || event.key === 'C')) {
+                // Prevent copy if user is typing in input
+                if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+                    return;
+                }
+
+                if (selectedNodeIds.length > 0) {
+                    const nodesToCopy = nodes.filter(n => selectedNodeIds.includes(n.id));
+                    const clipboardData = {
+                        weavr_type: 'nodes',
+                        data: nodesToCopy
+                    };
+                    navigator.clipboard.writeText(JSON.stringify(clipboardData));
+                    event.preventDefault();
+                    shouldPreventDefault = true;
+                }
+            }
+
+            if ((event.metaKey || event.ctrlKey) && (event.key === 'v' || event.key === 'V')) {
+                // Prevent paste if user is typing in input
+                if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+                    return;
+                }
+
+                navigator.clipboard.readText().then(text => {
+                    try {
+                        const parsed = JSON.parse(text);
+                        if (parsed && parsed.weavr_type === 'nodes' && Array.isArray(parsed.data)) {
+                            onPaste(parsed.data);
+                        }
+                    } catch (e) {
+                        // Not valid JSON or not our format
+                    }
+                });
+                event.preventDefault(); // Prevent browser default paste
+                shouldPreventDefault = true;
+            }
+
             if (shouldPreventDefault) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -215,6 +255,6 @@ export function useKeyboardShortcuts({
         nodes, selectedNodeIds, selectedLinkId, isPanelOpen, isToolbarOpen, isReady,
         showSlices, swimlanePositions, onDeleteSelection, onClosePanel, onToggleToolbar,
         onOpenPropertiesPanel, onOpenSlices, onOpenDictionary, onSelectNode, onAddNode, onMoveNodes, onFocusNode,
-        onAutoLayout, onUndo, onRedo
+        onAutoLayout, onUndo, onRedo, onPaste
     ]);
 }

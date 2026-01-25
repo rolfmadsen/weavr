@@ -735,6 +735,7 @@ const SliceList: React.FC<SliceListProps> = ({
                         onCreate={(name) => handleAdd(name)}
                         placeholder="Add slice..."
                         allowCustomValue={false}
+                        autoFocus={true}
                     />
                 </div>
                 <GlassButton

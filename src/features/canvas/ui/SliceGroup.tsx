@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Group, Rect, Text, Path } from 'react-konva';
 import { Slice, Node } from '../../modeling';
 import { NODE_WIDTH, MIN_NODE_HEIGHT } from '../../../shared/constants';
+import { setCanvasCursor } from '../domain/cursorUtils';
 
 interface SliceGroupProps {
     slice: Slice;
@@ -9,7 +10,9 @@ interface SliceGroupProps {
     onSliceClick?: (slice: Slice) => void;
 }
 
-const SliceGroup: React.FC<SliceGroupProps> = React.memo(({ slice, nodes, onSliceClick }) => {
+const SliceGroup: React.FC<SliceGroupProps> = ({ slice, nodes, onSliceClick }) => {
+
+
     const bounds = useMemo(() => {
         if (nodes.length === 0) return null;
 
@@ -66,12 +69,10 @@ const SliceGroup: React.FC<SliceGroupProps> = React.memo(({ slice, nodes, onSlic
                 onClick={() => onSliceClick?.(slice)}
                 onTap={() => onSliceClick?.(slice)}
                 onMouseEnter={(e) => {
-                    const stage = e.target.getStage();
-                    if (stage) stage.container().style.cursor = 'pointer';
+                    setCanvasCursor(e, 'pointer');
                 }}
                 onMouseLeave={(e) => {
-                    const stage = e.target.getStage();
-                    if (stage) stage.container().style.cursor = 'default';
+                    setCanvasCursor(e, 'grab');
                 }}
             >
                 <Text
@@ -94,6 +95,6 @@ const SliceGroup: React.FC<SliceGroupProps> = React.memo(({ slice, nodes, onSlic
             </Group>
         </Group>
     );
-});
+};
 
 export default SliceGroup;

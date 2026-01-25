@@ -327,6 +327,56 @@ export const useModelManager = ({
         onRequestAutoLayout?.();
     }, [selectedNodeIdsArray, unpinNode, onRequestAutoLayout, signal]);
 
+    const handlePasteNodes = useCallback((nodesData: Node[]) => {
+        if (!modelId || nodesData.length === 0) return;
+
+        const GRID_SIZE = 20;
+        const newSelectionIds: string[] = [];
+
+        nodesData.forEach(node => {
+            const newId = uuidv4();
+            const x = (node.x || 0) + GRID_SIZE;
+            const y = (node.y || 0) + GRID_SIZE;
+
+            // Replicate the node with valid properties for a new instance
+            // Omit system-managed fields like id, timestamp, etc. if pertinent
+            gunAddNode(node.type, x, y, newId);
+
+            // Also copy other properties like name, description, etc.
+            // gunAddNode only sets basic props. We need to update the rest.
+            const updates: Partial<Node> = {
+                name: `${node.name}`,
+                description: node.description,
+                // Copy Strict Mode props
+                service: node.service,
+                aggregate: node.aggregate,
+                context: node.context,
+                technicalTimestamp: node.technicalTimestamp,
+                fields: node.fields,
+                // Do NOT copy sliceId or fixed position (unless we want to pin it exactly offset?)
+                // Usually pasting implies "new instance", so maybe unpinned?
+                // Plan said "Offsets positions", implies manual pos unless auto layout.
+                // If the original was fixed, let's keep it fixed (pinned) but offset.
+                fx: node.fx !== undefined && node.fx !== null ? node.fx + GRID_SIZE : undefined,
+                fy: node.fy !== undefined && node.fy !== null ? node.fy + GRID_SIZE : undefined,
+                pinned: node.pinned
+            };
+
+            gunUpdateNode(newId, updates);
+            newSelectionIds.push(newId);
+
+            addToHistory({
+                type: ModelingEvent.NodeAdded,
+                payload: { id: newId, type: node.type, x, y },
+                undoPayload: { id: newId }
+            });
+        });
+
+        // Auto-select the pasted nodes
+        setSelection(newSelectionIds);
+        signal("Nodes.Pasted", { count: newSelectionIds.length });
+    }, [modelId, gunAddNode, gunUpdateNode, addToHistory, setSelection, signal]);
+
     const handleUndo = useCallback(() => {
         undo();
         signal("History.Undo");
@@ -396,6 +446,7 @@ export const useModelManager = ({
         updateModelName,
         handleAddSlice,
         handlePinSelection,
-        handleUnpinSelection
+        handleUnpinSelection,
+        pasteNodes: handlePasteNodes
     };
 };

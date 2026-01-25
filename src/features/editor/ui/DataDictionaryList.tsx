@@ -130,6 +130,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                     onCreate={(name) => handleAdd(name)}
                     placeholder="Add or import entity..."
                     allowCustomValue={true}
+                    autoFocus={true}
                 />
             </div>
 

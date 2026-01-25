@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Group, Rect, Text, Path } from 'react-konva';
+import { Group, Text, Rect, Path } from 'react-konva';
 import { Html } from 'react-konva-utils';
-import { Slice } from '../../modeling/domain/types';
+import { Slice } from '../../modeling';
+// import { default as validationService } from '../../modeling/domain/validation';
+import { setCanvasCursor } from '../domain/cursorUtils';
 
 interface ChapterGroupProps {
     chapterName: string;
@@ -66,15 +68,13 @@ const ChapterGroup: React.FC<ChapterGroupProps> = ({
 
     return (
         <Group
-            onMouseEnter={() => {
+            onMouseEnter={(e) => {
                 setIsHovered(true);
-                const container = document.querySelector('.konvajs-content');
-                if (container instanceof HTMLElement) container.style.cursor = 'pointer';
+                setCanvasCursor(e, 'pointer');
             }}
-            onMouseLeave={() => {
+            onMouseLeave={(e) => {
                 setIsHovered(false);
-                const container = document.querySelector('.konvajs-content');
-                if (container instanceof HTMLElement) container.style.cursor = 'default';
+                setCanvasCursor(e, 'grab');
             }}
         >
             {/* Dashed "Stapled" Border - Matching SliceGroup Style */}

@@ -24,6 +24,10 @@ export const useModelingStore = (props: any) => {
         manager.handleAddNode(type);
     }, [manager]);
 
+    const pasteNodes = useCallback((nodes: any[]) => {
+        manager.pasteNodes(nodes);
+    }, [manager]);
+
     const moveNodes = useCallback((updates: { id: string, x: number, y: number }[]) => {
         manager.gunUpdateNodePositionsBatch(updates);
     }, [manager]);
@@ -34,6 +38,7 @@ export const useModelingStore = (props: any) => {
         moveNode,
         moveNodes,
         renameNode,
-        addNode
+        addNode,
+        pasteNodes
     };
 };
