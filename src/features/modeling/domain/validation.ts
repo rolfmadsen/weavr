@@ -20,9 +20,8 @@ const connectionRules: ConnectionRule[] = [
   { source: ElementType.IntegrationEvent, target: ElementType.Automation, verb: 'triggers', description: 'An integration event triggers a translation process.' },
   { source: ElementType.ReadModel, target: ElementType.Automation, verb: 'informs', description: 'A read model provides data to inform an automation.' },
 
-  // Data from external systems can feed views directly
-  // Data from external systems can feed views directly
-  { source: ElementType.IntegrationEvent, target: ElementType.ReadModel, verb: 'populates', description: 'Data from an integration event can populate a read model.' },
+  // Data from external systems can feed views directly - REMOVED FOR STRICT MODE
+  // { source: ElementType.IntegrationEvent, target: ElementType.ReadModel, verb: 'populates', description: 'Data from an integration event can populate a read model.' },
 
   // User requested Integration Event connections (Outputs to external systems)
   { source: ElementType.ReadModel, target: ElementType.IntegrationEvent, verb: 'triggers', description: 'A read model triggers an integration event (e.g. periodic export).' },

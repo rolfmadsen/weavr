@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Box, CssBaseline, ThemeProvider } from '@mui/material';
-import theme from './theme';
+
 
 // Features
 import {
@@ -39,6 +38,7 @@ import {
   useWorkspaceManager
 } from './features/workspace';
 import { usePlausible } from './features/analytics';
+import { ThemeProvider } from './shared/providers/ThemeProvider';
 
 function getModelIdFromUrl(): string {
   const hash = window.location.hash.slice(1);
@@ -336,12 +336,29 @@ const App: React.FC = () => {
     onRedo: redo
   });
 
-  // Sync GunDB name to Local Storage
+  // Sync GunDB name to Local Storage (Bi-directional)
+  const prevSyncedName = React.useRef(syncedModelName);
+  const prevCurrentName = React.useRef(currentModelName);
+
+  // 1. GunDB -> Local Storage
   useEffect(() => {
-    if (syncedModelName && syncedModelName !== 'Untitled Model' && syncedModelName !== currentModelName) {
-      handleRenameModel(syncedModelName);
+    if (syncedModelName && syncedModelName !== prevSyncedName.current) {
+      prevSyncedName.current = syncedModelName;
+      if (syncedModelName !== 'Untitled Model' && syncedModelName !== currentModelName) {
+        handleRenameModel(syncedModelName);
+      }
     }
   }, [syncedModelName, currentModelName, handleRenameModel]);
+
+  // 2. Local Storage -> GunDB
+  useEffect(() => {
+    if (currentModelName && currentModelName !== prevCurrentName.current) {
+      prevCurrentName.current = currentModelName;
+      if (currentModelName !== 'Untitled Model' && currentModelName !== syncedModelName) {
+        syncUpdateModelName(currentModelName);
+      }
+    }
+  }, [currentModelName, syncedModelName, syncUpdateModelName]);
 
   const handleAddSliceInternal = (title: string) => {
     const id = uuidv4();
@@ -349,11 +366,23 @@ const App: React.FC = () => {
     return id;
   };
 
+  const handleRenameChapter = useCallback((oldName: string, newName: string) => {
+    if (!newName.trim() || oldName === newName) return;
+    const slicesToUpdate = slices.filter(s => (s.chapter || 'General') === oldName);
+    slicesToUpdate.forEach(s => updateSlice(s.id, { chapter: newName.trim() }));
+  }, [slices, updateSlice]);
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <ModelingProvider store={modelingStore}>
-        <div className="w-screen h-[100dvh] overflow-hidden overscroll-none relative font-sans bg-gray-50 flex flex-col">
+    <ModelingProvider store={modelingStore}>
+      <ThemeProvider>
+        {/* Glassmorphism Background Layer */}
+        <div className="fixed inset-0 -z-10 bg-slate-50 dark:bg-slate-950 transition-colors duration-700">
+          <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+          <div className="absolute top-0 -right-4 w-96 h-96 bg-cyan-300 dark:bg-cyan-900 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-32 left-20 w-96 h-96 bg-blue-300 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+        </div>
+
+        <div className="w-screen h-[100dvh] overflow-hidden overscroll-none relative font-sans flex flex-col text-slate-800 dark:text-slate-100">
           <Header
             onOpen={handleOpenProject}
             onMerge={handleMergeImport}
@@ -370,6 +399,7 @@ const App: React.FC = () => {
             onRenameModel={(name) => { syncUpdateModelName(name); signal("Model.Renamed"); }} // connect to GunDB write
             onGenerateDocs={handleGenerateDocs}
             onShare={() => signal("Share.Clicked")}
+            hasPinnedNodes={nodes.some(n => n.fx !== undefined || n.fy !== undefined)}
           />
 
           <GraphCanvas
@@ -398,11 +428,12 @@ const App: React.FC = () => {
             onValidateConnection={(s: Node, t: Node) => validationService.isValidConnection(s, t)}
             onViewChange={setViewState}
             onSliceClick={handleSliceClick}
+            onRenameChapter={handleRenameChapter}
             initialViewState={viewState}
             ref={graphRef}
           />
 
-          <Box sx={{ position: 'absolute', bottom: 64, left: 32, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', pointerEvents: 'none', '& > *': { pointerEvents: 'auto' } }}>
+          <div className="absolute bottom-16 left-8 z-10 flex flex-col items-start pointer-events-none [&>*]:pointer-events-auto">
             <ElementFilter nodes={nodes} onNodeClick={(n: Node) => {
               handleFocusNode(n.id);
               signal("Filter.ElementSelected", { type: n.type });
@@ -415,7 +446,7 @@ const App: React.FC = () => {
               graphRef.current?.handleNavigate?.(x, y);
               signal("Minimap.Navigated");
             }} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
-          </Box>
+          </div>
 
           <Toolbar onAddNode={handleAddNode} disabled={!isReady} isMenuOpen={isToolbarOpen} onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} />
 
@@ -437,13 +468,13 @@ const App: React.FC = () => {
             {sidebarView === 'slices' && (
               <SliceList
                 slices={slicesWithNodes}
-                definitions={definitions}
                 onAddSlice={handleAddSliceInternal}
                 onUpdateSlice={updateSlice}
                 onDeleteSlice={deleteSlice}
                 onManageSlice={(id: string) => { setSliceManagerInitialId(id); setIsSliceManagerOpen(true); }}
                 modelId={modelId}
                 expandedId={activeSliceId}
+                onAutoLayout={handleRequestAutoLayout}
               />
             )}
             {sidebarView === 'dictionary' && (
@@ -475,8 +506,8 @@ const App: React.FC = () => {
           />
           <Footer />
         </div>
-      </ModelingProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </ModelingProvider>
   );
 };
 

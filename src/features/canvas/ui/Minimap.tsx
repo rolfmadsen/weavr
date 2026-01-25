@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { Stage, Layer, Rect, Group } from 'react-konva';
 import { Node, Slice } from '../../modeling';
+import { GlassCard } from '../../../shared/components/GlassCard';
+import { useTheme } from '../../../shared/providers/ThemeProvider';
 import { NODE_WIDTH, MIN_NODE_HEIGHT } from '../../../shared/constants';
 
 interface MinimapProps {
@@ -26,6 +28,7 @@ const Minimap: React.FC<MinimapProps> = ({
     viewportWidth,
     viewportHeight
 }) => {
+    const { resolvedTheme } = useTheme();
     const width = 240;
     const height = 160;
     const padding = 30;
@@ -125,7 +128,10 @@ const Minimap: React.FC<MinimapProps> = ({
     const ty = (height - contentHeight * scale) / 2;
 
     return (
-        <div className="bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-xl rounded-xl overflow-hidden w-[240px] h-[160px] hidden md:block transition-all duration-300 hover:shadow-2xl hover:border-indigo-200">
+        <GlassCard
+            variant="panel"
+            className="w-[240px] h-[160px] hidden md:block !p-0 !rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300"
+        >
             <Stage width={width} height={height} onClick={handleStageClick}>
                 <Layer>
                     <Group
@@ -162,7 +168,7 @@ const Minimap: React.FC<MinimapProps> = ({
                                     y={pos.y}
                                     width={NODE_WIDTH}
                                     height={MIN_NODE_HEIGHT}
-                                    fill="#9ca3af"
+                                    fill={resolvedTheme === 'dark' ? '#475569' : '#9ca3af'}
                                     cornerRadius={4}
                                     listening={false}
                                 />
@@ -176,7 +182,7 @@ const Minimap: React.FC<MinimapProps> = ({
                                 y={viewport.y}
                                 width={viewport.width}
                                 height={viewport.height}
-                                stroke="#6366f1"
+                                stroke={resolvedTheme === 'dark' ? '#818cf8' : '#6366f1'}
                                 strokeWidth={2 / scale}
                                 fill="rgba(99, 102, 241, 0.1)"
                                 cornerRadius={Math.min(4 / scale, viewport.width / 2, viewport.height / 2)}
@@ -186,7 +192,7 @@ const Minimap: React.FC<MinimapProps> = ({
                     </Group>
                 </Layer>
             </Stage>
-        </div>
+        </GlassCard>
     );
 };
 

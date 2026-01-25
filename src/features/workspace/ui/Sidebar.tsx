@@ -1,15 +1,12 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import {
-    Drawer,
-    Box,
-    IconButton,
-    Tabs,
-    Tab,
-    Typography,
-    useTheme,
-    Unstable_TrapFocus as FocusTrap
-} from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
+import React, { useEffect, useState, useCallback } from 'react';
+import { X } from 'lucide-react';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+// Helper for conditional classes
+function cn(...inputs: (string | undefined | null | false)[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface SidebarProps {
     isOpen: boolean;
@@ -34,26 +31,19 @@ const Sidebar: React.FC<SidebarProps> = ({
     onTabChange,
     tabs
 }) => {
-    const theme = useTheme();
     const [width, setWidth] = useState(DEFAULT_WIDTH);
     const [isResizing, setIsResizing] = useState(false);
-    const sidebarRef = useRef<HTMLDivElement>(null);
 
-    // Close on ESC key (Drawer handles this by default for 'temporary' variant, but we use 'persistent')
+    // Close on ESC
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && isOpen && !e.defaultPrevented) {
                 onClose();
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
-
-    const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
-        onTabChange?.(newValue);
-    };
 
     const startResizing = useCallback((e: React.MouseEvent) => {
         setIsResizing(true);
@@ -88,92 +78,71 @@ const Sidebar: React.FC<SidebarProps> = ({
     }, [isResizing, resize, stopResizing]);
 
     return (
-        <Drawer
-            anchor="right"
-            variant="persistent"
-            open={isOpen}
-            sx={{
-                width: width,
-                flexShrink: 0,
-                '& .MuiDrawer-paper': {
-                    width: width,
-                    boxSizing: 'border-box',
-                    boxShadow: theme.shadows[4],
-                    borderLeft: `1px solid ${theme.palette.divider}`,
-                    overflow: 'visible' // Allow resize handle to be visible
-                },
-            }}
-            ref={sidebarRef}
-        >
-            {/* Resize Handle */}
-            <Box
-                onMouseDown={startResizing}
-                sx={{
-                    position: 'absolute',
-                    top: 0,
-                    bottom: 0,
-                    left: -5,
-                    width: 10,
-                    cursor: 'ew-resize',
-                    zIndex: 1201, // Above drawer content
-                    '&:hover': {
-                        background: 'rgba(0, 0, 0, 0.1)', // Visual cue
-                    }
-                }}
+        <>
+            {/* Backdrop for mobile */}
+            <div
+                className={cn(
+                    "fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-300 md:hidden",
+                    isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+                onClick={onClose}
             />
 
-            <FocusTrap
-                open={isOpen}
-                disableEnforceFocus
-                disableAutoFocus
-                disableRestoreFocus
+            {/* Sidebar Panel */}
+            <aside
+                className={cn(
+                    "fixed top-0 bottom-0 right-0 z-50 flex flex-col transition-transform duration-300 ease-in-out shadow-2xl",
+                    "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-l border-white/20 dark:border-white/10",
+                    isOpen ? "translate-x-0" : "translate-x-full"
+                )}
+                style={{ width: isOpen ? width : 0, transitionProperty: isResizing ? 'none' : 'transform, width' }}
             >
-                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    {/* Header */}
-                    <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        p: 2,
-                        borderBottom: 1,
-                        borderColor: 'divider',
-                        bgcolor: 'background.paper'
-                    }}>
-                        {tabs && tabs.length > 0 ? (
-                            <Tabs
-                                value={activeTab}
-                                onChange={handleTabChange}
-                                variant="scrollable"
-                                scrollButtons="auto"
-                                sx={{ minHeight: 48 }}
-                            >
-                                {tabs.map(tab => (
-                                    <Tab
-                                        key={tab.id}
-                                        value={tab.id}
-                                        label={tab.label}
-                                        title={tab.title}
-                                        sx={{ minHeight: 48, textTransform: 'none', fontWeight: 500 }}
-                                    />
-                                ))}
-                            </Tabs>
-                        ) : (
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                {title}
-                            </Typography>
-                        )}
-                        <IconButton onClick={onClose} size="small" aria-label="Close sidebar">
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
+                {/* Resize Handle */}
+                <div
+                    onMouseDown={startResizing}
+                    className="absolute top-0 bottom-0 -left-1 w-2 cursor-ew-resize z-50 hover:bg-purple-500/20 active:bg-purple-500/40 transition-colors"
+                />
 
-                    {/* Content */}
-                    <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
-                        {children}
-                    </Box>
-                </Box>
-            </FocusTrap>
-        </Drawer>
+                {/* Header */}
+                <header className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50 h-16 shrink-0">
+                    {tabs && tabs.length > 0 ? (
+                        <div className="flex gap-1 overflow-x-auto no-scrollbar mask-gradient-r">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => onTabChange?.(tab.id)}
+                                    title={tab.title}
+                                    className={cn(
+                                        "px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap",
+                                        activeTab === tab.id
+                                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-300 ring-1 ring-purple-500/20"
+                                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                    )}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <h2 className="text-lg font-semibold text-slate-800 dark:text-white truncate">
+                            {title}
+                        </h2>
+                    )}
+
+                    <button
+                        onClick={onClose}
+                        className="p-2 ml-2 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400 transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
+                </header>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                    {children}
+                </div>
+            </aside>
+        </>
     );
 };
 

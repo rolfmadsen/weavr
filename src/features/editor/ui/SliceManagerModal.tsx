@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Slice, SliceType } from '../../modeling';
-import { CloseIcon, DeleteIcon } from '../../../shared/components/icons';
-import { Description as DescriptionIcon, ArrowBack, Edit as EditIcon, ArrowUpward, ArrowDownward } from '@mui/icons-material';
+import {
+    FileText,
+    ArrowLeft,
+    Edit2,
+    ArrowUp,
+    ArrowDown,
+    X,
+    Trash2
+} from 'lucide-react';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
+import { GlassCard } from '../../../shared/components/GlassCard';
+import { GlassButton } from '../../../shared/components/GlassButton';
+import { GlassInput } from '../../../shared/components/GlassInput';
 
 interface SliceManagerModalProps {
     isOpen: boolean;
@@ -38,8 +48,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
     const [deleteSliceId, setDeleteSliceId] = useState<string | null>(null);
 
 
-    // Update state when initialViewingSpecsId changes (e.g. when reopening)
-    React.useEffect(() => {
+    useEffect(() => {
         if (isOpen && initialViewingSpecsId) {
             setViewingSpecsId(initialViewingSpecsId);
         } else if (isOpen && !initialViewingSpecsId) {
@@ -47,7 +56,6 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
         }
     }, [isOpen, initialViewingSpecsId]);
 
-    // Sort slices by order
     const sortedSlices = [...slices].sort((a, b) => (a.order || 0) - (b.order || 0));
 
     const handleAdd = (e: React.FormEvent) => {
@@ -109,49 +117,50 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+            <GlassCard
+                variant="panel"
+                className="w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
 
                 {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b border-gray-100">
-                    <div className="flex items-center gap-2">
+                <div className="flex justify-between items-center p-5 border-b border-gray-200/20">
+                    <div className="flex items-center gap-3">
                         {viewingSpecsId && (
-                            <button onClick={() => setViewingSpecsId(null)} className="text-gray-500 hover:text-indigo-600">
-                                <ArrowBack />
-                            </button>
+                            <GlassButton variant="ghost" size="sm" onClick={() => setViewingSpecsId(null)} className="rounded-full !p-2">
+                                <ArrowLeft size={20} />
+                            </GlassButton>
                         )}
-                        <h2 className="text-lg font-bold text-gray-800">
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-white">
                             {viewingSpecsId
                                 ? `Scenarios: ${slices.find(s => s.id === viewingSpecsId)?.title}`
                                 : 'Manage Slices'}
                         </h2>
                     </div>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100">
-                        <CloseIcon />
-                    </button>
+                    <GlassButton variant="ghost" size="sm" onClick={onClose} className="rounded-full !p-2">
+                        <X size={20} />
+                    </GlassButton>
                 </div>
 
-                {/* List */}
                 {/* Content */}
-                <div className="flex-grow overflow-y-auto p-4 space-y-2">
+                <div className="flex-grow overflow-y-auto p-5 space-y-3 custom-scrollbar">
                     {viewingSpecsId ? (
-                        <div className="p-4 text-center text-gray-500 italic">
+                        <div className="p-8 text-center text-slate-500 italic bg-white/5 rounded-xl border border-dotted border-white/20">
                             Specifications are now edited in the bottom panel.
                         </div>
                     ) : (
                         <>
                             {sortedSlices.length === 0 ? (
-                                <p className="text-center text-gray-500 py-8 italic">No slices created yet.</p>
+                                <p className="text-center text-slate-500 py-8 italic">No slices created yet.</p>
                             ) : (
                                 sortedSlices.map((slice) => (
-                                    <div key={slice.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 group">
+                                    <div key={slice.id} className="flex items-center justify-between bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-white/20 dark:border-white/5 group hover:bg-white/60 dark:hover:bg-white/5 transition-colors">
                                         {editingId === slice.id ? (
-                                            <div className="flex-grow flex flex-col gap-2">
-                                                <input
-                                                    type="text"
+                                            <div className="flex-grow flex flex-col gap-3">
+                                                <GlassInput
                                                     value={editName}
                                                     onChange={(e) => setEditName(e.target.value)}
-                                                    className="w-full px-2 py-1 border border-indigo-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-1"
                                                     placeholder="Slice Name"
                                                     autoFocus
                                                 />
@@ -159,7 +168,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                     <select
                                                         value={editType}
                                                         onChange={(e) => setEditType(e.target.value as SliceType)}
-                                                        className="px-2 py-1 text-xs border border-gray-300 rounded bg-white"
+                                                        className="px-3 py-2 text-xs border border-white/20 rounded-lg bg-white/50 dark:bg-black/50 text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-purple-500"
                                                     >
                                                         <option value="">Type...</option>
                                                         <option value={SliceType.StateChange}>Command</option>
@@ -170,40 +179,42 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                         type="text"
                                                         value={editContext}
                                                         onChange={(e) => setEditContext(e.target.value)}
-                                                        className="flex-grow px-2 py-1 text-xs border border-gray-300 rounded"
+                                                        className="flex-grow px-3 py-2 text-xs border border-white/20 rounded-lg bg-white/50 dark:bg-black/50 text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-purple-500"
                                                         placeholder="Bounded Context"
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') saveEdit();
                                                             if (e.key === 'Escape') cancelEdit();
                                                         }}
                                                     />
-                                                    <button onClick={saveEdit} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">Save</button>
-                                                    <button onClick={cancelEdit} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">Cancel</button>
+                                                </div>
+                                                <div className="flex gap-2 justify-end">
+                                                    <GlassButton size="sm" onClick={saveEdit}>Save</GlassButton>
+                                                    <GlassButton size="sm" variant="ghost" onClick={cancelEdit}>Cancel</GlassButton>
                                                 </div>
                                             </div>
                                         ) : (
                                             <>
                                                 <div className="flex-grow flex flex-col cursor-pointer" onClick={() => startEditing(slice)}>
-                                                    <span className="font-medium text-gray-700 hover:text-indigo-600 truncate">
+                                                    <span className="font-medium text-slate-700 dark:text-slate-200 hover:text-purple-500 transition-colors truncate">
                                                         {slice.title}
                                                     </span>
-                                                    <div className="flex gap-2 text-xs text-gray-500">
+                                                    <div className="flex gap-2 text-xs text-slate-500 mt-1">
                                                         {slice.sliceType && (
-                                                            <span className="bg-gray-200 px-1 rounded text-gray-600">{slice.sliceType}</span>
+                                                            <span className="bg-slate-200/50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">{slice.sliceType}</span>
                                                         )}
                                                         {slice.context && (
-                                                            <span className="italic">{slice.context}</span>
+                                                            <span className="italic opacity-75">{slice.context}</span>
                                                         )}
                                                         {slice.specifications && slice.specifications.length > 0 && (
-                                                            <span className="text-indigo-500 flex items-center gap-0.5" title={`${slice.specifications.length} scenarios`}>
-                                                                <DescriptionIcon style={{ fontSize: 12 }} /> {slice.specifications.length}
+                                                            <span className="text-purple-500 flex items-center gap-0.5 font-medium" title={`${slice.specifications.length} scenarios`}>
+                                                                <FileText size={12} /> {slice.specifications.length}
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
+
                                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {/* Reordering Buttons */}
-                                                    <div className="flex flex-col -gap-1 mr-1">
+                                                    <div className="flex flex-col -gap-1 mr-2 border-r border-white/10 pr-2">
                                                         <button
                                                             disabled={slices.indexOf(slice) === 0}
                                                             onClick={(e) => {
@@ -215,10 +226,10 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                                     onUpdateSlice(prev.id, { order: idx });
                                                                 }
                                                             }}
-                                                            className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-20"
+                                                            className="text-slate-400 hover:text-purple-500 disabled:opacity-20 transition-colors"
                                                             title="Move Up"
                                                         >
-                                                            <ArrowUpward style={{ fontSize: 14 }} />
+                                                            <ArrowUp size={16} />
                                                         </button>
                                                         <button
                                                             disabled={slices.indexOf(slice) === slices.length - 1}
@@ -231,33 +242,33 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                                     onUpdateSlice(next.id, { order: idx });
                                                                 }
                                                             }}
-                                                            className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-20"
+                                                            className="text-slate-400 hover:text-purple-500 disabled:opacity-20 transition-colors"
                                                             title="Move Down"
                                                         >
-                                                            <ArrowDownward style={{ fontSize: 14 }} />
+                                                            <ArrowDown size={16} />
                                                         </button>
                                                     </div>
+
                                                     <button
                                                         onClick={() => setViewingSpecsId(slice.id)}
-                                                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200 transition-colors"
-                                                        title="Manage Scenarios (Given/When/Then)"
+                                                        className="p-2 text-slate-400 hover:text-purple-500 rounded-lg hover:bg-purple-500/10 transition-colors"
+                                                        title="Manage Scenarios"
                                                     >
-                                                        <DescriptionIcon style={{ fontSize: 14 }} />
-                                                        Scenarios
+                                                        <FileText size={18} />
                                                     </button>
                                                     <button
                                                         onClick={() => startEditing(slice)}
-                                                        className="p-1.5 text-gray-400 hover:text-indigo-600 rounded hover:bg-indigo-50"
+                                                        className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-blue-500/10 transition-colors"
                                                         title="Rename"
                                                     >
-                                                        <EditIcon style={{ fontSize: 14 }} />
+                                                        <Edit2 size={18} />
                                                     </button>
                                                     <button
                                                         onClick={(e) => handleDelete(slice.id, e)}
-                                                        className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50"
+                                                        className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
                                                         title="Delete"
                                                     >
-                                                        <DeleteIcon />
+                                                        <Trash2 size={18} />
                                                     </button>
                                                 </div>
                                             </>
@@ -269,31 +280,26 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                     )}
                 </div>
 
-                {/* Footer / Add New - Only show when not viewing specs */}
+                {/* Footer / Add New */}
                 {!viewingSpecsId && (
-                    <div className="p-4 border-t border-gray-100 bg-gray-50">
-                        <form onSubmit={handleAdd} className="flex flex-col gap-2">
+                    <div className="p-5 border-t border-gray-200/20 bg-slate-50/50 dark:bg-white/5">
+                        <form onSubmit={handleAdd} className="flex flex-col gap-3">
                             <div className="flex gap-2">
-                                <input
-                                    type="text"
+                                <GlassInput
                                     value={newSliceName}
                                     onChange={(e) => setNewSliceName(e.target.value)}
                                     placeholder="New slice name..."
-                                    className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                    className="flex-grow"
                                 />
-                                <button
-                                    type="submit"
-                                    disabled={!newSliceName.trim()}
-                                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
+                                <GlassButton type="submit" disabled={!newSliceName.trim()}>
                                     Add
-                                </button>
+                                </GlassButton>
                             </div>
                             <div className="flex gap-2">
                                 <select
                                     value={newSliceType}
                                     onChange={(e) => setNewSliceType(e.target.value as SliceType)}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-white text-sm"
+                                    className="px-3 py-2.5 border border-white/20 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-purple-500/50 bg-white/40 dark:bg-black/20 backdrop-blur-md text-sm text-slate-700 dark:text-slate-200"
                                 >
                                     <option value="">Type...</option>
                                     <option value={SliceType.StateChange}>Command</option>
@@ -305,15 +311,14 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                     value={newSliceContext}
                                     onChange={(e) => setNewSliceContext(e.target.value)}
                                     placeholder="Bounded Context (Optional)..."
-                                    className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
+                                    className="flex-grow px-3 py-2.5 border border-white/20 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-purple-500/50 bg-white/40 dark:bg-black/20 backdrop-blur-md text-sm text-slate-700 dark:text-slate-200"
                                 />
                             </div>
                         </form>
                     </div>
-                )
-                }
+                )}
 
-            </div >
+            </GlassCard>
             <ConfirmMenu
                 anchorEl={deleteAnchorEl}
                 open={Boolean(deleteAnchorEl)}
@@ -321,7 +326,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                 onConfirm={confirmDelete}
                 message="Are you sure you want to delete this slice?"
             />
-        </div >
+        </div>
     );
 };
 

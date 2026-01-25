@@ -1,12 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { Box, TextField, Typography, IconButton, Tooltip, Stack, Avatar } from '@mui/material';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Node } from '../../modeling';
 import {
-    Search as SearchIcon,
-    Clear as ClearIcon,
-    CenterFocusStrong as FocusIcon,
-} from '@mui/icons-material';
+    Search,
+    X,
+    Target
+} from 'lucide-react';
 import { ELEMENT_STYLE } from '../../../shared/constants';
+import { GlassInput } from '../../../shared/components/GlassInput';
+import { GlassCard } from '../../../shared/components/GlassCard';
+import * as Tooltip from '@radix-ui/react-tooltip';
 
 interface ElementFilterProps {
     nodes: Node[];
@@ -15,7 +17,7 @@ interface ElementFilterProps {
 
 const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(true);
     const [selectedIndex, setSelectedIndex] = useState(0);
 
     // Fuzzy search nodes based on name and type
@@ -29,15 +31,13 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
         ).slice(0, 20); // Limit results for performance
     }, [nodes, searchTerm]);
 
-    const listRef = React.useRef<HTMLDivElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
 
-    // Reset selection when search results change
-    React.useEffect(() => {
+    useEffect(() => {
         setSelectedIndex(0);
     }, [displayedNodes.length]);
 
-    // Scroll highlighted item into view
-    React.useEffect(() => {
+    useEffect(() => {
         if (listRef.current && selectedIndex >= 0) {
             const container = listRef.current;
             const activeItem = container.children[selectedIndex] as HTMLElement;
@@ -57,6 +57,14 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
     }, [selectedIndex]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            setSearchTerm('');
+            setIsCollapsed(true);
+            return;
+        }
+
         if (displayedNodes.length === 0) return;
 
         if (e.key === 'ArrowDown') {
@@ -70,183 +78,98 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
             if (selectedIndex >= 0 && selectedIndex < displayedNodes.length) {
                 onNodeClick(displayedNodes[selectedIndex]);
             }
-        } else if (e.key === 'Escape') {
-            setSearchTerm('');
-            setIsCollapsed(true);
         }
     };
 
 
     if (isCollapsed) {
         return (
-            <Tooltip title="Find Element" placement="left">
-                <Box
-                    onClick={() => setIsCollapsed(false)}
-                    sx={{
-                        width: 40,
-                        height: 40,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        borderRadius: '50%',
-                        boxShadow: 3,
-                        cursor: 'pointer',
-                        backdropFilter: 'blur(4px)',
-                        border: '1px solid #e5e7eb',
-                        transition: 'all 0.2s',
-                        mb: 1.5, // Added margin for stacking
-                        '&:hover': {
-                            transform: 'scale(1.1)',
-                            borderColor: '#818cf8',
-                            color: '#4f46e5'
-                        }
-                    }}
-                >
-                    <SearchIcon fontSize="small" color="action" />
-                </Box>
-            </Tooltip>
+            <Tooltip.Provider>
+                <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                        <button
+                            onClick={() => setIsCollapsed(false)}
+                            className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:scale-110 hover:border-indigo-400 hover:text-indigo-600 transition-all mb-4 text-slate-500 dark:text-slate-400"
+                        >
+                            <Search size={20} />
+                        </button>
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                        <Tooltip.Content className="px-2 py-1 text-xs bg-black text-white rounded mb-2 z-[100]">
+                            Find Element
+                            <Tooltip.Arrow className="fill-black" />
+                        </Tooltip.Content>
+                    </Tooltip.Portal>
+                </Tooltip.Root>
+            </Tooltip.Provider>
         );
     }
 
     return (
-        <Box
-            sx={{
-                width: 250,
-                maxHeight: 500,
-                display: 'flex',
-                flexDirection: 'column',
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(229, 231, 235, 0.8)',
-                overflow: 'hidden',
-                transition: 'all 0.2s',
-                mb: 1.5 // Added margin for stacking
-            }}
+        <GlassCard
+            variant="panel"
+            className="w-64 max-h-[500px] flex flex-col mb-4 overflow-hidden !p-0 !rounded-xl"
         >
-            {/* Header / Search */}
-            <Box sx={{ p: 1.5, borderBottom: '1px solid #f3f4f6', bgcolor: 'rgba(249, 250, 251, 0.5)' }}>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                    <Typography variant="subtitle2" sx={{ flex: 1, fontWeight: 600, color: '#374151', fontSize: '0.85rem' }}>
-                        Filter Elements
-                    </Typography>
-                    <IconButton size="small" onClick={() => setIsCollapsed(true)} sx={{ p: 0.5, color: '#9ca3af' }} aria-label="Close filter">
-                        <ClearIcon fontSize="small" sx={{ fontSize: 16 }} />
-                    </IconButton>
-                </Stack>
-                <TextField
+            <div className="p-3 border-b border-gray-200/50 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md">
+                <div className="flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-200 font-semibold text-sm">
+                    <span className="flex-1">Find Element</span>
+                    <button onClick={() => setIsCollapsed(true)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+                        <X size={16} />
+                    </button>
+                </div>
+                <GlassInput
                     placeholder="Search elements..."
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    autoFocus
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    InputProps={{
-                        endAdornment: searchTerm && (
-                            <IconButton
-                                size="small"
-                                onClick={() => setSearchTerm('')}
-                                sx={{ p: 0.5, mr: -0.5, color: '#9ca3af' }}
-                            >
-                                <ClearIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                        )
-                    }}
-                    sx={{
-                        '& .MuiOutlinedInput-root': {
-                            backgroundColor: 'white',
-                            fontSize: '0.8rem',
-                            '& fieldset': { borderColor: '#e5e7eb' },
-                            '&:hover fieldset': { borderColor: '#d1d5db' },
-                            '&.Mui-focused fieldset': { borderColor: '#818cf8', borderWidth: 1 },
-                            height: 32,
-                            pr: 0.5
-                        },
-                        '& .MuiOutlinedInput-input': {
-                            padding: '4px 8px',
-                        }
-                    }}
+                    autoFocus
+                    className="!py-1.5 !px-3 !text-sm"
                 />
-            </Box>
+            </div>
 
-
-            {/* List */}
-            <Box
+            <div
                 ref={listRef}
-                sx={{
-                    overflowY: 'auto',
-                    flex: 1,
-                    maxHeight: 350,
-                    position: 'relative',
-                    '&::-webkit-scrollbar': { width: 4 },
-                    '&::-webkit-scrollbar-thumb': { backgroundColor: '#d1d5db', borderRadius: 2 }
-                }}
+                className="overflow-y-auto flex-1 max-h-[350px] custom-scrollbar"
             >
                 {searchTerm && displayedNodes.length === 0 ? (
-                    <Typography variant="caption" sx={{ display: 'block', p: 2, textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
-                        No elements found
-                    </Typography>
+                    <p className="p-4 text-center text-xs text-slate-400 italic">No elements found</p>
                 ) : (
                     displayedNodes.map((node, index) => {
                         const style = ELEMENT_STYLE[node.type as keyof typeof ELEMENT_STYLE];
                         const isHighlighted = index === selectedIndex;
                         return (
-                            <Box
+                            <div
                                 key={node.id}
                                 onClick={() => onNodeClick(node)}
-                                sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    px: 1.5,
-                                    py: 1,
-                                    cursor: 'pointer',
-                                    transition: 'colors 0.1s',
-                                    bgcolor: isHighlighted ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
-                                    '&:hover': { bgcolor: isHighlighted ? 'rgba(99, 102, 241, 0.12)' : '#f3f4f6' },
-                                }}
+                                className={`
+                                    flex items-center px-3 py-2 cursor-pointer transition-colors
+                                    ${isHighlighted ? 'bg-indigo-50/50 dark:bg-indigo-500/20 border-l-4 border-indigo-500 pl-2' : 'hover:bg-slate-50/30 dark:hover:bg-white/5 border-l-4 border-transparent pl-2'}
+                                `}
                             >
-                                <Avatar
-                                    sx={{
-                                        width: 24,
-                                        height: 24,
-                                        bgcolor: style?.color || '#9ca3af',
-                                        fontSize: '0.6rem',
-                                        mr: 1.5
-                                    }}
+                                <div
+                                    className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-white font-bold mr-3 shadow-sm"
+                                    style={{ backgroundColor: style?.color || '#9ca3af' }}
                                 >
                                     {node.type?.charAt(0).toUpperCase()}
-                                </Avatar>
-                                <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            fontSize: '0.8rem',
-                                            color: '#111827',
-                                            fontWeight: isHighlighted ? 600 : 500,
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
-                                        }}
-                                    >
+                                </div>
+
+                                <div className="flex-1 overflow-hidden">
+                                    <div className={`text-sm truncate ${isHighlighted ? 'font-semibold text-indigo-900 dark:text-indigo-200' : 'font-medium text-slate-700 dark:text-slate-200'}`}>
                                         {node.name || 'Untitled'}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block' }}>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider">
                                         {node.type?.replace(/_/g, ' ')}
-                                    </Typography>
-                                </Box>
-                                <FocusIcon sx={{ fontSize: 16, color: isHighlighted ? '#4f46e5' : '#9ca3af', ml: 1 }} />
-                            </Box>
+                                    </div>
+                                </div>
+
+                                <Target size={16} className={isHighlighted ? "text-indigo-600 dark:text-indigo-400" : "text-slate-200 dark:text-slate-700"} />
+                            </div>
                         );
                     })
                 )}
-            </Box>
-        </Box>
+            </div>
+        </GlassCard>
     );
 };
-
 
 export default ElementFilter;

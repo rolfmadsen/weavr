@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../../shared/providers/ThemeProvider';
 import { Group, Line, Arrow, Text } from 'react-konva';
 import { Link } from '../../modeling';
 import { safeStr, getPolylineMidpoint, pointsAreEqual } from '../domain/canvasUtils';
@@ -24,6 +25,7 @@ const LinkGroup = React.memo(({
     onLinkDoubleClick,
     customPoints
 }: LinkGroupProps) => {
+    const { resolvedTheme } = useTheme();
     const points = customPoints || [0, 0, 0, 0];
     const { x: midX, y: midY } = getPolylineMidpoint(points);
 
@@ -31,8 +33,11 @@ const LinkGroup = React.memo(({
     const linkId = safeStr(link.id);
 
     const active = isSelected || isHighlighted;
-    const color = active ? '#dc2626' : '#6b7280'; // Darker Gray (600) for visibility
+    const color = active ? '#dc2626' : (resolvedTheme === 'dark' ? '#94a3b8' : '#6b7280');
     const width = active ? 4 : 2;
+
+    const labelStroke = resolvedTheme === 'dark' ? '#0f172a' : '#f9fafb';
+    const labelFill = active ? '#dc2626' : (resolvedTheme === 'dark' ? '#e2e8f0' : '#4b5563');
 
     return (
         <Group
@@ -57,21 +62,21 @@ const LinkGroup = React.memo(({
                     <Text
                         text={label}
                         fontSize={12}
-                        fill={active ? '#dc2626' : '#4b5563'}
+                        fill={labelFill}
                         align="center"
                         verticalAlign="middle"
                         offsetX={50}
                         offsetY={15}
                         width={100}
                         height={30}
-                        stroke="#f9fafb"
+                        stroke={labelStroke}
                         strokeWidth={3}
                         listening={false}
                     />
                     <Text
                         text={label}
                         fontSize={12}
-                        fill={active ? '#dc2626' : '#4b5563'}
+                        fill={labelFill}
                         fontStyle="normal"
                         align="center"
                         verticalAlign="middle"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Group, Rect, Path, Text, Circle } from 'react-konva';
 import { Portal } from 'react-konva-utils';
 import Konva from 'konva';
@@ -51,26 +51,8 @@ const NodeGroup = React.memo(({
 
     const groupRef = useRef<Konva.Group>(null);
 
-    // PERFORMANCE: Cache the node group to reduce draw calls
-    useEffect(() => {
-        const group = groupRef.current;
-        if (!group) return;
-
-        if (isDragging) {
-            group.clearCache();
-            return;
-        }
-
-        const timeout = setTimeout(() => {
-            if (groupRef.current) {
-                groupRef.current.cache({
-                    offset: 20
-                });
-            }
-        }, 0);
-
-        return () => clearTimeout(timeout);
-    }, [node.name, node.type, node.pinned, isSelected, isValidTarget, showHandles, height, isDragging]);
+    // PERFORMANCE: Caching disabled to support perfect vector sharpness on zoom
+    // optimization only needed for extremely large graphs (1000+ nodes)
 
     const contentOffsetX = 0;
     const contentOffsetY = 0;
@@ -86,9 +68,9 @@ const NodeGroup = React.memo(({
         stroke: isValidTarget ? '#22c55e' : (isSelected ? '#4f46e5' : undefined),
         strokeWidth: isValidTarget ? 4 : (isSelected ? 3 : 0),
         shadowColor: shadowEnabled ? (isValidTarget ? '#22c55e' : 'black') : undefined,
-        shadowBlur: shadowEnabled ? (isValidTarget ? 15 : (isSelected ? 8 : 3)) : 0,
-        shadowOpacity: shadowEnabled ? (isValidTarget ? 0.6 : 0.15) : 0,
-        shadowOffset: { x: 1, y: 2 },
+        shadowBlur: shadowEnabled ? (isValidTarget ? 15 : (isSelected ? 8 : 4)) : 0,
+        shadowOpacity: shadowEnabled ? (isValidTarget ? 0.6 : 0.2) : 0,
+        shadowOffset: { x: 2, y: 3 },
     };
 
     const renderShape = () => {

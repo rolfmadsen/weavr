@@ -1,12 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import {
-    Autocomplete,
-    TextField,
-    createFilterOptions,
-    Box,
-    Typography,
-    FilterOptionsState
-} from '@mui/material';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { GlassInput } from './GlassInput';
+import { ChevronDown, Plus } from 'lucide-react';
+import { GlassCard } from './GlassCard';
 
 interface Option {
     id: string;
@@ -25,11 +20,8 @@ interface SmartSelectProps {
     placeholder?: string;
     allowCustomValue?: boolean;
     onSearchChange?: (value: string) => void;
-    focusTrigger?: number;
     autoFocus?: boolean;
 }
-
-const filter = createFilterOptions<Option>();
 
 const SmartSelect: React.FC<SmartSelectProps> = ({
     options,
@@ -39,130 +31,165 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
     placeholder,
     allowCustomValue = false,
     onSearchChange,
-    focusTrigger,
     autoFocus
 }) => {
+    const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
+    const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    // Find the selected option object based on the ID value
-    const selectedOption = useMemo(() => {
-        return options.find(o => o.id === value) || (allowCustomValue && value ? { id: value, label: value } : null);
-    }, [options, value, allowCustomValue]);
-
-    // Handle focus trigger from parent
-    const inputRef = React.useRef<HTMLInputElement>(null);
-    React.useEffect(() => {
-        if ((focusTrigger && focusTrigger > 0) || autoFocus) {
-            // Small timeout to ensure element is ready
-            setTimeout(() => {
-                inputRef.current?.focus();
-            }, 10);
+    // Sync internal input value with selected external value ID when not open/typing
+    useEffect(() => {
+        if (!isOpen) {
+            const selected = options.find(o => o.id === value);
+            if (selected) {
+                setInputValue(selected.label);
+            } else if (allowCustomValue && value) {
+                setInputValue(value);
+            } else {
+                setInputValue('');
+            }
         }
-    }, [focusTrigger, autoFocus]);
+    }, [value, isOpen, options, allowCustomValue]);
+
+    // Handle outside click to close
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+                // Reset input to current value on blur
+                const selected = options.find(o => o.id === value);
+                if (selected) setInputValue(selected.label);
+                else if (allowCustomValue && value) setInputValue(value);
+                else setInputValue('');
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [value, options, allowCustomValue]);
+
+    const filteredOptions = useMemo(() => {
+        const lowerInput = inputValue.toLowerCase();
+        let filtered = options.filter(o =>
+            o.label.toLowerCase().includes(lowerInput) ||
+            (o.subLabel && o.subLabel.toLowerCase().includes(lowerInput))
+        );
+
+        // Grouping logic (naive)
+        return filtered;
+    }, [options, inputValue]);
+
+    const groupedOptions = useMemo(() => {
+        const groups: Record<string, Option[]> = {};
+        filteredOptions.forEach(opt => {
+            const group = opt.group || 'Other';
+            if (!groups[group]) groups[group] = [];
+            groups[group].push(opt);
+        });
+        return groups;
+    }, [filteredOptions]);
+
+    const handleSelect = (option: Option) => {
+        onChange(option.id, option);
+        setInputValue(option.label);
+        setIsOpen(false);
+    };
+
+    const handleCreate = () => {
+        if (!inputValue.trim()) return;
+        if (onCreate) {
+            const id = onCreate(inputValue);
+            if (id) {
+                onChange(id, { id, label: inputValue });
+            }
+        } else if (allowCustomValue) {
+            onChange(inputValue); // Use the string as ID
+        }
+        setIsOpen(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // If exact match exists, select it
+            const exactMatch = filteredOptions.find(o => o.label.toLowerCase() === inputValue.toLowerCase());
+            if (exactMatch) {
+                handleSelect(exactMatch);
+            } else {
+                handleCreate();
+            }
+        } else if (e.key === 'Escape') {
+            setIsOpen(false);
+            inputRef.current?.blur();
+        }
+    };
+
+    const showCreateOption = inputValue.trim() &&
+        !filteredOptions.some(o => o.label.toLowerCase() === inputValue.toLowerCase().trim()) &&
+        (onCreate || allowCustomValue);
 
     return (
-        <Autocomplete
-            value={selectedOption}
-            onChange={(_event, newValue) => {
-                if (typeof newValue === 'string') {
-                    // User typed a custom value and pressed Enter (if freeSolo is true)
-                    // or selected a "Add 'xxx'" option
-                    if (onCreate) {
-                        const id = onCreate(newValue);
-                        if (id) onChange(id);
-                        else if (allowCustomValue) onChange(newValue);
-                    } else if (allowCustomValue) {
-                        onChange(newValue);
-                    }
-                } else if (newValue && newValue.inputValue) {
-                    // User selected "Add 'xxx'" option created by filterOptions
-                    if (onCreate) {
-                        const id = onCreate(newValue.inputValue);
-                        if (id) onChange(id);
-                    }
-                } else if (newValue) {
-                    // User selected a regular option
-                    onChange((newValue as Option).id, newValue as Option);
-                } else {
-                    // User cleared the selection
-                    onChange('');
-                }
-            }}
-            filterOptions={(options: Option[], params: FilterOptionsState<Option>) => {
-                const filtered = filter(options, params);
+        <div className="relative w-full" ref={containerRef}>
+            <GlassInput
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => {
+                    setInputValue(e.target.value);
+                    setIsOpen(true);
+                    onSearchChange?.(e.target.value);
+                }}
+                onFocus={() => setIsOpen(true)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                autoFocus={autoFocus}
+                autoComplete="off"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
 
-                const { inputValue } = params;
-                // Suggest the creation of a new value
-                const isExisting = options.some((option) => inputValue === option.label);
-                if (inputValue !== '' && !isExisting && onCreate) {
-                    filtered.push({
-                        inputValue,
-                        label: `Add "${inputValue}"`,
-                        id: 'create-option-id', // Dummy ID
-                        group: 'Actions'
-                    } as Option);
-                }
-
-                return filtered;
-            }}
-            selectOnFocus
-            clearOnBlur
-            handleHomeEndKeys
-            id="smart-select"
-            options={options}
-            getOptionLabel={(option) => {
-                // Value selected with enter, right from the input
-                if (typeof option === 'string') {
-                    return option;
-                }
-                // Add "xxx" option created dynamically
-                if (typeof option !== 'string' && option.inputValue) {
-                    return option.inputValue;
-                }
-                // Regular option
-                return option.label;
-            }}
-            renderOption={(props, option) => {
-                const { key, ...otherProps } = props;
-                return (
-                    <li key={key} {...otherProps}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Typography variant="body1">
-                                    {option.label}
-                                </Typography>
-                                {option.color && (
-                                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: option.color, ml: 1 }} />
+            {isOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-[100] perspective-[1000px]">
+                    <GlassCard variant="panel" className="max-h-60 overflow-y-auto p-1 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 origin-top">
+                        {Object.entries(groupedOptions).map(([group, opts]) => (
+                            <div key={group}>
+                                {Object.keys(groupedOptions).length > 1 && (
+                                    <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{group}</div>
                                 )}
-                            </Box>
-                            {option.subLabel && (
-                                <Typography variant="caption" color="text.secondary">
-                                    {option.subLabel}
-                                </Typography>
-                            )}
-                        </Box>
-                    </li>
-                );
-            }}
-            groupBy={(option) => (typeof option === 'string' ? '' : option.group || '')}
-            freeSolo={allowCustomValue}
-            inputValue={inputValue}
-            onInputChange={(_event, newInputValue) => {
-                setInputValue(newInputValue);
-                onSearchChange?.(newInputValue);
-            }}
-            renderInput={(params) => (
-                <TextField
-                    {...params}
-                    inputRef={inputRef}
-                    placeholder={placeholder}
-                    size="small"
-                    fullWidth
-                />
+                                {opts.map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => handleSelect(opt)}
+                                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-300 transition-colors flex flex-col group"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-purple-700 dark:group-hover:text-purple-300">{opt.label}</span>
+                                            {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
+                                        </div>
+                                        {opt.subLabel && <span className="text-xs text-slate-500">{opt.subLabel}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        ))}
+
+                        {showCreateOption && (
+                            <div className="pt-1 mt-1 border-t border-slate-100 dark:border-white/10">
+                                <button
+                                    onClick={handleCreate}
+                                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-500/10 text-green-600 font-medium flex items-center gap-2"
+                                >
+                                    <Plus size={16} /> Add "{inputValue}"
+                                </button>
+                            </div>
+                        )}
+
+                        {!showCreateOption && filteredOptions.length === 0 && (
+                            <div className="p-3 text-center text-xs text-slate-400 italic">No options found.</div>
+                        )}
+                    </GlassCard>
+                </div>
             )}
-            size="small"
-            fullWidth
-        />
+        </div>
     );
 };
 

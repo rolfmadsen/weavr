@@ -28,6 +28,7 @@ interface WorkerSlice {
     id: string;
     nodeIds: string[];
     order?: number; // Explicit order from data model
+    chapter?: string;
 }
 
 // Hierarchical ranks for vertical flow (Partitions within a Slice)
@@ -134,8 +135,6 @@ self.onmessage = async (e: MessageEvent) => {
             'org.eclipse.elk.spacing.nodeNode': '40',
             'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '40',
             'org.eclipse.elk.layered.nodePlacement.favorStraightEdges': 'true',
-            //'org.eclipse.elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-            //TEST//'org.eclipse.elk.layered.considerModelOrder.crossingCounterNodeInfluence': '0.001',
             'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
             'org.eclipse.elk.spacing.edgeLabel': '0',
             'org.eclipse.elk.spacing.edgeNode': '20',
@@ -198,11 +197,43 @@ self.onmessage = async (e: MessageEvent) => {
         });
 
         // Build containers (Slices)
-        allSliceIds.forEach((sliceId) => {
+        allSliceIds.forEach((sliceId, index) => {
             const children = sliceNodesMap.get(sliceId) || [];
             if (children.length === 0) return;
 
             const sliceOrder = sliceRanks.get(sliceId) ?? 0;
+
+            // Determine Padding based on Chapter Boundary
+            const currentSlice = slices.find(s => s.id === sliceId);
+            const currentChapter = currentSlice?.chapter || 'General';
+
+            // Look ahead to next slice in the processed order
+            // Note: allSliceIds is currently just iteration order, NOT necessarily sorted by rank visually yet?
+            // Wait, ELK sorts by partition index if specified.
+            // But we need to apply padding to the node *before* ELK sees it.
+            // The visual order will be determined by 'sliceOrder' partitioning.
+
+            // To be precise: If we have multiple partitions (0, 1, 2...), ELK places them left-to-right.
+            // We need to know which slice is the "Last" in a chapter group.
+            // Since we compute 'sliceOrder' (Rank) ourselves:
+            // We can group slices by Rank, then check chapter transitions. 
+            // BUT: simple index check in 'allSliceIds' might be enough if 'allSliceIds' reflects logical order?
+            // Actually, 'allSliceIds' is just the input array + default.
+            // If the user drags to reorder, 'slices' array is updated.
+            // So iterating 'allSliceIds' (derived from slices) IS the order.
+
+            let paddingRight = 20; // Default
+
+            // Find next slice in the list
+            if (index < allSliceIds.length - 1) {
+                const nextSliceId = allSliceIds[index + 1];
+                const nextSlice = slices.find(s => s.id === nextSliceId);
+                const nextChapter = nextSlice?.chapter || 'General';
+
+                if (currentChapter !== nextChapter) {
+                    paddingRight = 100; // Extra gap for chapter transition
+                }
+            }
 
             rootChildren.push({
                 id: sliceId,
@@ -210,6 +241,7 @@ self.onmessage = async (e: MessageEvent) => {
                 layoutOptions: {
                     ...sliceLayoutOptions,
                     'org.eclipse.elk.partitioning.partition': String(sliceOrder),
+                    'org.eclipse.elk.padding': `[top=20,left=20,bottom=20,right=${paddingRight}]`
                 },
                 edges: []
             });
@@ -280,7 +312,7 @@ self.onmessage = async (e: MessageEvent) => {
                 'org.eclipse.elk.partitioning.activate': 'true', // EXPLICITLY ACTIVATE PARTITIONING
                 'org.eclipse.elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
                 'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
-                'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '80',
+                'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '80', // Slice Spacing
                 'org.eclipse.elk.spacing.nodeNode': '75',
                 'org.eclipse.elk.insideSelfLoops.activate': 'true',
                 'org.eclipse.elk.separateConnectedComponents': 'false',

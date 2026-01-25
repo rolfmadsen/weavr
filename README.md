@@ -134,3 +134,21 @@ Weavr tracks the following custom events to understand feature usage:
 | **Rename Model** | `Model.Renamed` | - |
 | **Data Dictionary** | `Definition.Added`, `.Updated`, `.Deleted` | `name`, `id` |
 | **Minimap** | `Minimap.Navigated` | - |
+
+## Enterprise Features
+
+Weavr includes advanced features to support enterprise-grade Event Modeling:
+
+### 1. Slice Chapters (Structuring Large Models)
+Group slices into logical "Chapters" (e.g., "Checkout", "Inventory") to improve navigation in large systems.
+*   **Usage**: Select a slice and enter a Chapter name in the properties panel.
+
+### 2. GDPR & PII Attributes
+Support "Data Minimalism" and "Crypto-Shredding" patterns.
+*   **Usage**: Toggle the "Lock" icon in the Data Dictionary to mark attributes as PII.
+*   **Documentation**: PII fields are explicitly flagged in generated documentation.
+
+### 3. Strict Mode Validation (Translation Pattern)
+Prevents "External Data Leaks" by enforcing the Translation Pattern.
+*   **Rule**: `External Event` -> `Read Model` is **Forbidden**.
+*   **Solution**: Use `External Event` -> `Automation` -> `Command` to translate external data.

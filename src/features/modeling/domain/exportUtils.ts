@@ -83,6 +83,7 @@ export const exportWeavrProject = (
             id: slice.id,
             title: slice.title || 'Untitled Slice',
             sliceType: 'STATE_CHANGE', // Default, as we don't track this yet
+            chapter: slice.chapter, // Added chapter support
             commands: [],
             events: [],
             readmodels: [],
@@ -90,7 +91,7 @@ export const exportWeavrProject = (
             screenImages: [],
             processors: [],
             tables: [],
-            specifications: [],
+            specifications: slice.specifications || [],
             actors: [],
             aggregates: []
         });
@@ -345,7 +346,9 @@ export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record
             title: s.title,
             order: typeof s.order === 'number' ? s.order : index, // Preserve order or default to index
             nodeIds: new Set(), // Will populate
-            color: s.color || '#e5e7eb' // Default to visible gray
+            color: s.color || '#e5e7eb', // Default to visible gray
+            chapter: s.chapter, // Added chapter support
+            specifications: s.specifications || []
         });
 
         // Flatten elements

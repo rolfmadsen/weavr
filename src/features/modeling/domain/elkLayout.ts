@@ -92,7 +92,8 @@ export const calculateElkLayout = async (
             slices: slices.map(s => ({
                 id: s.id,
                 nodeIds: Array.from(s.nodeIds),
-                order: s.order
+                order: s.order,
+                chapter: s.chapter
             })),
             //direction: 'DOWN',
             globalOptions: options

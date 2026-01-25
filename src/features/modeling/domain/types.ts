@@ -12,6 +12,7 @@ export interface Field {
   name: string;
   type: string;
   required?: boolean;
+  isPII?: boolean; // Added for GDPR
   description?: string;
   schema?: string; // Link to Data Definition
   subfields?: Field[];
@@ -98,6 +99,7 @@ export interface Slice {
   sliceType?: SliceType;
   context?: string;
   status?: string;
+  chapter?: string; // Added for Structuring Large Models
   actors?: string[];
   aggregates?: string[];
   specifications?: Specification[];
@@ -153,6 +155,7 @@ export interface StrictEventModel {
 export interface Attribute {
   name: string;
   type: string;
+  isPII?: boolean; // NEW
 }
 
 export enum DefinitionType {

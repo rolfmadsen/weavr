@@ -48,12 +48,14 @@ export class DocumentationGenerator {
     private generateFieldTable(fields?: any[]): string {
         if (!fields || fields.length === 0) return '';
 
-        let html = '<table class="field-table"><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>';
+        let html = '<table class="field-table"><thead><tr><th>Field</th><th>Type</th><th>PII</th><th>Required</th><th>Description</th></tr></thead><tbody>';
         fields.forEach(f => {
             const typeDisplay = f.schema ? `<a href="#def-${f.schema}">${f.type}${f.subfields ? '[]' : ''}</a>` : `${f.type}${f.subfields ? '[]' : ''}`;
+            const piiDisplay = f.isPII ? '<span style="color: red; font-weight: bold;">PII</span>' : '-';
             html += `<tr>
                 <td>${f.name}</td>
                 <td>${typeDisplay}</td>
+                <td>${piiDisplay}</td>
                 <td>${f.required ? 'Yes' : 'No'}</td>
                 <td>${f.description || '-'}</td>
              </tr>`;
@@ -61,9 +63,11 @@ export class DocumentationGenerator {
                 // Simple nested representation
                 f.subfields.forEach((sf: any) => {
                     const sfTypeDisplay = sf.schema ? `<a href="#def-${sf.schema}">${sf.type}</a>` : sf.type;
+                    const sfPiiDisplay = sf.isPII ? '<span style="color: red; font-weight: bold;">PII</span>' : '-';
                     html += `<tr>
                         <td style="padding-left: 20px;">↳ ${sf.name}</td>
                         <td>${sfTypeDisplay}</td>
+                        <td>${sfPiiDisplay}</td>
                         <td>${sf.required ? 'Yes' : 'No'}</td>
                         <td>${sf.description || '-'}</td>
                      </tr>`;
@@ -233,49 +237,78 @@ export class DocumentationGenerator {
             </div>
         `;
 
-        // 2. Iterate Slices
+        // 2. Iterate Slices with Chapter Grouping
         htmlBody += '<h1 style="margin-top: 4rem; margin-bottom: 2rem; border-bottom: 2px solid #333; padding-bottom: 0.5rem;">Slices</h1>';
-        for (let i = 0; i < total; i++) {
-            const slice = sortedSlices[i];
-            const progressMsg = `Processing Slice ${i + 1}/${total}: ${slice.title}`;
-            onProgress?.(i + 1, total, progressMsg);
 
-            // Isolate Slice
-            const otherSliceIds = this.slices
-                .filter(s => s.id !== slice.id)
-                .map(s => s.id);
+        // Group slices by chapter
+        const slicesByChapter: Record<string, Slice[]> = {};
+        const chapters: string[] = []; // maintain order
 
-            this.setHiddenSliceIds(otherSliceIds);
+        sortedSlices.forEach(slice => {
+            const chap = slice.chapter || 'General';
+            if (!slicesByChapter[chap]) {
+                slicesByChapter[chap] = [];
+                chapters.push(chap); // Add to known chapters if new
+            }
+            slicesByChapter[chap].push(slice);
+        });
 
-            // Add to TOC
-            toc += `<li><a href="#slice-${slice.id}">${slice.title}</a></li>`;
+        // Ensure "General" is last if it exists? Or first? usually first.
+        // Let's stick to the sorted order found in slices (which are sorted by drag-order).
+        // Actually, if we want visuals to match current drag order, we should respect that.
+        // But drag order doesn't enforce chapters yet.
+        // Grouping them effectively reorders them in the Docs. This is acceptable for "Chapters".
 
-            // Capture
-            this.canvasRef.panToSlice(slice.id);
-            await this.wait(800); // 800ms for animation + rendering (virtualization)
+        let globalIndex = 0;
 
-            const dataUrl = this.canvasRef.getStageDataURL({ pixelRatio: 2, sliceId: slice.id }); // High-DPI & Smart Crop
+        for (const chapter of chapters) {
+            toc += `<li><strong>${chapter}</strong><ul>`;
+            htmlBody += `<div class="chapter-header"><h2>${chapter}</h2></div>`;
 
-            // Build Section
-            htmlBody += `
-                <section id="slice-${slice.id}" class="slice-section">
-                <div class="slice-header">
-                        <div class="slice-title-row">
-                            <h2>${i + 1}. ${slice.title}</h2>
-                            <a href="#top">Back to Top</a>
+            const chapterSlices = slicesByChapter[chapter];
+            for (const slice of chapterSlices) {
+                globalIndex++;
+                const progressMsg = `Processing Slice ${globalIndex}/${total}: ${slice.title} (${chapter})`;
+                onProgress?.(globalIndex, total, progressMsg);
+
+                // Isolate Slice
+                const otherSliceIds = this.slices
+                    .filter(s => s.id !== slice.id)
+                    .map(s => s.id);
+
+                this.setHiddenSliceIds(otherSliceIds);
+
+                // Add to TOC
+                toc += `<li><a href="#slice-${slice.id}">${slice.title}</a></li>`;
+
+                // Capture
+                this.canvasRef.panToSlice(slice.id);
+                await this.wait(800);
+
+                const dataUrl = this.canvasRef.getStageDataURL({ pixelRatio: 2, sliceId: slice.id });
+
+                // Build Section
+                htmlBody += `
+                    <section id="slice-${slice.id}" class="slice-section">
+                    <div class="slice-header">
+                            <div class="slice-title-row">
+                                <h2>${globalIndex}. ${slice.title}</h2>
+                                <a href="#top">Back to Top</a>
+                            </div>
+                            ${this.generateSliceMetadata(slice)}
                         </div>
-                        ${this.generateSliceMetadata(slice)}
-                    </div>
-                    <div class="slice-image">
-                        <img src="${dataUrl}" alt="${slice.title}" />
-                    </div>
-                    <div class="slice-details">
-                        ${this.generateTechnicalReference(slice)}
-                        ${this.generateGWT(slice)}
-                    </div>
-                </section>
-                <hr/>
-            `;
+                        <div class="slice-image">
+                            <img src="${dataUrl}" alt="${slice.title}" />
+                        </div>
+                        <div class="slice-details">
+                            ${this.generateTechnicalReference(slice)}
+                            ${this.generateGWT(slice)}
+                        </div>
+                    </section>
+                    <hr/>
+                `;
+            }
+            toc += `</ul></li>`;
         }
 
         // Restore Visibility
@@ -524,17 +557,31 @@ export class DocumentationGenerator {
     private generateDictionaryHTML(): string {
         if (this.definitions.length === 0) return '<p>No data definitions.</p>';
 
-        let html = '<table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>';
+        let html = '';
 
         this.definitions.forEach(def => {
-            html += `<tr id="def-${def.name}">
-                <td><strong>${def.name}</strong></td>
-                <td>${def.type}</td>
-                <td>${def.description || '-'}</td>
-            </tr>`;
+            html += `<div class="tech-item" id="def-${def.name}">
+                <div class="tech-meta" style="margin-bottom: 0.5rem;">${def.type}</div>
+                <h4>${def.name}</h4>
+                ${def.description ? `<p class="desc">${def.description}</p>` : ''}
+                
+                ${def.attributes && def.attributes.length > 0 ? `
+                    <table class="field-table">
+                        <thead><tr><th>Attribute</th><th>Type</th><th>PII</th></tr></thead>
+                        <tbody>
+                            ${def.attributes.map((attr: any) => `
+                                <tr>
+                                    <td>${attr.name}</td>
+                                    <td>${attr.type}</td>
+                                    <td>${attr.isPII ? '<span style="color: red; font-weight: bold;">PII</span>' : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : ''}
+            </div>`;
         });
 
-        html += '</tbody></table>';
         return html;
     }
 }

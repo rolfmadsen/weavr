@@ -1,0 +1,3 @@
+´´´NOTES
+Skills are agent-triggered capabilities. The user does not need to type /skill-name. Instead, the user states a goal ("Check the database for user X"), and the agent's reasoning engine identifies that the database-query Skill is relevant and activates it. Skills are best for distinct tools or capabilities that the agent needs access to but shouldn't use all the time. They allow for a more natural, conversational interface where the user focuses on the what and the agent figures out the how.
+´´´

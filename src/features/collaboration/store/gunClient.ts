@@ -10,21 +10,76 @@ import 'gun/lib/radisk';
 import 'gun/lib/store';
 import 'gun/lib/rindexed';
 
-// --- MONKEY PATCH START ---
-// ADR: 0003-patch-gun-radix-corruption.md
 // Prevent "TypeError: Cannot create property '' on number" when Radix encounters a primitive where an object is expected.
 if (typeof window !== 'undefined' && (window as any).Radix) {
-  const OriginalRadixMap = (window as any).Radix.map;
-  let hasWarned = false;
-  (window as any).Radix.map = function (radix: any, cb: any, opt: any, pre: any) {
-    if (radix && typeof radix !== 'object' && typeof radix !== 'function') {
-      if (!hasWarned) {
-        console.warn('[GunDB Recovery] Encounted primitive in Radix tree branch. Ignoring to prevent crash (logging once only):', radix);
-        hasWarned = true;
+  // Full replacement of Radix.map to handle recursive calls and internal primitive errors
+  // Original Source: gun/lib/radix.js
+  const _ = String.fromCharCode(24);
+  (window as any).Radix.map = function rap(radix: any, cb: any, opt: any, pre: any): any {
+    try {
+      pre = pre || [];
+      var t = ('function' == typeof radix) ? (radix as any).$ || {} : radix;
+
+      if (t && typeof t !== 'object' && typeof t !== 'function' && typeof t !== 'string') {
+        // console.warn("Primitive found in Radix Map, ignoring:", t);
+        return;
       }
-      return;
-    }
-    return OriginalRadixMap(radix, cb, opt, pre);
+
+      if (!t) { return }
+      if ('string' == typeof t) { return; }
+
+      // Cache sorting if needed (original implementation)
+      // @ts-ignore
+      var keys = (t[_] || {}).sort || (t[_] = function $() {
+        // @ts-ignore
+        ($ as any).sort = Object.keys(t).sort(); return $
+      }() as any).sort;
+
+      var rev;
+      opt = (true === opt) ? { branch: true } : (opt || {});
+      if (rev = opt.reverse) { keys = keys.slice(0).reverse() }
+
+      var start = opt.start, end = opt.end, END = '\uffff';
+      var i = 0, l = keys.length;
+
+      for (; i < l; i++) {
+        var key = keys[i], tree = t[key], tmp, p, pt;
+        if (!tree || '' === key || _ === key || 'undefined' === key) { continue }
+
+        p = pre.slice(0); p.push(key);
+        pt = p.join('');
+
+        if (undefined !== start && pt < (start || '').slice(0, pt.length)) { continue }
+        if (undefined !== end && (end || END) < pt) { continue }
+
+        if (rev) {
+          // Recursive Call (Uses 'rap' reference)
+          tmp = rap(tree, cb, opt, p);
+          if (undefined !== tmp) { return tmp }
+        }
+
+        if (undefined !== (tmp = tree[''])) {
+          var yes = 1;
+          if (undefined !== start && pt < (start || '')) { yes = 0 }
+          if (undefined !== end && pt > (end || END)) { yes = 0 }
+          if (yes) {
+            tmp = cb(tmp, pt, key, pre);
+            if (undefined !== tmp) { return tmp }
+          }
+        } else if (opt.branch) {
+          tmp = cb(undefined, pt, key, pre);
+          if (undefined !== tmp) { return tmp }
+        }
+
+        pre = p;
+        if (!rev) {
+          // Recursive Call (Uses 'rap' reference)
+          tmp = rap(tree, cb, opt, pre);
+          if (undefined !== tmp) { return tmp }
+        }
+        pre.pop();
+      }
+    } catch (e) { console.error(e); }
   };
 }
 // --- MONKEY PATCH END ---

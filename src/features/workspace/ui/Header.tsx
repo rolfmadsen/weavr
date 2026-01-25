@@ -1,38 +1,22 @@
-import React, { useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  IconButton,
-  Box,
+  Wand2,
   Menu,
-  MenuItem,
-  TextField,
-  Tooltip,
-  Divider,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
-import {
-  Upload as ImportIcon,
-  Download as ExportIcon,
-  Help as HelpIcon,
-  AutoFixHigh as MagicWandIcon,
-  Menu as MenuIcon,
-  Undo as UndoIcon,
-  Redo as RedoIcon,
-  Edit as EditIcon,
-  Share as ShareIcon,
-  Folder as FolderIcon,
-  PushPinOutlined as UnpinAllIcon
-} from '@mui/icons-material';
+  Undo,
+  Redo,
+  Edit,
+  Share2,
+  PinOff
+} from 'lucide-react';
+import clsx from 'clsx';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { AppMenu } from './AppMenu';
 
 interface HeaderProps {
   onOpen: (file: File) => void;
   onMerge: (file: File) => void;
   onExport: () => void;
-  onStandardExport?: () => void; // Optional for backward compatibility
+  onStandardExport?: () => void;
   onOpenHelp: () => void;
   canUndo: boolean;
   canRedo: boolean;
@@ -45,7 +29,34 @@ interface HeaderProps {
   onRenameModel: (newName: string) => void;
   onGenerateDocs: () => void;
   onShare: () => void;
+  hasPinnedNodes?: boolean;
 }
+
+const IconButton = ({ onClick, disabled, children, title, color = 'neutral' }: any) => (
+  <Tooltip.Provider>
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          className={clsx(
+            "p-2 rounded-full transition-all duration-200",
+            disabled ? "opacity-30 cursor-not-allowed" : "hover:bg-black/5 dark:hover:bg-white/10 active:scale-95",
+            color === 'error' && !disabled ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10" : "text-slate-600 dark:text-slate-300"
+          )}
+        >
+          {children}
+        </button>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content className="z-50 px-2 py-1 text-xs font-medium text-white bg-slate-900 rounded shadow-lg animate-in fade-in zoom-in-95 duration-200" sideOffset={5}>
+          {title}
+          <Tooltip.Arrow className="fill-slate-900" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  </Tooltip.Provider>
+);
 
 const Header: React.FC<HeaderProps> = ({
   onOpen,
@@ -63,296 +74,127 @@ const Header: React.FC<HeaderProps> = ({
   currentModelName,
   onRenameModel,
   onGenerateDocs,
-  onShare
+  onShare,
+  hasPinnedNodes = false
 }) => {
-  // ... (existing code)
-
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(currentModelName);
 
-  // Track which import action triggered the file input
-  const [importMode, setImportMode] = useState<'open' | 'merge'>('open');
-
-  // Mobile menu state
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const isMenuOpen = Boolean(anchorEl);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleOpenClick = () => {
-    setImportMode('open');
-    fileInputRef.current?.click();
-    handleMenuClose();
-  };
-
-  const handleMergeClick = () => {
-    setImportMode('merge');
-    fileInputRef.current?.click();
-    handleMenuClose();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (importMode === 'open') {
-        onOpen(file);
-      } else {
-        onMerge(file);
-      }
-    }
-    event.target.value = '';
-  };
+  // Update tempName when currentModelName changes externally (e.g. file load)
+  useEffect(() => {
+    setTempName(currentModelName);
+  }, [currentModelName]);
 
   const handleShareClick = () => {
-    const cleanOrigin = window.location.origin.startsWith('blob:')
-      ? window.location.origin.substring(5)
-      : window.location.origin;
-
-    const hash = window.location.hash;
-    const shareUrl = `${cleanOrigin}${hash}`;
-
+    const cleanOrigin = window.location.origin.startsWith('blob:') ? window.location.origin.substring(5) : window.location.origin;
+    const shareUrl = `${cleanOrigin}${window.location.hash}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
     onShare();
-    handleMenuClose();
   };
 
   const handleNameSubmit = () => {
-    if (tempName.trim()) {
-      onRenameModel(tempName.trim());
-    } else {
-      setTempName(currentModelName);
-    }
+    if (tempName.trim()) onRenameModel(tempName.trim());
+    else setTempName(currentModelName);
     setIsEditingName(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleNameSubmit();
-    } else if (e.key === 'Escape') {
-      setTempName(currentModelName);
-      setIsEditingName(false);
-    }
-  };
-
-  const startEditing = () => {
-    setTempName(currentModelName);
-    setIsEditingName(true);
-  };
-
   return (
-    <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-      <Toolbar variant="dense" sx={{ justifyContent: 'space-between' }}>
-        {/* Left Section: Logo & Model Name */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
-          <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-            Weavr
-          </Typography>
+    <nav className="relative h-16 shrink-0 z-40 px-4 flex items-center justify-between border-b 
+      bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl 
+      border-white/20 dark:border-white/5 text-slate-800 dark:text-slate-100 transition-colors duration-500">
 
-          <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
+      {/* Left: Logo & Model Name */}
+      <div className="flex items-center gap-3 min-w-0 z-50">
+        <div className="flex items-center gap-2">
+          <img src="/weavr_icon.svg" alt="Weavr Logo" className="w-10 h-10" />
+        </div>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-            <Button
-              startIcon={<FolderIcon />}
-              onClick={onOpenModelList}
-              size="small"
-              sx={{ display: { xs: 'none', sm: 'flex' }, whiteSpace: 'nowrap' }}
-            >
-              My Models
-            </Button>
-
-            {isEditingName ? (
-              <TextField
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                onBlur={handleNameSubmit}
-                onKeyDown={handleKeyDown}
-                autoFocus
-                size="small"
-                variant="outlined"
-                sx={{ width: 200 }}
-                inputProps={{ style: { padding: '4px 8px' } }}
-              />
-            ) : (
-              <Box
-                onClick={startEditing}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  cursor: 'pointer',
-                  '&:hover .edit-icon': { opacity: 1 }
-                }}
-              >
-                <Typography variant="subtitle1" noWrap sx={{ fontWeight: 500, maxWidth: { xs: 150, sm: 250 } }}>
-                  {currentModelName}
-                </Typography>
-                <EditIcon className="edit-icon" sx={{ fontSize: 16, opacity: 0, transition: 'opacity 0.2s', color: 'text.secondary' }} />
-              </Box>
-            )}
-          </Box>
-        </Box>
-
-        {/* Desktop Toolbar */}
-        {!isMobile ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Button
-              variant="contained"
-              color={copied ? "success" : "primary"}
-              onClick={handleShareClick}
-              size="small"
-              startIcon={!copied && <ShareIcon />}
-              sx={{ borderRadius: 20 }}
-            >
-              {copied ? 'Link Copied! Send to Team' : 'Share'}
-            </Button>
-
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-
-            <Box sx={{ bgcolor: 'action.hover', borderRadius: 20, p: 0.5 }}>
-              <Tooltip title="Undo (Ctrl+Z)">
-                <span>
-                  <IconButton onClick={onUndo} disabled={!canUndo} size="small" aria-label="Undo">
-                    <UndoIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Tooltip title="Redo (Ctrl+Y)">
-                <span>
-                  <IconButton onClick={onRedo} disabled={!canRedo} size="small" aria-label="Redo">
-                    <RedoIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-
-            <Tooltip title="Auto Layout">
-              <Button
-                onClick={onAutoLayout}
-                color="secondary"
-                startIcon={<MagicWandIcon />}
-                size="small"
-              >
-                Auto Layout
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="Unpin All Nodes">
-              <IconButton onClick={onUnpinAll} size="small" aria-label="Unpin All" color="error">
-                <UnpinAllIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-            </Tooltip>
-
-            <Tooltip title="Help">
-              <IconButton onClick={onOpenHelp} aria-label="Help">
-                <HelpIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-
-            <Tooltip title="Import/Export">
-              <IconButton onClick={handleMenuOpen} aria-label="Import/Export Menu">
-                <ExportIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Menu
-              anchorEl={anchorEl}
-              open={isMenuOpen}
-              onClose={handleMenuClose}
-            >
-              <MenuItem onClick={onExport}>
-                <ExportIcon sx={{ mr: 1 }} /> Export Model
-              </MenuItem>
-              {onStandardExport && (
-                <MenuItem onClick={onStandardExport}>
-                  <ExportIcon sx={{ mr: 1 }} /> Export Standard (Strict)
-                </MenuItem>
-              )}
-              <MenuItem onClick={onGenerateDocs}>
-                <ExportIcon sx={{ mr: 1 }} /> Generate Documentation
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={handleOpenClick}>
-                <FolderIcon sx={{ mr: 1 }} /> Open Project...
-              </MenuItem>
-              <MenuItem onClick={handleMergeClick}>
-                <ImportIcon sx={{ mr: 1 }} /> Import to Current
-              </MenuItem>
-            </Menu>
-          </Box>
+        {/* Model Name / Edit */}
+        {isEditingName ? (
+          <input
+            value={tempName}
+            onChange={(e) => setTempName(e.target.value)}
+            onBlur={handleNameSubmit}
+            onKeyDown={(e) => e.key === 'Enter' && handleNameSubmit()}
+            autoFocus
+            className="bg-transparent border-b-2 border-purple-500 outline-none text-lg font-bold w-[200px] sm:w-[300px] px-1 py-0.5"
+          />
         ) : (
-          <>
-            <IconButton onClick={handleMenuOpen} aria-label="Open Menu">
-              <MenuIcon />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={isMenuOpen}
-              onClose={handleMenuClose}
-            >
-              <MenuItem onClick={() => { onOpenModelList(); handleMenuClose(); }}>
-                <FolderIcon sx={{ mr: 1 }} /> My Models
-              </MenuItem>
-              <MenuItem onClick={handleShareClick}>
-                <ShareIcon sx={{ mr: 1 }} /> Share Link
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={() => { onUndo(); handleMenuClose(); }} disabled={!canUndo}>
-                <UndoIcon sx={{ mr: 1 }} /> Undo
-              </MenuItem>
-              <MenuItem onClick={() => { onRedo(); handleMenuClose(); }} disabled={!canRedo}>
-                <RedoIcon sx={{ mr: 1 }} /> Redo
-              </MenuItem>
-              <MenuItem onClick={() => { onAutoLayout(); handleMenuClose(); }}>
-                <MagicWandIcon sx={{ mr: 1 }} /> Auto Layout
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={() => { onExport(); handleMenuClose(); }}>
-                <ExportIcon sx={{ mr: 1 }} /> Export Model
-              </MenuItem>
-              {onStandardExport && (
-                <MenuItem onClick={() => { onStandardExport(); handleMenuClose(); }}>
-                  <ExportIcon sx={{ mr: 1 }} /> Export Standard (Strict)
-                </MenuItem>
-              )}
-              <MenuItem onClick={() => { onGenerateDocs(); handleMenuClose(); }}>
-                <ExportIcon sx={{ mr: 1 }} /> Generate Documentation
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={handleOpenClick}>
-                <FolderIcon sx={{ mr: 1 }} /> Open Project...
-              </MenuItem>
-              <MenuItem onClick={handleMergeClick}>
-                <ImportIcon sx={{ mr: 1 }} /> Import to Current
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={() => { onOpenHelp(); handleMenuClose(); }}>
-                <HelpIcon sx={{ mr: 1 }} /> Help
-              </MenuItem>
-            </Menu>
-          </>
+          <div
+            onClick={() => { setTempName(currentModelName); setIsEditingName(true); }}
+            className="group flex items-center gap-2 cursor-pointer p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+          >
+            <span className="text-lg font-bold truncate max-w-[200px] sm:max-w-[400px]">{currentModelName}</span>
+            <Edit className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors w-4 h-4 ml-2" size={16} />
+          </div>
         )}
+      </div>
 
-        <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} className="hidden" style={{ display: 'none' }} />
-      </Toolbar>
-    </AppBar>
+      {/* Right: Canvas Tools & Share & Menu */}
+      <div className="flex items-center gap-3 z-50">
+
+        {/* Desktop Tools */}
+        <div className="hidden md:flex items-center gap-3">
+          {/* Undo / Redo */}
+          <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-full p-0.5">
+            <IconButton onClick={onUndo} disabled={!canUndo} title="Undo"><Undo size={16} /></IconButton>
+            <IconButton onClick={onRedo} disabled={!canRedo} title="Redo"><Redo size={16} /></IconButton>
+          </div>
+
+          <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+          {/* Layout Tools */}
+          <div className="flex items-center gap-1">
+            <IconButton onClick={onAutoLayout} title="Auto Layout"><Wand2 size={16} className="text-purple-500" /></IconButton>
+            <IconButton
+              onClick={onUnpinAll}
+              title={hasPinnedNodes ? "Unpin All" : "No nodes pinned"}
+              color="error"
+              disabled={!hasPinnedNodes}
+            >
+              <PinOff size={16} />
+            </IconButton>
+          </div>
+
+          <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+          {/* Share */}
+          <button
+            onClick={handleShareClick}
+            className={clsx(
+              "flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all shadow-sm border",
+              copied
+                ? "bg-green-500/10 text-green-600 border-green-500/20"
+                : "bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 border-white/20 dark:border-white/10"
+            )}
+          >
+            {copied ? 'Copied!' : <><Share2 size={16} /> Share</>}
+          </button>
+
+          <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+        </div>
+
+        {/* Hamburger Menu (AppMenu) */}
+        <AppMenu
+          onOpenModelList={onOpenModelList}
+          onOpen={onOpen}
+          onMerge={onMerge}
+          onExport={onExport}
+          onStandardExport={onStandardExport}
+          onGenerateDocs={onGenerateDocs}
+          onOpenHelp={onOpenHelp}
+          trigger={
+            <button className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-600 dark:text-slate-300 outline-none">
+              <Menu size={24} />
+            </button>
+          }
+        />
+      </div>
+    </nav>
   );
 };
 

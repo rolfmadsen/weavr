@@ -37,6 +37,7 @@ interface GunSlice {
     sliceType?: SliceType | null;
     context?: string | null;
     specifications?: string;
+    chapter?: string | null;
 }
 
 interface GunDefinition {
@@ -257,6 +258,7 @@ export function useGraphSync(modelId: string | null) {
                         color: sliceData.color || existingSlice?.color || '#e5e7eb', // Default gray
                         sliceType: sliceData.sliceType || existingSlice?.sliceType,
                         context: sliceData.context || existingSlice?.context,
+                        chapter: sliceData.chapter || existingSlice?.chapter, // Added
                         specifications: sliceData.specifications ? (typeof sliceData.specifications === 'string' ? JSON.parse(sliceData.specifications) : sliceData.specifications) : (existingSlice?.specifications || []),
                     };
                     tempSlicesRef.current.set(sliceId, newSlice);

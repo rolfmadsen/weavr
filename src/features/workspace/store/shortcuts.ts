@@ -53,6 +53,11 @@ export function useKeyboardShortcuts({
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
+                // Allow inputs to handle Escape themselves (e.g. ElementFilter)
+                if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+                    return;
+                }
+
                 if (isPanelOpen) {
                     onClosePanel();
                 } else if (selectedNodeIds.length > 0 || selectedLinkId) {

@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect, useMemo, useCallback, useImperative
 import { Stage, Layer, Rect, Line } from 'react-konva';
 import Konva from 'konva';
 
+import { useTheme } from '../../../shared/providers/ThemeProvider';
+
 import {
     Node,
     Link,
@@ -18,6 +20,7 @@ import { useCanvasInteractions } from '../store/useCanvasInteractions';
 import NodeGroup from './NodeGroup';
 import LinkGroup from './LinkGroup';
 import SliceGroup from './SliceGroup';
+import ChapterGroup from './ChapterGroup';
 
 // NEW: Utilities
 import { safeNum, safeStr } from '../domain/canvasUtils';
@@ -50,6 +53,7 @@ interface GraphCanvasKonvaProps {
     onSliceClick?: (slice: Slice) => void;
     initialViewState?: { x: number, y: number, scale: number, width?: number, height?: number };
     onUnpinNode?: (id: string) => void;
+    onRenameChapter?: (sub: string, newName: string) => void;
 }
 
 // PERFORMANCE: Disable Perfect Draw globally for better perf
@@ -82,10 +86,12 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     onViewChange,
     onSliceClick,
     initialViewState,
-    onUnpinNode
+    onUnpinNode,
+    onRenameChapter
 }, ref) => {
     // console.log(`[GraphCanvasKonva Render] selectedIds=${selectedIds.length}`);
 
+    const { resolvedTheme } = useTheme();
     const stageRef = useRef<Konva.Stage>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -143,6 +149,20 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         });
         return bounds;
     }, [safeNodes]);
+
+    // NEW: Calculate Chapter Groups for Visuals
+    const chapterGroups = useMemo(() => {
+        const groups = new Map<string, Slice[]>();
+        slices.forEach(s => {
+            const c = s.chapter || 'General';
+            if (!groups.has(c)) groups.set(c, []);
+            groups.get(c)!.push(s);
+        });
+        return Array.from(groups.entries()).map(([name, groupSlices]) => ({
+            name,
+            slices: groupSlices
+        }));
+    }, [slices]);
 
     // NEW: Calculate independent port sequence per node-side (True Spreading)
     const portIndexMap = useMemo(() => {
@@ -564,13 +584,28 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         canvas.width = size; canvas.height = size;
         const ctx = canvas.getContext('2d');
         if (ctx) {
-            ctx.fillStyle = '#d1d5db'; ctx.beginPath(); ctx.arc(1, 1, 1, 0, 2 * Math.PI); ctx.fill();
+            ctx.fillStyle = resolvedTheme === 'dark' ? '#334155' : '#d1d5db';
+            ctx.beginPath();
+            ctx.arc(1, 1, 1, 0, 2 * Math.PI);
+            ctx.fill();
         }
         const img = new Image(); img.src = canvas.toDataURL();
         img.onload = () => setGridImage(img);
-    }, [GRID_SIZE]);
+    }, [GRID_SIZE, resolvedTheme]);
 
-    // NEW: Sync initial view state and trigger first virtualization pass
+    // NEW: Manual Grid Synchronization (Uncontrolled Component Pattern)
+    useEffect(() => {
+        if (gridRectRef.current) {
+            const rect = gridRectRef.current;
+            const sx = -stagePos.x / stageScale;
+            const sy = -stagePos.y / stageScale;
+            rect.position({ x: sx, y: sy });
+            rect.width(dimensions.width / stageScale);
+            rect.height(dimensions.height / stageScale);
+            rect.fillPatternOffset({ x: sx % (GRID_SIZE || 20), y: sy % (GRID_SIZE || 20) });
+        }
+    }, [stagePos, stageScale, dimensions]); // Syncs only when idle/programmatic move
+
     useEffect(() => {
         if (initialViewState) {
             setStageScale(initialViewState.scale);
@@ -689,7 +724,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     return (
         <div
             ref={containerRef}
-            className="w-full flex-1 bg-gray-50 overflow-hidden relative outline-none"
+            className="w-full flex-1 bg-gray-50 dark:bg-slate-950 overflow-hidden relative outline-none"
             // tabIndex={0} // No longer needed
             // onKeyDown={handleKeyDown} // Removed, using global listener
             onContextMenu={(e) => e.preventDefault()}
@@ -737,21 +772,30 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             >
                 <Layer>
                     {/* Infinite Grid Background */}
+                    {/* Infinite Grid Background - Uncontrolled for performance */}
                     <Rect
                         ref={gridRectRef}
-                        x={-stagePos.x / stageScale}
-                        y={-stagePos.y / stageScale}
-                        width={dimensions.width / stageScale}
-                        height={dimensions.height / stageScale}
+                        // x, y, width, height removed to prevent React overlap during drag
                         fillPatternImage={gridImage || undefined}
-                        fillPatternOffset={{ x: (-stagePos.x / stageScale) % (GRID_SIZE || 20), y: (-stagePos.y / stageScale) % (GRID_SIZE || 20) }}
+                        // fillPatternOffset removed
                         name="grid-background"
-                        listening={true} // Ensure it catches clicks if needed
+                        listening={true}
                     />
                 </Layer>
 
                 {/* Slices Layer (Behind Nodes/Links) */}
                 <Layer>
+                    {/* Chapter Visuals (Behind Slices) */}
+                    {chapterGroups.map(group => (
+                        <ChapterGroup
+                            key={group.name}
+                            chapterName={group.name}
+                            slices={group.slices}
+                            sliceBounds={sliceBounds}
+                            onRenameChapter={onRenameChapter}
+                        />
+                    ))}
+
                     {slices.map(slice => (
                         <SliceGroup
                             key={slice.id}

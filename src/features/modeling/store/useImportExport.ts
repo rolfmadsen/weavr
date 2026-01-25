@@ -96,7 +96,14 @@ export function useImportExport({
                     Object.values(data.slices).forEach(slice => {
                         if (!slice.id) return;
                         const { nodeIds, ...sliceData } = slice;
-                        slicesBatch[slice.id] = sliceData;
+
+                        // Sanitize Arrays for GunDB
+                        const sanitizedSlice: any = { ...sliceData };
+                        if (Array.isArray(sanitizedSlice.specifications)) sanitizedSlice.specifications = JSON.stringify(sanitizedSlice.specifications);
+                        if (Array.isArray(sanitizedSlice.actors)) sanitizedSlice.actors = JSON.stringify(sanitizedSlice.actors);
+                        if (Array.isArray(sanitizedSlice.aggregates)) sanitizedSlice.aggregates = JSON.stringify(sanitizedSlice.aggregates);
+
+                        slicesBatch[slice.id] = sanitizedSlice;
                     });
                     if (Object.keys(slicesBatch).length > 0) model.get('slices').put(slicesBatch);
                 }
@@ -202,7 +209,14 @@ export function useImportExport({
                     Object.values(data.slices).forEach(slice => {
                         if (!slice.id) return;
                         const { nodeIds, ...sliceData } = slice;
-                        slicesBatch[slice.id] = sliceData;
+
+                        // Sanitize Arrays for GunDB
+                        const sanitizedSlice: any = { ...sliceData };
+                        if (Array.isArray(sanitizedSlice.specifications)) sanitizedSlice.specifications = JSON.stringify(sanitizedSlice.specifications);
+                        if (Array.isArray(sanitizedSlice.actors)) sanitizedSlice.actors = JSON.stringify(sanitizedSlice.actors);
+                        if (Array.isArray(sanitizedSlice.aggregates)) sanitizedSlice.aggregates = JSON.stringify(sanitizedSlice.aggregates);
+
+                        slicesBatch[slice.id] = sanitizedSlice;
                     });
                     if (Object.keys(slicesBatch).length > 0) model.get('slices').put(slicesBatch);
                 }

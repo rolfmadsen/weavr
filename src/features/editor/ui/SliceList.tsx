@@ -1,42 +1,33 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Slice, DataDefinition, SliceType, Specification, SpecificationStep } from '../../modeling';
+import { Slice, SliceType, Specification, SpecificationStep } from '../../modeling';
 import {
-    Delete as DeleteIcon,
-    ExpandMore as ExpandMoreIcon,
-    Add as AddIcon,
-    Close as CloseIcon,
-    DragIndicator as DragIndicatorIcon
-} from '@mui/icons-material';
-import {
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
-    Typography,
-    TextField,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
-    Box,
-    Button,
-    Divider,
-    Stack
-    // IconButton removed
-} from '@mui/material';
+    Trash2,
+    ChevronDown,
+    Plus,
+    X,
+    GripVertical
+} from 'lucide-react';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 import { useCrossModelData } from '../../modeling';
 import { v4 as uuidv4 } from 'uuid';
+import { GlassInput } from '../../../shared/components/GlassInput';
+import { GlassButton } from '../../../shared/components/GlassButton';
+import { SortableChapter } from './SortableChapter';
 
 // DnD Kit Imports
 import {
     DndContext,
-    closestCenter,
     KeyboardSensor,
     PointerSensor,
     useSensor,
     useSensors,
-    DragEndEvent
+    DragEndEvent,
+    DragStartEvent,
+    DragOverEvent,
+    pointerWithin,
+    CollisionDetection,
+    closestCorners
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -49,13 +40,13 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface SliceListProps {
     slices: Slice[];
-    definitions: DataDefinition[];
     onAddSlice: (title: string, order: number) => void;
     onUpdateSlice: (id: string, updates: Partial<Slice>) => void;
     onDeleteSlice: (id: string) => void;
-    onManageSlice?: (id: string) => void; // Optional handler to open modal
+    onManageSlice?: (id: string) => void;
     modelId: string | null;
     expandedId?: string | null;
+    onAutoLayout?: () => void;
 }
 
 // --- Sortable Item Component ---
@@ -65,16 +56,16 @@ interface SortableSliceItemProps {
     onExpandChange: (isExpanded: boolean) => void;
     onUpdateSlice: (id: string, updates: Partial<Slice>) => void;
     onDeleteSliceClick: (e: React.MouseEvent, id: string, anchor: HTMLElement) => void;
-
-    // Pass-through for children content rendering to keep this logic clean(er)
     children: React.ReactNode;
+    disabled?: boolean;
 }
 
 const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
     slice,
     expanded,
     onExpandChange,
-    children
+    children,
+    disabled = false
 }) => {
     const {
         attributes,
@@ -93,71 +84,52 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
     };
 
     return (
-        <div ref={setNodeRef} style={style}>
-            <Accordion
-                expanded={expanded}
-                onChange={(_, isExpanded) => onExpandChange(isExpanded)}
-                disableGutters
-                elevation={isDragging ? 4 : 0}
-                sx={{
-                    border: '1px solid',
-                    borderColor: isDragging ? 'primary.main' : 'divider',
-                    '&:not(:last-child)': { borderBottom: 0 },
-                    '&:before': { display: 'none' },
-                    opacity: isDragging ? 0.8 : 1
-                }}
+        <div ref={setNodeRef} style={style} className={`mb-2 transition-opacity ${isDragging ? 'opacity-50' : 'opacity-100'} ${disabled ? 'pointer-events-none' : ''}`}>
+            <details
+                open={expanded}
+                className="group bg-white/5 border border-white/10 rounded-lg overflow-hidden open:bg-white/10 open:border-white/20 transition-all duration-200"
+                onToggle={(e) => onExpandChange((e.currentTarget as HTMLDetailsElement).open)}
             >
-                <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    sx={{
-                        backgroundColor: expanded ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0, 0, 0, .03)',
-                        flexDirection: 'row-reverse',
-                        '& .MuiAccordionSummary-content': { ml: 1, alignItems: 'center' },
+                <summary
+                    onClick={(e) => {
+                        e.preventDefault();
+                        onExpandChange(!expanded);
                     }}
+                    className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-white/5 select-none"
                 >
-                    <Box
-                        sx={{
-                            width: 12,
-                            height: 12,
-                            borderRadius: '50%',
-                            bgcolor: slice.color,
-                            mr: 1.5,
-                            flexShrink: 0
-                        }}
-                    />
-                    <Typography sx={{ fontWeight: 500, fontSize: '0.9rem', flex: 1 }}>
-                        {slice.title || 'Untitled Slice'}
-                    </Typography>
-
                     {/* Drag Handle */}
-                    <Box
+                    <div
                         {...attributes}
                         {...listeners}
                         onClick={(e) => e.stopPropagation()}
-                        sx={{
-                            cursor: 'grab',
-                            color: 'text.secondary',
-                            display: 'flex',
-                            alignItems: 'center',
-                            mr: 1,
-                            '&:hover': { color: 'text.primary' },
-                            '&:active': { cursor: 'grabbing' }
-                        }}
+                        className="text-slate-500 hover:text-slate-300 dark:text-slate-400 dark:hover:text-slate-200 cursor-grab active:cursor-grabbing p-1 -ml-1"
                     >
-                        <DragIndicatorIcon fontSize="small" />
-                    </Box>
-                </AccordionSummary>
+                        <GripVertical size={16} className="opacity-50 hover:opacity-100" />
+                    </div>
 
-                <AccordionDetails sx={{ p: 2 }}>
+                    <ChevronDown size={20} className={`text-slate-500 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+
+                    <div className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: slice.color }} />
+
+                    <span className="font-medium text-slate-800 dark:text-slate-100 flex-1">{slice.title || 'Untitled Slice'}</span>
+
+                    {slice.sliceType && (
+                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">
+                            {slice.sliceType}
+                        </span>
+                    )}
+                </summary>
+
+                <div className="p-4 bg-black/5 dark:bg-black/20 border-t border-white/10">
                     {children}
-                </AccordionDetails>
-            </Accordion>
+                </div>
+            </details>
         </div>
     );
 };
 
 
-// Sub-component for a single Specification Item (HTML details/summary style)
+// Sub-component for a single Specification Item
 const SpecificationItem: React.FC<{
     spec: Specification;
     onUpdate: (id: string, updates: Partial<Specification>) => void;
@@ -169,12 +141,9 @@ const SpecificationItem: React.FC<{
     const handleAddStep = (section: 'given' | 'when' | 'then', insertAfterId?: string) => {
         const currentSteps = spec[section];
         const newId = uuidv4();
-
-        // Default type must be set. Infer from section or use a default?
-        // Schema requires 'type' enum.
         const defaultType = section === 'given' ? 'SPEC_EVENT'
             : section === 'when' ? 'SPEC_COMMAND'
-                : 'SPEC_READMODEL'; // Heuristic defaults
+                : 'SPEC_READMODEL';
 
         const newStep: SpecificationStep = {
             id: newId,
@@ -195,9 +164,7 @@ const SpecificationItem: React.FC<{
         }
 
         setFocusTarget(newId);
-        onUpdate(spec.id, {
-            [section]: newSteps
-        });
+        onUpdate(spec.id, { [section]: newSteps });
     };
 
     const handleUpdateStep = (section: 'given' | 'when' | 'then', stepId: string, updates: Partial<SpecificationStep>) => {
@@ -210,34 +177,25 @@ const SpecificationItem: React.FC<{
         onUpdate(spec.id, { [section]: newSteps });
     };
 
-    // Auto-resize textarea logic
     const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
         const target = e.currentTarget;
-        target.style.height = 'auto'; // Reset to re-calculate (shrink if needed)
+        target.style.height = 'auto';
         target.style.height = `${target.scrollHeight}px`;
     };
 
-    // Example Table Logic
     const handleAddExampleColumn = () => {
         const currentHeaders = spec.examples?.headers || ['Var 1'];
         const currentRows = spec.examples?.rows || [['Val 1']];
-
         const newHeaders = [...currentHeaders, `Var ${currentHeaders.length + 1}`];
         const newRows = currentRows.map(row => [...row, '']);
-
-        onUpdate(spec.id, {
-            examples: { headers: newHeaders, rows: newRows }
-        });
+        onUpdate(spec.id, { examples: { headers: newHeaders, rows: newRows } });
     };
 
     const handleAddExampleRow = () => {
         const headers = spec.examples?.headers || ['Var 1'];
         const currentRows = spec.examples?.rows || [];
         const newRow = new Array(headers.length).fill('');
-
-        onUpdate(spec.id, {
-            examples: { headers, rows: [...currentRows, newRow] }
-        });
+        onUpdate(spec.id, { examples: { headers, rows: [...currentRows, newRow] } });
     };
 
     const updateExampleHeader = (index: number, value: string) => {
@@ -254,16 +212,16 @@ const SpecificationItem: React.FC<{
     };
 
     return (
-        <details className="group border border-gray-200 rounded-md overflow-hidden bg-white mb-2 open:shadow-sm transition-all">
-            <summary className="flex items-center justify-between px-3 py-2 bg-gray-50 cursor-pointer hover:bg-gray-100 select-none list-none marker:hidden">
+        <details className="group border border-white/10 rounded-lg overflow-hidden bg-white/5 open:bg-white/10 mb-2 transition-all">
+            <summary className="flex items-center justify-between px-3 py-2 cursor-pointer select-none list-none marker:hidden hover:bg-white/5">
                 <div className="flex items-center gap-2 flex-1">
-                    <span className="transform transition-transform group-open:rotate-90 text-gray-400 text-xs">▶</span>
+                    <span className="transform transition-transform group-open:rotate-90 text-slate-400 text-xs">▶</span>
                     <input
                         type="text"
                         value={spec.title}
                         onChange={(e) => onUpdate(spec.id, { title: e.target.value })}
                         onClick={(e) => e.stopPropagation()}
-                        className="bg-transparent border-none text-sm font-medium text-gray-700 focus:ring-0 p-0 w-full"
+                        className="bg-transparent border-none text-sm font-medium text-slate-800 dark:text-slate-100 focus:ring-0 p-0 w-full outline-none"
                         placeholder="Specification Title"
                     />
                 </div>
@@ -272,10 +230,10 @@ const SpecificationItem: React.FC<{
                         e.stopPropagation();
                         setDeleteAnchorEl(e.currentTarget);
                     }}
-                    className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-slate-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Delete Specification"
                 >
-                    <DeleteIcon fontSize="small" style={{ fontSize: 16 }} />
+                    <Trash2 size={16} />
                 </button>
                 <ConfirmMenu
                     open={Boolean(deleteAnchorEl)}
@@ -286,7 +244,7 @@ const SpecificationItem: React.FC<{
                 />
             </summary>
 
-            <div className="p-3 bg-white border-t border-gray-100 space-y-4">
+            <div className="p-3 bg-black/5 dark:bg-black/20 border-t border-white/10 space-y-4">
                 {(['given', 'when', 'then'] as const).map(section => {
                     const hasSteps = spec[section].length > 0;
 
@@ -295,7 +253,7 @@ const SpecificationItem: React.FC<{
                             <div key={section} className="flex justify-start">
                                 <button
                                     onClick={() => handleAddStep(section)}
-                                    className="text-[10px] text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded border border-dashed border-gray-200 hover:border-indigo-200 transition-all"
+                                    className="text-[10px] text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 px-2 py-1 rounded border border-dashed border-white/20 hover:border-purple-400/30 transition-all"
                                 >
                                     + Add {section}
                                 </button>
@@ -306,25 +264,23 @@ const SpecificationItem: React.FC<{
                     return (
                         <div key={section} className="flex flex-col gap-1">
                             <div className="flex items-center justify-between group/section">
-                                <span className={`font-bold uppercase tracking-wide text-[10px] ${section === 'given' ? 'text-blue-700' :
-                                    section === 'when' ? 'text-orange-700' : 'text-green-700'
+                                <span className={`font-bold uppercase tracking-wide text-[10px] ${section === 'given' ? 'text-blue-500' :
+                                    section === 'when' ? 'text-orange-500' : 'text-green-500'
                                     }`}>
                                     {section}
                                 </span>
                                 <div className="flex items-center gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => handleAddStep(section)}
-                                        className="text-gray-400 hover:text-indigo-600 p-0.5 rounded hover:bg-indigo-50"
-                                        title={`Add ${section} step`}
+                                        className="text-slate-400 hover:text-purple-500 p-0.5 rounded hover:bg-purple-500/10"
                                     >
-                                        <AddIcon style={{ fontSize: 14 }} />
+                                        <Plus size={14} />
                                     </button>
                                     <button
                                         onClick={() => onUpdate(spec.id, { [section]: [] })}
-                                        className="text-gray-300 hover:text-red-500 p-0.5 rounded hover:bg-red-50"
-                                        title={`Remove ${section} section`}
+                                        className="text-slate-500 hover:text-red-500 p-0.5 rounded hover:bg-red-500/10"
                                     >
-                                        <DeleteIcon style={{ fontSize: 14 }} />
+                                        <Trash2 size={14} />
                                     </button>
                                 </div>
                             </div>
@@ -332,9 +288,8 @@ const SpecificationItem: React.FC<{
                             <ul className="space-y-1">
                                 {spec[section].map((step) => (
                                     <li key={step.id} className="flex items-start gap-1 group/step">
-                                        {/* Simple Bullet */}
-                                        <div className="w-[32px] flex justify-end mt-1 flex-shrink-0">
-                                            <span className="text-gray-300 text-[10px]">•</span>
+                                        <div className="w-[20px] flex justify-end mt-1 flex-shrink-0">
+                                            <span className="text-slate-500 text-[10px]">•</span>
                                         </div>
 
                                         <textarea
@@ -345,35 +300,29 @@ const SpecificationItem: React.FC<{
                                             }}
                                             onInput={handleInput}
                                             autoFocus={step.id === focusTarget}
-                                            // Initialize height on mount
                                             ref={el => {
                                                 if (el) {
                                                     el.style.height = 'auto'; // Reset
                                                     el.style.height = `${el.scrollHeight}px`;
                                                 }
                                             }}
-                                            className="flex-1 text-xs text-gray-700 border border-transparent hover:border-gray-200 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-100 rounded px-1.5 py-0.5 bg-transparent focus:bg-white transition-all outline-none resize-none overflow-hidden"
+                                            className="flex-1 text-xs text-slate-700 dark:text-slate-300 border border-transparent hover:border-white/20 focus:border-purple-500/50 rounded px-1.5 py-0.5 bg-transparent focus:bg-white/10 transition-all outline-none resize-none overflow-hidden"
                                             placeholder={`Describe ${section}...`}
                                             rows={1}
                                             style={{ minHeight: '24px' }}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    if (!e.shiftKey) {
-                                                        e.preventDefault();
-                                                        handleAddStep(section, step.id);
-                                                    }
-                                                    // Shift+Enter allows newline (default behavior)
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    handleAddStep(section, step.id);
                                                 }
-                                                // Handle Backspace to delete empty step if it's not the only one? 
-                                                // (Optional: standard text editor behavior)
                                             }}
                                         />
                                         <button
                                             onClick={() => handleDeleteStep(section, step.id)}
-                                            className="text-gray-300 hover:text-red-500 opacity-0 group-hover/step:opacity-100 transition-opacity p-0.5 mt-0.5"
+                                            className="text-slate-500 hover:text-red-500 opacity-0 group-hover/step:opacity-100 transition-opacity p-0.5 mt-0.5"
                                             tabIndex={-1}
                                         >
-                                            <CloseIcon style={{ fontSize: 12 }} />
+                                            <X size={12} />
                                         </button>
                                     </li>
                                 ))}
@@ -383,9 +332,9 @@ const SpecificationItem: React.FC<{
                 })}
 
                 {/* Examples Section */}
-                <div className="pt-2 border-t border-dashed border-gray-200">
+                <div className="pt-2 border-t border-dashed border-white/20">
                     <details className="group/examples">
-                        <summary className="text-[10px] font-bold text-gray-500 uppercase tracking-wide cursor-pointer hover:text-gray-700 select-none list-none marker:hidden flex items-center gap-2">
+                        <summary className="text-[10px] font-bold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-300 select-none list-none marker:hidden flex items-center gap-2">
                             <span className="transform transition-transform group-open/examples:rotate-90">▶</span>
                             Examples / Data Table
                         </summary>
@@ -393,41 +342,41 @@ const SpecificationItem: React.FC<{
                             {!spec.examples ? (
                                 <button
                                     onClick={handleAddExampleRow}
-                                    className="text-xs text-indigo-600 hover:text-indigo-800 underline"
+                                    className="text-xs text-purple-400 hover:text-purple-300 underline"
                                 >
                                     + Create Examples Table
                                 </button>
                             ) : (
                                 <div className="min-w-full inline-block align-middle">
-                                    <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-white/10 border border-slate-200 dark:border-white/10">
+                                        <thead className="bg-slate-100 dark:bg-white/5">
                                             <tr>
                                                 {(spec.examples.headers || []).map((header, i) => (
-                                                    <th key={i} scope="col" className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0">
+                                                    <th key={i} scope="col" className="px-2 py-1 text-left text-xs font-medium text-slate-700 dark:text-slate-500 uppercase tracking-wider border-r border-slate-200 dark:border-white/10 last:border-r-0">
                                                         <input
                                                             type="text"
                                                             value={header}
                                                             onChange={(e) => updateExampleHeader(i, e.target.value)}
-                                                            className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs font-bold"
+                                                            className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
                                                             placeholder="VAR"
                                                         />
                                                     </th>
                                                 ))}
                                                 <th className="px-1 py-1 w-6">
-                                                    <button onClick={handleAddExampleColumn} className="text-indigo-500 hover:text-indigo-700" title="Add Column">+</button>
+                                                    <button onClick={handleAddExampleColumn} className="text-purple-400 hover:text-purple-300" title="Add Column">+</button>
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-transparent divide-y divide-slate-200 dark:divide-white/10">
                                             {(spec.examples.rows || []).map((row, rowIndex) => (
                                                 <tr key={rowIndex}>
                                                     {row.map((cell, colIndex) => (
-                                                        <td key={colIndex} className="px-2 py-1 whitespace-nowrap text-xs text-gray-500 border-r border-gray-200 last:border-r-0">
+                                                        <td key={colIndex} className="px-2 py-1 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-white/10 last:border-r-0">
                                                             <input
                                                                 type="text"
                                                                 value={cell}
                                                                 onChange={(e) => updateExampleCell(rowIndex, colIndex, e.target.value)}
-                                                                className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs"
+                                                                className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs text-slate-700 dark:text-slate-300 outline-none"
                                                                 placeholder="..."
                                                             />
                                                         </td>
@@ -437,7 +386,7 @@ const SpecificationItem: React.FC<{
                                             ))}
                                             <tr>
                                                 <td colSpan={100} className="px-2 py-1">
-                                                    <button onClick={handleAddExampleRow} className="text-xs text-gray-400 hover:text-indigo-600">+ Add Row</button>
+                                                    <button onClick={handleAddExampleRow} className="text-xs text-slate-500 hover:text-purple-400">+ Add Row</button>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -454,23 +403,55 @@ const SpecificationItem: React.FC<{
 
 const SliceList: React.FC<SliceListProps> = ({
     slices,
-    definitions,
     onAddSlice,
     onUpdateSlice,
     onDeleteSlice,
     modelId,
-    expandedId
+    expandedId,
+    onAutoLayout
 }) => {
     const { crossModelSlices } = useCrossModelData(modelId);
-
-    // State for local expansion management
     const [localExpandedId, setLocalExpandedId] = useState<string | null>(null);
+    const [emptyChapters, setEmptyChapters] = useState<string[]>([]);
 
-    // Synchronize local expansion state with the prop and trigger focus
+    // Grouping Logic
+    const chapterGroups = useMemo(() => {
+        const groups: Record<string, Slice[]> = {};
+        const chapterOrder: string[] = [];
+        const seenChapters = new Set<string>();
+
+        // 1. Existing Slices
+        slices.forEach(s => {
+            const c = s.chapter || 'General';
+            if (!groups[c]) {
+                groups[c] = [];
+                chapterOrder.push(c);
+                seenChapters.add(c);
+            }
+            groups[c].push(s);
+        });
+
+        // 2. Empty Chapters (User Created)
+        emptyChapters.forEach(c => {
+            if (!seenChapters.has(c)) {
+                groups[c] = [];
+                chapterOrder.push(c);
+                seenChapters.add(c);
+            }
+        });
+
+        // We want to persist the concept of "Chapter Order".
+        // For now, we rely on the order of the first slice of that chapter OR insertion order.
+        return chapterOrder.map(c => ({
+            id: `chapter:${c}`,
+            name: c,
+            slices: groups[c]
+        }));
+    }, [slices, emptyChapters]);
+
     useEffect(() => {
         if (expandedId) {
             setLocalExpandedId(expandedId);
-            // Wait for accordion expansion animation to begin so the input is rendered
             const timer = setTimeout(() => {
                 const input = document.getElementById(`slice-name-input-${expandedId}`);
                 if (input instanceof HTMLInputElement) {
@@ -482,10 +463,12 @@ const SliceList: React.FC<SliceListProps> = ({
         }
     }, [expandedId]);
 
-    // State for deleting slices (which one and anchor element)
     const [deleteSliceInfo, setDeleteSliceInfo] = useState<{ id: string, anchorEl: HTMLElement } | null>(null);
+    const [deleteChapterInfo, setDeleteChapterInfo] = useState<{
+        name: string,
+        anchorEl: HTMLElement
+    } | null>(null);
 
-    // Filter suggestions
     const remoteSliceOptions = useMemo(() => {
         const localTitles = new Set(slices.map(s => (s.title || '').toLowerCase()));
         return crossModelSlices
@@ -499,18 +482,28 @@ const SliceList: React.FC<SliceListProps> = ({
             }));
     }, [crossModelSlices, slices]);
 
-    const handleAdd = (title: string) => {
+    const handleAdd = (title: string, chapterName?: string) => {
         if (title.trim()) {
             const normalizedTitle = title.trim().toLowerCase();
-            if (slices.some(s => s.title?.toLowerCase() === normalizedTitle)) {
-                alert('Slice with this name already exists in this model.');
+            // Allow duplicate names if we are just creating a new chapter placeholder
+            if (!chapterName && slices.some(s => s.title?.toLowerCase() === normalizedTitle)) {
+                alert('Slice with this name already exists.');
                 return;
             }
-            if (definitions.some(d => d.name.toLowerCase() === normalizedTitle)) {
-                alert('An Entity with this name already exists. Names must be unique.');
-                return;
-            }
+            // For new chapters, we might create a generic slice name.
             onAddSlice(title.trim(), slices.length);
+        }
+    };
+
+    const handleCreateChapter = () => {
+        const name = prompt("Enter Name for New Chapter");
+        if (name && name.trim()) {
+            const chapterName = name.trim();
+            // Just add to empty chapters.
+            // If it's unique and not already in slices.
+            if (!emptyChapters.includes(chapterName) && !slices.some(s => s.chapter === chapterName)) {
+                setEmptyChapters(prev => [...prev, chapterName]);
+            }
         }
     };
 
@@ -522,7 +515,6 @@ const SliceList: React.FC<SliceListProps> = ({
         }
     };
 
-    // --- Specification Handlers ---
     const updateSliceSpecs = (sliceId: string, specs: Specification[]) => {
         onUpdateSlice(sliceId, { specifications: specs });
     };
@@ -535,209 +527,355 @@ const SliceList: React.FC<SliceListProps> = ({
             when: [],
             then: []
         };
-        const currentSpecs = slice.specifications || [];
-        updateSliceSpecs(slice.id, [...currentSpecs, newSpec]);
+        updateSliceSpecs(slice.id, [...(slice.specifications || []), newSpec]);
     };
 
     const handleUpdateSpec = (slice: Slice, specId: string, updates: Partial<Specification>) => {
-        const currentSpecs = slice.specifications || [];
-        const updatedSpecs = currentSpecs.map(s => s.id === specId ? { ...s, ...updates } : s);
+        const updatedSpecs = (slice.specifications || []).map(s => s.id === specId ? { ...s, ...updates } : s);
         updateSliceSpecs(slice.id, updatedSpecs);
     };
 
     const handleDeleteSpec = (slice: Slice, specId: string) => {
-        const currentSpecs = slice.specifications || [];
-        const updatedSpecs = currentSpecs.filter(s => s.id !== specId);
+        const updatedSpecs = (slice.specifications || []).filter(s => s.id !== specId);
         updateSliceSpecs(slice.id, updatedSpecs);
     };
 
-    // --- DnD Sensors ---
     const sensors = useSensors(
         useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const [activeDragId, setActiveDragId] = useState<string | null>(null);
+    const isDraggingChapter = activeDragId ? activeDragId.startsWith('chapter:') : false;
+
+    // Custom collision strategy to prevent Slices from interfering with Chapter sorting
+    const customCollisionDetection: CollisionDetection = (args) => {
+        const { active, droppableContainers } = args;
+
+        // 1. If dragging a Chapter, ONLY collide with other Chapters, using pointerWithin (cursor based)
+        // This ignores the geometry of the "tail" and only cares about where the user's cursor is.
+        if (active.id.toString().startsWith('chapter:')) {
+            const chapterContainers = droppableContainers.filter(container =>
+                container.id.toString().startsWith('chapter:')
+            );
+            return pointerWithin({
+                ...args,
+                droppableContainers: chapterContainers
+            });
+        }
+
+        // 2. If dragging a Slice, use closestCorners.
+        // This was the state ("Step 998") where user said moving slices was "VERY smooth".
+        // pointerWithin was found to be less stable for slices in subsequent steps.
+        return closestCorners(args);
+    };
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveDragId(event.active.id as string);
+    };
+
+    const handleDragOver = (event: DragOverEvent) => {
         const { active, over } = event;
+        if (!over) return;
 
-        if (over && active.id !== over.id) {
-            const oldIndex = slices.findIndex((s) => s.id === active.id);
-            const newIndex = slices.findIndex((s) => s.id === over.id);
+        const activeId = active.id as string;
+        const overId = over.id as string;
 
-            if (oldIndex !== -1 && newIndex !== -1) {
-                // 1. Move the item in the local array to calculate new order
+        // Only handle Slices moving between chapters
+        if (activeId.startsWith('chapter:') || overId.startsWith('chapter:')) return;
+
+        const activeSlice = slices.find(s => s.id === activeId);
+        const overSlice = slices.find(s => s.id === overId);
+
+        if (!activeSlice || !overSlice) return;
+
+        const activeChapter = activeSlice.chapter || 'General';
+        const overChapter = overSlice.chapter || 'General';
+
+        if (activeChapter !== overChapter) {
+            // Effectively move the slice to the new chapter immediately without committing to DB yet?
+            // Since we rely on props.slices which triggers re-render, we CAN just call onUpdateSlice.
+            // But doing this onDragOver (high frequency) with DB sync might be laggy.
+            // Ideally we'd have local state.
+            // For now, let's TRY strictly moving it.
+            // Actually, dnd-kit recommends just mutating the items in a local state copy.
+
+            // Wait, we don't have local state. Slices comes from props.
+            // If we update props, it might re-render everything.
+
+            // Let's rely on the user's description. "Jumps back".
+            // That means it ISN'T moving.
+
+            // We'll update the Chapter property of the slice so it "moves" to the new group.
+            onUpdateSlice(activeId, { chapter: overChapter });
+        }
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        setActiveDragId(null);
+        const { active, over } = event;
+        if (!over) return;
+        if (active.id === over.id) return;
+
+        const activeId = active.id as string;
+        const overId = over.id as string;
+
+        // 1. Chapter Reordering
+        if (activeId.startsWith('chapter:')) {
+            const activeChapterName = activeId.replace('chapter:', '');
+            const overChapterName = overId.startsWith('chapter:')
+                ? overId.replace('chapter:', '')
+                : slices.find(s => s.id === overId)?.chapter || 'General';
+
+            const oldGroupIndex = chapterGroups.findIndex(g => g.name === activeChapterName);
+            const newGroupIndex = chapterGroups.findIndex(g => g.name === overChapterName);
+
+            if (oldGroupIndex !== -1 && newGroupIndex !== -1 && oldGroupIndex !== newGroupIndex) {
+                const reorderedGroups = arrayMove(chapterGroups, oldGroupIndex, newGroupIndex);
+                let globalIndex = 0;
+                reorderedGroups.forEach(group => {
+                    group.slices.forEach(slice => {
+                        if (slice.order !== globalIndex) {
+                            onUpdateSlice(slice.id, { order: globalIndex });
+                        }
+                        globalIndex++;
+                    });
+                });
+                onAutoLayout?.();
+            }
+            return;
+        }
+
+        // 2. Slice Reordering
+        const activeSlice = slices.find(s => s.id === activeId);
+        const overSlice = slices.find(s => s.id === overId);
+
+        if (activeSlice) {
+            const oldIndex = slices.findIndex(s => s.id === activeId);
+            let newIndex = slices.findIndex(s => s.id === overId);
+
+            // Calculate target chapter
+            let targetChapter: string | null = null;
+            const overChapterGroup = chapterGroups.find(g => g.id === overId);
+
+            if (overChapterGroup) {
+                // Dropped on a Chapter Header
+                targetChapter = overChapterGroup.name;
+                // Move to top of that chapter? Or bottom?
+                // Usually bottom is safer or top.
+                // Let's assume top for now.
+                const firstSliceInGroup = overChapterGroup.slices[0];
+                newIndex = firstSliceInGroup ? slices.findIndex(s => s.id === firstSliceInGroup.id) : slices.length;
+            } else if (overSlice) {
+                // Dropped on a Slice
+                targetChapter = overSlice.chapter || 'General';
+            }
+
+            // Only perform reorder if indices are different
+            if (oldIndex !== newIndex) {
                 const reorderedSlices = arrayMove(slices, oldIndex, newIndex);
-
-                // 2. Update orders for ALL slices based on their new index
-                // This ensures everything stays clean in the database
                 reorderedSlices.forEach((slice, index) => {
                     if (slice.order !== index) {
-                        onUpdateSlice(slice.id, { order: index });
+                        // Also ensure chapter is correct if we just dragged it
+                        const updates: Partial<Slice> = { order: index };
+                        if (targetChapter && (slice.chapter || 'General') !== targetChapter && slice.id === activeId) {
+                            updates.chapter = targetChapter === 'General' ? undefined : targetChapter;
+                        }
+                        onUpdateSlice(slice.id, updates);
                     }
                 });
+                setTimeout(() => onAutoLayout?.(), 200);
             }
         }
     };
 
-    // Ensure slices are sorted for the SortableContext
-    // The parent likely passes them sorted, but redundant check doesn't hurt or we rely on prop order
-    // NOTE: If parent doesn't sort by order, the UI might jump. Relying on parent or explicit sort here.
-    // Let's explicitly sort for display safety if not already guaranteed.
-    // Actually, re-sorting prop here might cause issues if onUpdateSlice is async/laggy. 
-    // Usually standard to assume props update. 
-    // We'll trust the prop 'slices' is the source of truth, but for DnD items we need IDs.
-    const sliceIds = useMemo(() => slices.map(s => s.id), [slices]);
+    const handleDeleteChapter = (name: string, mode: 'ungroup' | 'delete') => {
+        const group = chapterGroups.find(g => g.name === name);
+        if (!group) return;
+
+        if (mode === 'delete') {
+            group.slices.forEach(s => onDeleteSlice(s.id));
+        } else {
+            // Ungroup: Set chapter to null (General)
+            group.slices.forEach(s => onUpdateSlice(s.id, { chapter: undefined }));
+        }
+
+        // Also remove from emptyChapters if it was there
+        setEmptyChapters(prev => prev.filter(c => c !== name));
+
+        setDeleteChapterInfo(null);
+    };
+
+    const handleRenameChapter = (oldName: string, newName: string) => {
+        if (!newName.trim() || oldName === newName) return;
+
+        // If it was an empty chapter, rename it in state
+        if (emptyChapters.includes(oldName)) {
+            setEmptyChapters(prev => prev.map(c => c === oldName ? newName.trim() : c));
+        }
+
+        const group = chapterGroups.find(g => g.name === oldName);
+        if (group) {
+            // If newName matches an existing chapter, we are effectively merging.
+            // That is fine, we just update all slices to the new name.
+            group.slices.forEach(s => {
+                onUpdateSlice(s.id, { chapter: newName.trim() });
+            });
+        }
+    };
 
     return (
-        <Box sx={{ pb: 10 }}> {/* Padding for scroll */}
-            {/* Add New Slice */}
-            <Box sx={{ mb: 2 }}>
-                <SmartSelect
-                    options={remoteSliceOptions}
-                    value=""
-                    onChange={handleAddSlice}
-                    onCreate={(name) => handleAdd(name)}
-                    placeholder="Add or import slice..."
-                    allowCustomValue={false}
-                />
-            </Box>
-
-            {/* List */}
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-            >
-                <SortableContext
-                    items={sliceIds}
-                    strategy={verticalListSortingStrategy}
+        <div className="pb-20">
+            <div className="mb-4 flex gap-2">
+                <div className="flex-grow">
+                    <SmartSelect
+                        options={remoteSliceOptions}
+                        value=""
+                        onChange={handleAddSlice}
+                        onCreate={(name) => handleAdd(name)}
+                        placeholder="Add slice..."
+                        allowCustomValue={false}
+                    />
+                </div>
+                <GlassButton
+                    variant="primary"
+                    size="sm"
+                    onClick={handleCreateChapter}
+                    title="Add New Chapter"
                 >
+                    <Plus size={16} /> <span className="sr-only">Chapter</span>
+                </GlassButton>
+            </div>
+
+            <DndContext sensors={sensors} collisionDetection={customCollisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+                <SortableContext items={chapterGroups.map(g => g.id)} strategy={verticalListSortingStrategy}>
                     <div>
-                        {slices.map((slice) => (
-                            <SortableSliceItem
-                                key={slice.id}
-                                slice={slice}
-                                expanded={localExpandedId === slice.id}
-                                onExpandChange={(isExpanded) => {
-                                    setLocalExpandedId(isExpanded ? slice.id : null);
+                        {chapterGroups.map(group => (
+                            <SortableChapter
+                                key={group.id}
+                                id={group.id}
+                                chapterName={group.name}
+                                slices={group.slices}
+                                onDelete={(name) => {
+                                    setDeleteChapterInfo({ name, anchorEl: document.activeElement as HTMLElement })
                                 }}
-                                onUpdateSlice={onUpdateSlice}
-                                onDeleteSliceClick={(_e, id, anchor) => {
-                                    setDeleteSliceInfo({ id, anchorEl: anchor });
-                                }}
+                                onRename={handleRenameChapter}
                             >
-                                {/* Properties Content */}
-                                <Stack spacing={2} sx={{ mb: 3 }}>
-                                    <TextField
-                                        id={`slice-name-input-${slice.id}`}
-                                        label="Slice Name"
-                                        size="small"
-                                        fullWidth
-                                        value={slice.title || ''}
-                                        onChange={(e) => onUpdateSlice(slice.id, { title: e.target.value })}
-                                    // key prop to force re-render if needed or rely on value? 
-                                    />
-
-                                    <Stack direction="row" spacing={2}>
-                                        <FormControl size="small" fullWidth>
-                                            <InputLabel>Type</InputLabel>
-                                            <Select
-                                                value={slice.sliceType || ''}
-                                                label="Type"
-                                                onChange={(e) => onUpdateSlice(slice.id, { sliceType: e.target.value as SliceType })}
-                                            >
-                                                <MenuItem value=""><em>None</em></MenuItem>
-                                                <MenuItem value={SliceType.StateChange}>Command</MenuItem>
-                                                <MenuItem value={SliceType.StateView}>View</MenuItem>
-                                                <MenuItem value={SliceType.Automation}>Auto</MenuItem>
-                                            </Select>
-                                        </FormControl>
-
-                                        <TextField
-                                            label="Bounded Context"
-                                            size="small"
-                                            fullWidth
-                                            value={slice.context || ''}
-                                            onChange={(e) => onUpdateSlice(slice.id, { context: e.target.value })}
-                                        />
-                                    </Stack>
-
-                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Button
-                                            size="small"
-                                            color="error"
-                                            startIcon={<DeleteIcon />}
-                                            onClick={(e) => {
-                                                setDeleteSliceInfo({ id: slice.id, anchorEl: e.currentTarget });
-                                            }}
+                                <SortableContext items={group.slices.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                                    {group.slices.map(slice => (
+                                        <SortableSliceItem
+                                            key={slice.id}
+                                            slice={slice}
+                                            expanded={localExpandedId === slice.id}
+                                            onExpandChange={(isExpanded) => setLocalExpandedId(isExpanded ? slice.id : null)}
+                                            onUpdateSlice={onUpdateSlice}
+                                            onDeleteSliceClick={(_e, id, anchor) => setDeleteSliceInfo({ id, anchorEl: anchor })}
+                                            disabled={isDraggingChapter}
                                         >
-                                            Delete Slice
-                                        </Button>
-                                    </Box>
-                                </Stack>
-
-                                <Divider sx={{ mb: 2 }} />
-
-                                {/* Specifications */}
-                                <Box>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                                        <Typography variant="overline" color="text.secondary">
-                                            Specifications
-                                        </Typography>
-                                        <Button
-                                            size="small"
-                                            startIcon={<AddIcon />}
-                                            onClick={() => handleAddSpecToSlice(slice)}
-                                            sx={{ textTransform: 'none' }}
-                                        >
-                                            Add Spec
-                                        </Button>
-                                    </Box>
-
-                                    <Box>
-                                        {(slice.specifications || []).length === 0 ? (
-                                            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', display: 'block', textAlign: 'center', py: 1 }}>
-                                                No specifications yet.
-                                            </Typography>
-                                        ) : (
-                                            (slice.specifications || []).map(spec => (
-                                                <SpecificationItem
-                                                    key={spec.id}
-                                                    spec={spec}
-                                                    onUpdate={(id, updates) => handleUpdateSpec(slice, id, updates)}
-                                                    onDelete={(id) => handleDeleteSpec(slice, id)}
+                                            <div className="flex flex-col gap-4 mb-6">
+                                                <GlassInput
+                                                    id={`slice-name-input-${slice.id}`}
+                                                    label="Slice Name"
+                                                    value={slice.title || ''}
+                                                    onChange={(e) => onUpdateSlice(slice.id, { title: e.target.value })}
+                                                    className="w-full"
                                                 />
-                                            ))
-                                        )}
-                                    </Box>
-                                </Box>
-                            </SortableSliceItem>
-                        ))}
 
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="flex gap-2">
+                                                        <div className="w-1/3">
+                                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Type</label>
+                                                            <select
+                                                                value={slice.sliceType || ''}
+                                                                onChange={(e) => onUpdateSlice(slice.id, { sliceType: e.target.value as SliceType })}
+                                                                className="w-full bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none text-sm"
+                                                            >
+                                                                <option value="">None</option>
+                                                                <option value={SliceType.StateChange}>Command</option>
+                                                                <option value={SliceType.StateView}>View</option>
+                                                                <option value={SliceType.Automation}>Auto</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="flex-grow">
+                                                            <GlassInput
+                                                                label="Bounded Context"
+                                                                value={slice.context || ''}
+                                                                onChange={(e) => onUpdateSlice(slice.id, { context: e.target.value })}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-end">
+                                                    <GlassButton
+                                                        variant="danger"
+                                                        size="sm"
+                                                        onClick={(e) => setDeleteSliceInfo({ id: slice.id, anchorEl: e.currentTarget })}
+                                                    >
+                                                        <Trash2 size={16} className="mr-1" /> Delete Slice
+                                                    </GlassButton>
+                                                </div>
+                                            </div>
+
+                                            <div className="h-px bg-slate-200 dark:bg-white/10 mb-4"></div>
+
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Specifications</div>
+                                                    <GlassButton variant="ghost" size="sm" onClick={() => handleAddSpecToSlice(slice)}>
+                                                        <Plus size={16} className="mr-1" /> Add Spec
+                                                    </GlassButton>
+                                                </div>
+
+                                                <div>
+                                                    {(slice.specifications || []).length === 0 ? (
+                                                        <p className="text-center text-xs text-slate-400 italic py-2">No specifications yet.</p>
+                                                    ) : (
+                                                        (slice.specifications || []).map(spec => (
+                                                            <SpecificationItem
+                                                                key={spec.id}
+                                                                spec={spec}
+                                                                onUpdate={(id, updates) => handleUpdateSpec(slice, id, updates)}
+                                                                onDelete={(id) => handleDeleteSpec(slice, id)}
+                                                            />
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </SortableSliceItem>
+                                    ))}
+                                </SortableContext>
+                            </SortableChapter>
+                        ))}
                         {slices.length === 0 && (
-                            <Typography color="text.secondary" align="center" sx={{ mt: 4, fontStyle: 'italic' }}>
-                                No slices created yet.
-                            </Typography>
+                            <p className="text-center text-slate-500 pt-8 italic">No slices created yet.</p>
                         )}
                     </div>
                 </SortableContext>
             </DndContext>
 
-            {/* Confirm Deletion Menu for Slices */}
             <ConfirmMenu
                 open={Boolean(deleteSliceInfo)}
                 anchorEl={deleteSliceInfo?.anchorEl || null}
                 onClose={() => setDeleteSliceInfo(null)}
                 onConfirm={() => {
-                    if (deleteSliceInfo) {
-                        onDeleteSlice(deleteSliceInfo.id);
-                    }
+                    if (deleteSliceInfo) onDeleteSlice(deleteSliceInfo.id);
                 }}
                 message="Delete this slice and all its properties?"
             />
-        </Box>
+
+            {/* Chapter Delete Menu */}
+            <ConfirmMenu
+                open={Boolean(deleteChapterInfo)}
+                anchorEl={deleteChapterInfo?.anchorEl || null}
+                onClose={() => setDeleteChapterInfo(null)}
+                onConfirm={() => {
+                    if (deleteChapterInfo) handleDeleteChapter(deleteChapterInfo.name, 'ungroup');
+                }}
+                message={`Delete or Ungroup "${deleteChapterInfo?.name}"?`}
+                confirmLabel="Ungroup All"
+            />
+        </div>
     );
 };
 

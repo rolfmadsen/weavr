@@ -1,25 +1,29 @@
 import React, { useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Button,
-  Divider,
-  Chip,
-  Stack,
-  Tooltip,
-  InputAdornment
-} from '@mui/material';
-import { Delete as DeleteIcon, PushPin as PinIcon, PushPinOutlined as UnpinIcon, HelpOutline } from '@mui/icons-material';
+import { Trash2, Pin, PinOff, CircleHelp, Info } from 'lucide-react';
 import { Node, Link, Slice, DataDefinition, DefinitionType, ElementType } from '../../modeling';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import { useCrossModelData } from '../../modeling';
+import { useModelingContext } from '../../modeling/store/ModelingContext';
+import { GlassButton } from '../../../shared/components/GlassButton';
+import { GlassInput } from '../../../shared/components/GlassInput';
+import * as Tooltip from '@radix-ui/react-tooltip';
 
-import { InfoOutlined } from '@mui/icons-material';
+// Helper for Glass Tooltip
+const GlassTooltip = ({ children, content }: { children: React.ReactNode, content: React.ReactNode }) => (
+  <Tooltip.Provider>
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <span className="cursor-help inline-flex items-center">{children}</span>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content className="z-[100] max-w-xs p-3 text-sm text-slate-100 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200" sideOffset={5}>
+          {content}
+          <Tooltip.Arrow className="fill-slate-900/90" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  </Tooltip.Provider>
+);
 
 const ELEMENT_DESCRIPTIONS: Partial<Record<ElementType, { title: string; purpose: string; story: string; tech: string }>> = {
   [ElementType.Screen]: {
@@ -65,42 +69,29 @@ const ElementHelp: React.FC<{ type: ElementType }> = ({ type }) => {
   if (!info) return null;
 
   return (
-    <Box sx={{
-      mt: 2,
-      p: 2,
-      backgroundColor: 'action.hover',
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: 1,
-      fontSize: '0.875rem'
-    }}>
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1.5 }}>
-        <InfoOutlined color="primary" fontSize="small" />
-        <Typography variant="subtitle2" component="div" fontWeight="bold">
-          {info.title}
-        </Typography>
-      </Box>
+    <div className="mt-4 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-sm">
+      <div className="flex gap-2 items-center mb-3 text-purple-600 dark:text-purple-400">
+        <Info size={16} />
+        <span className="font-bold">{info.title}</span>
+      </div>
 
-      <Box sx={{ mb: 1.5 }}>
-        <Typography variant="caption" display="block" color="text.secondary" fontWeight="bold" sx={{ mb: 0.5 }}>Role</Typography>
-        <Typography variant="body2" sx={{ lineHeight: 1.5 }}>{info.purpose}</Typography>
-      </Box>
+      <div className="mb-3">
+        <span className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Role</span>
+        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{info.purpose}</p>
+      </div>
 
-      <Box sx={{ mb: 1.5 }}>
-        <Typography variant="caption" display="block" color="text.secondary" fontWeight="bold" sx={{ mb: 0.5 }}>The Story</Typography>
-        <Typography variant="body2" sx={{ lineHeight: 1.5 }}>{info.story}</Typography>
-      </Box>
+      <div className="mb-3">
+        <span className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">The Story</span>
+        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{info.story}</p>
+      </div>
 
-      <Box>
-        <Typography variant="caption" display="block" color="text.secondary" fontWeight="bold" sx={{ mb: 0.5 }}>Technical Meaning</Typography>
-        <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace', color: 'text.primary' }}>{info.tech}</Typography>
-      </Box>
-    </Box>
+      <div>
+        <span className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Technical Meaning</span>
+        <code className="text-xs bg-slate-200 dark:bg-black/30 px-1 py-0.5 rounded text-amber-700 dark:text-amber-200 block w-full overflow-x-auto">{info.tech}</code>
+      </div>
+    </div>
   );
 };
-
-
-import { useModelingContext } from '../../modeling/store/ModelingContext';
 
 interface PropertiesPanelProps {
   focusOnRender?: boolean;
@@ -156,7 +147,6 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
   // Entity Options
   const entityOptions = useMemo(() => {
     const currentIds = node.entityIds || [];
-
     const localOptions = definitions
       .filter((d) => !currentIds.includes(d.id))
       .map((d) => ({
@@ -179,13 +169,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
 
   const handleSliceCreate = (name: string) => {
-    // Check for existing local slice (case-insensitive)
     const existingSlice = slices.find((s: any) => (s.title || '').toLowerCase() === name.toLowerCase());
     if (existingSlice) {
       alert(`Slice "${existingSlice.title}" already exists.`);
       return existingSlice.id;
     }
-
     const newId = onAddSlice(name);
     return newId.toString();
   };
@@ -195,36 +183,26 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
       onUpdateNode(node.id, 'sliceId', undefined);
       return;
     }
-
-    // Handle Remote Slice Selection
     if (id.startsWith('remote:') && option?.originalData) {
       const remoteSlice = option.originalData;
-      // Check if we already have a local slice with this name
       const existingLocal = slices.find((s: any) => (s.title || '').toLowerCase() === remoteSlice.label.toLowerCase());
-
       if (existingLocal) {
         onUpdateNode(node.id, 'sliceId', existingLocal.id);
       } else {
-        // Create new local slice from remote
         const newId = onAddSlice(remoteSlice.label);
         onUpdateNode(node.id, 'sliceId', newId.toString());
       }
       return;
     }
-
     onUpdateNode(node.id, 'sliceId', id);
   };
 
   const handleEntityCreate = (name: string) => {
-    // Check for existing local definition
     const existingDef = definitions.find((d: any) => d.name.toLowerCase() === name.toLowerCase());
-    if (existingDef) {
-      return existingDef.id;
-    }
-
+    if (existingDef) return existingDef.id;
     const newId = onAddDefinition({
       name: name,
-      type: DefinitionType.Entity, // Default type
+      type: DefinitionType.Entity,
       description: '',
       attributes: []
     });
@@ -233,7 +211,6 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
   const handleEntityAdd = (id: string, option: any) => {
     if (!id) return;
-
     const safeIds = (() => {
       const eIds = node.entityIds;
       if (Array.isArray(eIds)) return eIds;
@@ -244,17 +221,14 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
     })();
     const currentIds: string[] = safeIds;
 
-    // Handle Remote Entity Selection
     if (id.startsWith('remote:') && option?.originalData) {
       const remoteDef = option.originalData;
       const existingLocal = definitions.find((d: any) => d.name.toLowerCase() === remoteDef.label.toLowerCase());
-
       if (existingLocal) {
         if (!currentIds.includes(existingLocal.id)) {
           onUpdateNode(node.id, 'entityIds', [...currentIds, existingLocal.id]);
         }
       } else {
-        // Copy remote definition to local
         const data = remoteDef.originalData;
         const newId = onAddDefinition({
           name: remoteDef.label,
@@ -286,158 +260,106 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="overline" color="text.secondary">General</Typography>
-          <Button
-            size="small"
-            startIcon={node.pinned ? <PinIcon sx={{ fontSize: 16 }} /> : <UnpinIcon sx={{ fontSize: 16 }} />}
+    <div className="flex flex-col gap-6">
+      {/* General Section */}
+      <section>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">General</h3>
+          <GlassButton
+            size="sm"
+            variant="ghost"
             onClick={() => onUpdateNode(node.id, 'pinned', !node.pinned)}
-            color={node.pinned ? "primary" : "inherit"}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+            className={node.pinned ? "text-purple-500 bg-purple-500/10" : ""}
           >
-            {node.pinned ? 'Pinned' : 'Unpinned'}
-          </Button>
-        </Box>
-        <TextField
-          label="Name"
-          value={node.name || ''}
-          onChange={(e) => onUpdateNode(node.id, 'name', e.target.value)}
-          fullWidth
-          margin="normal"
-          size="small"
-          inputRef={nameInputRef}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') return;
-            e.stopPropagation();
-          }}
-        />
-        <TextField
-          label="Description"
-          value={node.description || ''}
-          onChange={(e) => onUpdateNode(node.id, 'description', e.target.value)}
-          fullWidth
-          margin="normal"
-          size="small"
-          multiline
-          rows={3}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') return;
-            e.stopPropagation();
-          }}
-        />
+            {node.pinned ? <><Pin size={16} className="mr-1" /> Pinned</> : <><PinOff size={16} className="mr-1" /> Pin</>}
+          </GlassButton>
+        </div>
 
-        <FormControl fullWidth margin="normal" size="small">
-          <InputLabel>Type</InputLabel>
-          <Select
-            value={node.type}
-            label="Type"
-            onChange={(e) => onUpdateNode(node.id, 'type', e.target.value)}
-            inputProps={{ tabIndex: -1 }}
-            disabled
-          >
-            <MenuItem value="COMMAND">Command</MenuItem>
-            <MenuItem value="DOMAIN_EVENT">Domain Event</MenuItem>
-            <MenuItem value="INTEGRATION_EVENT">Integration Event</MenuItem>
-            <MenuItem value="AGGREGATE">Aggregate</MenuItem>
-            <MenuItem value="READ_MODEL">Read Model</MenuItem>
-            <MenuItem value="SCREEN">Screen</MenuItem>
-            <MenuItem value="AUTOMATION">Automation</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl fullWidth margin="normal" size="small">
-          <InputLabel id="context-label" sx={{ display: 'flex', alignItems: 'center' }}>
-            Context
-            <Tooltip title={
-              <Box sx={{ p: 1 }}>
-                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>System Boundary</Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>Where does this happen?</Typography>
-                <Typography variant="body2" sx={{ mb: 0.5 }}><strong>Internal:</strong> Part of the system we are building.</Typography>
-                <Typography variant="body2"><strong>External:</strong> A 3rd-party tool (e.g., Stripe) or another team's system.</Typography>
-              </Box>
-            } placement="right">
-              <HelpOutline sx={{ fontSize: 16, ml: 0.5, cursor: 'help' }} />
-            </Tooltip>
-          </InputLabel>
-          <Select
-            labelId="context-label"
-            value={node.type === 'DOMAIN_EVENT' ? 'INTERNAL' : (node.context || 'INTERNAL')}
-            label={<Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>Context <Box component="span" sx={{ width: 24 }} /></Box>}
-            onChange={(e) => onUpdateNode(node.id, 'context', e.target.value as 'INTERNAL' | 'EXTERNAL')}
-            disabled={node.type === 'DOMAIN_EVENT'}
-          >
-            <MenuItem value="INTERNAL">Internal</MenuItem>
-            <MenuItem value="EXTERNAL">External</MenuItem>
-          </Select>
-        </FormControl>
-
-        <TextField
-          label={node.context === 'EXTERNAL' ? "External Provider Name" : "Service / Microservice"}
-          value={node.service || ''}
-          onChange={(e) => onUpdateNode(node.id, 'service', e.target.value)}
-          fullWidth
-          margin="normal"
-          size="small"
-          placeholder={node.context === 'EXTERNAL' ? "e.g. Stripe, Auth0" : "e.g. Sales-Service"}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <Tooltip title={
-                  <Box sx={{ p: 1 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 0.5 }}>The "Owner"</Typography>
-                    <Typography variant="body2">
-                      The specific application, deployable unit, or 3rd party system that handles this logic.
-                    </Typography>
-                  </Box>
-                } arrow placement="left">
-                  <HelpOutline fontSize="small" color="action" sx={{ cursor: 'help' }} />
-                </Tooltip>
-              </InputAdornment>
-            )
-          }}
-        />
-
-        {node.type === 'COMMAND' && (
-          <TextField
-            label="Aggregate (Tags)"
-            value={node.aggregate || ''}
-            onChange={(e) => onUpdateNode(node.id, 'aggregate', e.target.value)}
-            fullWidth
-            margin="normal"
-            size="small"
-            placeholder="e.g. course:c1"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Tooltip title={
-                    <Box sx={{ p: 1 }}>
-                      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Consistency Boundary (Tags)</Typography>
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        Who or What is being affected? (e.g. <code>course:123</code>)
-                      </Typography>
-                      <Typography variant="caption" display="block" sx={{ color: 'grey.400' }}>
-                        This defines the <strong>Decision Model</strong>. We only check business rules against events that share these Tags.
-                      </Typography>
-                    </Box>
-                  } arrow placement="left">
-                    <HelpOutline fontSize="small" color="action" sx={{ cursor: 'help' }} />
-                  </Tooltip>
-                </InputAdornment>
-              )
-            }}
+        <div className="space-y-4">
+          <GlassInput
+            label="Name"
+            value={node.name || ''}
+            onChange={(e) => onUpdateNode(node.id, 'name', e.target.value)}
+            ref={nameInputRef}
+            autoComplete="off"
           />
-        )}
-      </Box>
 
-      <Divider />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Description</label>
+            <textarea
+              className="w-full bg-slate-50 dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-500 backdrop-blur-md focus:ring-2 focus:ring-purple-500/50 min-h-[80px]"
+              value={node.description || ''}
+              onChange={(e) => onUpdateNode(node.id, 'description', e.target.value)}
+            />
+          </div>
 
-      <Box>
-        <Typography variant="overline" color="text.secondary">Organization</Typography>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Type</label>
+            <select
+              disabled
+              value={node.type}
+              className="w-full bg-slate-100/50 dark:bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-slate-500 appearance-none cursor-not-allowed"
+            >
+              <option value="COMMAND">Command</option>
+              <option value="DOMAIN_EVENT">Domain Event</option>
+              <option value="INTEGRATION_EVENT">Integration Event</option>
+              <option value="READ_MODEL">Read Model</option>
+              <option value="SCREEN">Screen</option>
+              <option value="AUTOMATION">Automation</option>
+            </select>
+          </div>
 
-        <Box sx={{ mt: 2, mb: 3 }}>
-          <Typography variant="caption" display="block" gutterBottom>Slice</Typography>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1 flex items-center gap-1">
+              Context
+              <GlassTooltip content={
+                <div>
+                  <p className="font-bold mb-1">System Boundary</p>
+                  <p className="mb-2">Where does this happen?</p>
+                  <p className="text-xs mb-1"><strong>Internal</strong>: Part of our system.</p>
+                  <p className="text-xs"><strong>External</strong>: A 3rd-party tool.</p>
+                </div>
+              }>
+                <CircleHelp size={14} />
+              </GlassTooltip>
+            </label>
+            <select
+              value={node.type === 'DOMAIN_EVENT' ? 'INTERNAL' : (node.context || 'INTERNAL')}
+              onChange={(e) => onUpdateNode(node.id, 'context', e.target.value as any)}
+              disabled={node.type === 'DOMAIN_EVENT'}
+              className="w-full bg-slate-50 dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none text-slate-800 dark:text-slate-100"
+            >
+              <option value="INTERNAL">Internal</option>
+              <option value="EXTERNAL">External</option>
+            </select>
+          </div>
+
+          <GlassInput
+            label={node.context === 'EXTERNAL' ? "External Provider Name" : "Service / Microservice"}
+            value={node.service || ''}
+            onChange={(e) => onUpdateNode(node.id, 'service', e.target.value)}
+            placeholder={node.context === 'EXTERNAL' ? "e.g. Stripe, Auth0" : "e.g. Sales-Service"}
+          />
+
+          {node.type === 'COMMAND' && (
+            <GlassInput
+              label="Aggregate (Tags)"
+              value={node.aggregate || ''}
+              onChange={(e) => onUpdateNode(node.id, 'aggregate', e.target.value)}
+              placeholder="e.g. course:c1"
+            />
+          )}
+        </div>
+      </section>
+
+      <div className="h-px bg-slate-200 dark:bg-white/10"></div>
+
+      {/* Organization Section */}
+      <section>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Organization</h3>
+
+        <div className="mb-4">
+          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Slice</label>
           <SmartSelect
             options={sliceOptions}
             value={node.sliceId ? node.sliceId.toString() : ''}
@@ -446,67 +368,54 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             placeholder="Select or create slice..."
             allowCustomValue={false}
           />
-        </Box>
+        </div>
 
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" display="block" gutterBottom>Linked Entities</Typography>
-
-          <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 1 }}>
+        <div className="mb-4">
+          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 block">Linked Entities</label>
+          <div className="flex flex-wrap gap-2 mb-2">
             {(() => {
-              const eIds = node.entityIds;
-              const safeIds = Array.isArray(eIds)
-                ? eIds
-                : (typeof eIds === 'string'
-                  ? (() => { try { return JSON.parse(eIds); } catch { return []; } })()
-                  : []);
+              const eIds = node.entityIds || [];
+              const safeIds = Array.isArray(eIds) ? eIds : (typeof eIds === 'string' ? JSON.parse(eIds) : []);
 
-              return (safeIds || []).map((entityId: string) => {
+              return safeIds.map((entityId: string) => {
                 const def = definitions.find((d: any) => d.id === entityId);
                 return (
-                  <Chip
-                    key={entityId}
-                    label={def?.name || 'Unknown'}
-                    onDelete={() => handleEntityRemove(entityId)}
-                    size="small"
-                  />
+                  <span key={entityId} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20 text-xs font-medium">
+                    {def?.name || 'Unknown'}
+                    <button onClick={() => handleEntityRemove(entityId)} className="hover:text-purple-800"><Trash2 size={14} /></button>
+                  </span>
                 );
               })
             })()}
-          </Stack>
-
+          </div>
           <SmartSelect
             options={entityOptions}
-            value="" // Always empty as we add to the list
+            value=""
             onChange={handleEntityAdd}
             onCreate={handleEntityCreate}
             placeholder="Add entity..."
             allowCustomValue={false}
           />
-        </Box>
-      </Box>
+        </div>
+      </section>
 
-      <Divider />
+      <div className="h-px bg-slate-200 dark:bg-white/10"></div>
 
-      <Box>
-        <Typography variant="overline" color="text.secondary">Actions</Typography>
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<DeleteIcon />}
+      {/* Actions Section */}
+      <section>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Actions</h3>
+        <GlassButton
+          variant="danger"
+          size="sm"
           onClick={() => onDeleteNode(node.id)}
-          fullWidth
-          sx={{ mt: 1 }}
+          className="w-full"
         >
-          Delete Node
-        </Button>
+          <Trash2 size={16} className="mr-2" /> Delete Node
+        </GlassButton>
 
-        <Divider sx={{ my: 2 }} />
-
-        <Box>
-          <ElementHelp type={node.type} />
-        </Box>
-      </Box>
-    </Box >
+        <ElementHelp type={node.type} />
+      </section>
+    </div>
   );
 };
 
@@ -519,40 +428,31 @@ interface LinkPropertiesProps {
 
 const LinkProperties: React.FC<LinkPropertiesProps> = ({ link, onUpdateLink, onDeleteLink, nameInputRef }) => {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box>
-        <Typography variant="overline" color="text.secondary">Relationship</Typography>
-        <TextField
+    <div className="flex flex-col gap-6">
+      <section>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Relationship</h3>
+        <GlassInput
           label="Label"
           value={link.label || ''}
           onChange={(e) => onUpdateLink(link.id, 'label', e.target.value)}
-          fullWidth
-          margin="normal"
-          size="small"
-          inputRef={nameInputRef}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') return;
-            e.stopPropagation();
-          }}
+          ref={nameInputRef}
         />
-      </Box>
+      </section>
 
-      <Divider />
+      <div className="h-px bg-slate-200 dark:bg-white/10"></div>
 
-      <Box>
-        <Typography variant="overline" color="text.secondary">Actions</Typography>
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<DeleteIcon />}
+      <section>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Actions</h3>
+        <GlassButton
+          variant="danger"
+          size="sm"
           onClick={() => onDeleteLink(link.id)}
-          fullWidth
-          sx={{ mt: 1 }}
+          className="w-full"
         >
-          Delete Link
-        </Button>
-      </Box>
-    </Box>
+          <Trash2 size={16} className="mr-2" /> Delete Link
+        </GlassButton>
+      </section>
+    </div>
   );
 };
 
@@ -577,7 +477,6 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
   onPinSelection,
   onUnpinSelection
 }) => {
-  // Slice Options (Same as single node)
   const sliceOptions = useMemo(() => {
     const localOptions = slices.map((s: any) => ({
       id: s.id,
@@ -609,7 +508,6 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
 
   const handleSliceChange = (id: string, option: any) => {
     let targetSliceId = id;
-
     if (id.startsWith('remote:') && option?.originalData) {
       const remoteSlice = option.originalData;
       const existingLocal = slices.find((s: any) => (s.title || '').toLowerCase() === remoteSlice.label.toLowerCase());
@@ -620,73 +518,49 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
         targetSliceId = newId.toString();
       }
     }
-
-    // Update all selected nodes
     nodes.forEach((node) => {
       onUpdateNode(node.id, 'sliceId', targetSliceId || undefined);
     });
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box>
-        <Typography variant="h6">{nodes.length} items selected</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Edit properties for all selected items.
-        </Typography>
-      </Box>
+    <div className="flex flex-col gap-6">
+      <section>
+        <h3 className="text-md font-bold text-slate-800 dark:text-white mb-1">{nodes.length} items selected</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Edit properties for all selected items.</p>
+      </section>
 
-      <Divider />
+      <div className="h-px bg-slate-200 dark:bg-white/10"></div>
 
-      <Box>
-        <Typography variant="overline" color="text.secondary">Batch Actions</Typography>
+      <section>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Batch Actions</h3>
 
-        <Stack direction="row" spacing={1} sx={{ mt: 1, mb: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<PinIcon />}
-            onClick={onPinSelection}
-            disabled={!onPinSelection}
-            fullWidth
-            size="small"
-          >
-            Pin
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<UnpinIcon />}
-            onClick={onUnpinSelection}
-            disabled={!onUnpinSelection}
-            fullWidth
-            size="small"
-          >
-            Unpin
-          </Button>
-        </Stack>
+        <div className="grid grid-cols-2 gap-2 mb-6">
+          <GlassButton variant="secondary" size="sm" onClick={onPinSelection} disabled={!onPinSelection}>
+            <Pin size={16} className="mr-1" /> Pin
+          </GlassButton>
+          <GlassButton variant="secondary" size="sm" onClick={onUnpinSelection} disabled={!onUnpinSelection}>
+            <PinOff size={16} className="mr-1" /> Unpin
+          </GlassButton>
+        </div>
 
-        <Box sx={{ mt: 2, mb: 3 }}>
-          <Typography variant="caption" display="block" gutterBottom>Assign to Slice</Typography>
+        <div className="mb-6">
+          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Assign to Slice</label>
           <SmartSelect
             options={sliceOptions}
-            value="" // Always empty for batch actions initially
+            value=""
             onChange={handleSliceChange}
             onCreate={handleSliceCreate}
             placeholder="Select slice for all..."
             allowCustomValue={false}
           />
-        </Box>
+        </div>
 
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<DeleteIcon />}
-          onClick={() => nodes.forEach((n) => onDeleteNode(n.id))}
-          fullWidth
-        >
-          Delete All Selected
-        </Button>
-      </Box>
-    </Box>
+        <GlassButton variant="danger" onClick={() => nodes.forEach((n) => onDeleteNode(n.id))} className="w-full">
+          <Trash2 size={16} className="mr-2" /> Delete All Selected
+        </GlassButton>
+      </section>
+    </div>
   );
 };
 
@@ -698,13 +572,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const store = useModelingContext();
   const nameInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Cross-model data
   const {
     crossModelSlices,
     crossModelDefinitions,
   } = useCrossModelData(modelId);
 
-  // Derived Selection State
   const selectedItem = useMemo(() => {
     if (!store) return null;
     const { nodes, links, selectedNodeIdsArray, selectedLinkId } = store;
@@ -734,19 +606,17 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   if (!store || !selectedItem) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
-        <Typography>Select an item to view properties</Typography>
-      </Box>
+      <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+        <p>Select an item to view properties</p>
+      </div>
     );
   }
 
-  // Helper wrapper for addSlice until types are perfect
   const onAddSliceWrapper = (title: string) => {
     // @ts-ignore
     return store.handleAddSlice(title) || '';
   }
 
-  // Helper wrapper for addDefinition
   const onAddDefinitionWrapper = (def: Omit<DataDefinition, 'id'>) => {
     // @ts-ignore
     return store.addDefinition(def) || '';

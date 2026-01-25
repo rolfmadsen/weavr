@@ -126,42 +126,49 @@ export function useLayoutManager({
     const lastNodeCount = useRef(nodes.length);
     const lastLinkCount = useRef(links.length);
     const lastPinnedCount = useRef(nodes.filter(n => n.pinned).length);
+    const lastSlicesHash = useRef('');
 
-    // Simplified Trigger: Listens to explicit `layoutRequestId` OR significant count changes (init/add/delete/PINNING)
+    // Compute Hash for Slice Order & Chapter - Relying on Array Order (which is sorted by useGraphSync)
+    const currentSlicesHash = slicesWithNodes
+        .map(s => s.id)
+        .join('|');
+
+    // Debug Render
+    // useEffect(() => { console.log("LayoutManager Render. RequestId:", layoutRequestId, "Hash:", currentSlicesHash); });
+
+    // Simplified Trigger: Listens to explicit `layoutRequestId` OR significant changes
     useEffect(() => {
         const requestChanged = layoutRequestId !== lastLayoutRequestId.current;
         const nodesChanged = nodes.length !== lastNodeCount.current;
         const linksChanged = links.length !== lastLinkCount.current;
+        const slicesChanged = currentSlicesHash !== lastSlicesHash.current;
 
         const currentPinnedCount = nodes.filter(n => n.pinned).length;
         const pinnedChanged = currentPinnedCount !== lastPinnedCount.current;
 
         const isFirstLoad = !hasInitialLayoutRun.current && nodes.length > 0;
 
-        if (requestChanged || isFirstLoad || nodesChanged || linksChanged || pinnedChanged) {
-            console.log("LayoutManager: Triggered by",
-                requestChanged ? "Request Signal" :
-                    isFirstLoad ? "Initial Load" :
-                        nodesChanged ? "Node Count Change" :
-                            linksChanged ? "Link Count Change" : "Pinned State Change"
-            );
+        // console.log("LayoutManager Check:", { requestChanged, nodesChanged, linksChanged, slicesChanged, pinnedChanged });
+
+        if (requestChanged || isFirstLoad || nodesChanged || linksChanged || pinnedChanged || slicesChanged) {
 
             lastLayoutRequestId.current = layoutRequestId;
             lastNodeCount.current = nodes.length;
             lastLinkCount.current = links.length;
             lastPinnedCount.current = currentPinnedCount;
+            lastSlicesHash.current = currentSlicesHash;
             hasInitialLayoutRun.current = true; // Mark as run trigger-wise
 
             if (debounceTimer.current) clearTimeout(debounceTimer.current);
             debounceTimer.current = setTimeout(() => {
                 handleAutoLayout();
-            }, 500); // 500ms debounce for responsiveness vs GunDB sync settling
+            }, 50); // 50ms to be snappy but allow batching
         }
 
         return () => {
             if (debounceTimer.current) clearTimeout(debounceTimer.current);
         };
-    }, [layoutRequestId, nodes.length, links.length, handleAutoLayout, nodes]); // Added nodes to dependency to detect property changes (requires careful optimization in parent, but nodes array reference usually changes on update)
+    }, [layoutRequestId, nodes.length, links.length, handleAutoLayout, currentSlicesHash]);
 
     return {
         isLayoutLoading,

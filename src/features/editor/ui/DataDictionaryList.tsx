@@ -1,31 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { DataDefinition, DefinitionType } from '../../modeling';
 import {
-    Delete as DeleteIcon,
-    ExpandMore as ExpandMoreIcon,
-    Add as AddIcon,
-    Close as CloseIcon
-} from '@mui/icons-material';
-import {
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
-    Typography,
-    TextField,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
-    Box,
-    Button,
-    Divider,
-    Stack,
-    IconButton,
-    Autocomplete
-} from '@mui/material';
+    Trash2,
+    ChevronDown,
+    Plus,
+    X,
+    Lock
+} from 'lucide-react';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 import { useCrossModelData } from '../../modeling';
+import { GlassButton } from '../../../shared/components/GlassButton';
+import { GlassInput } from '../../../shared/components/GlassInput';
 
 interface DataDictionaryListProps {
     definitions: DataDefinition[];
@@ -42,10 +28,10 @@ const PRIMITIVE_TYPES = [
 
 const getTypeColor = (type: DefinitionType) => {
     switch (type) {
-        case DefinitionType.Entity: return '#3b82f6'; // Blue
-        case DefinitionType.ValueObject: return '#22c55e'; // Green
-        case DefinitionType.Enum: return '#f59e0b'; // Amber
-        default: return '#9ca3af'; // Gray
+        case DefinitionType.Entity: return 'bg-blue-500';
+        case DefinitionType.ValueObject: return 'bg-green-500';
+        case DefinitionType.Enum: return 'bg-amber-500';
+        default: return 'bg-gray-400';
     }
 };
 
@@ -62,7 +48,6 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     const [deleteDefInfo, setDeleteDefInfo] = useState<{ id: string, anchorEl: HTMLElement } | null>(null);
 
     // Calculate available types for suggestions (Primitives + Value Objects + Enums)
-    // We exclude Entities because in DDD, Entities are typically referenced by ID, not embedded.
     const typeSuggestions = useMemo(() => {
         const validDefNames = definitions
             .filter(d => d.type === DefinitionType.ValueObject || d.type === DefinitionType.Enum)
@@ -135,9 +120,9 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     };
 
     return (
-        <Box sx={{ pb: 10 }}>
+        <div className="pb-24">
             {/* Add New Definition */}
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-4">
                 <SmartSelect
                     options={remoteDefinitionOptions}
                     value=""
@@ -146,177 +131,136 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                     placeholder="Add or import entity..."
                     allowCustomValue={true}
                 />
-            </Box>
+            </div>
 
             {/* List */}
-            <Box>
+            <div className="space-y-1">
                 {definitions.map((def) => (
-                    <Accordion
+                    <details
                         key={def.id}
-                        disableGutters
-                        elevation={0}
-                        sx={{
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            '&:not(:last-child)': { borderBottom: 0 },
-                            '&:before': { display: 'none' },
-                        }}
+                        className="group bg-white/5 border border-white/10 rounded-lg overflow-hidden open:bg-white/10 open:border-white/20 transition-all duration-200"
                     >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            sx={{
-                                backgroundColor: 'rgba(0, 0, 0, .03)',
-                                flexDirection: 'row-reverse',
-                                '& .MuiAccordionSummary-content': { ml: 1, alignItems: 'center' },
-                            }}
-                        >
-                            <Box
-                                sx={{
-                                    width: 12,
-                                    height: 12,
-                                    borderRadius: '50%',
-                                    bgcolor: getTypeColor(def.type),
-                                    mr: 1.5,
-                                    flexShrink: 0
-                                }}
-                            />
-                            <Typography sx={{ fontWeight: 500, fontSize: '0.9rem', flex: 1 }}>
-                                {def.name}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', mr: 2 }}>
-                                {def.type}
-                            </Typography>
-                        </AccordionSummary>
+                        <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-white/5 select-none">
+                            <ChevronDown className="text-slate-500 group-open:rotate-180 transition-transform duration-200" />
+                            <div className={`w-3 h-3 rounded-full ${getTypeColor(def.type)} shadow-sm`} />
 
-                        <AccordionDetails sx={{ p: 2 }}>
-                            <Stack spacing={2} sx={{ mb: 3 }}>
-                                <TextField
+                            <span className="font-medium text-slate-800 dark:text-slate-100 flex-1">{def.name}</span>
+
+                            <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">{def.type}</span>
+                        </summary>
+
+                        <div className="p-4 bg-black/5 dark:bg-black/20 border-t border-white/10">
+                            {/* Definition Form */}
+                            <div className="flex flex-col gap-4 mb-6">
+                                <GlassInput
                                     label="Name"
-                                    size="small"
-                                    fullWidth
                                     value={def.name || ''}
                                     onChange={(e) => onUpdateDefinition(def.id, { name: e.target.value })}
                                 />
 
-                                <Stack direction="row" spacing={2}>
-                                    <FormControl size="small" fullWidth>
-                                        <InputLabel>Type</InputLabel>
-                                        <Select
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Type</label>
+                                    <div className="relative">
+                                        <select
                                             value={def.type}
-                                            label="Type"
                                             onChange={(e) => onUpdateDefinition(def.id, { type: e.target.value as DefinitionType })}
+                                            className="w-full bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
                                         >
-                                            <MenuItem value={DefinitionType.Entity}>Entity</MenuItem>
-                                            <MenuItem value={DefinitionType.ValueObject}>Value Object</MenuItem>
-                                            <MenuItem value={DefinitionType.Enum}>Enum</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
+                                            <option value={DefinitionType.Entity}>Entity</option>
+                                            <option value={DefinitionType.ValueObject}>Value Object</option>
+                                            <option value={DefinitionType.Enum}>Enum</option>
+                                        </select>
+                                    </div>
+                                </div>
 
-                                <TextField
-                                    label="Description"
-                                    size="small"
-                                    fullWidth
-                                    multiline
-                                    rows={2}
-                                    value={def.description || ''}
-                                    onChange={(e) => onUpdateDefinition(def.id, { description: e.target.value })}
-                                />
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Description</label>
+                                    <textarea
+                                        value={def.description || ''}
+                                        onChange={(e) => onUpdateDefinition(def.id, { description: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none text-slate-800 dark:text-slate-100 placeholder-slate-500 min-h-[60px]"
+                                    />
+                                </div>
 
-                                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                    <Button
-                                        size="small"
-                                        color="error"
-                                        startIcon={<DeleteIcon />}
-                                        onClick={(e) => {
-                                            setDeleteDefInfo({ id: def.id, anchorEl: e.currentTarget });
-                                        }}
+                                <div className="flex justify-end">
+                                    <GlassButton
+                                        variant="danger"
+                                        size="sm"
+                                        onClick={(e) => setDeleteDefInfo({ id: def.id, anchorEl: e.currentTarget })}
                                     >
-                                        Delete Definition
-                                    </Button>
-                                </Box>
-                            </Stack>
+                                        <Trash2 size={16} className="mr-1" /> Delete
+                                    </GlassButton>
+                                </div>
+                            </div>
 
-                            <Divider sx={{ mb: 2 }} />
+                            <div className="h-px bg-slate-200 dark:bg-white/10 mb-4"></div>
 
-                            {/* Attributes Section */}
-                            <Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography variant="overline" color="text.secondary">
-                                        Attributes
-                                    </Typography>
-                                    <Button
-                                        size="small"
-                                        startIcon={<AddIcon />}
-                                        onClick={() => handleAddAttribute(def)}
-                                        sx={{ textTransform: 'none' }}
-                                    >
-                                        Add Attribute
-                                    </Button>
-                                </Box>
+                            {/* Attributes */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Attributes</h4>
+                                    <GlassButton variant="ghost" size="sm" onClick={() => handleAddAttribute(def)}>
+                                        <Plus size={16} className="mr-1" /> Add Attribute
+                                    </GlassButton>
+                                </div>
 
-                                <Stack spacing={1}>
+                                <div className="space-y-2">
                                     {(Array.isArray(def.attributes) ? def.attributes : []).map((attr, index) => (
-                                        <Box key={index} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                            <TextField
+                                        <div key={index} className="flex gap-2 items-center">
+                                            <GlassInput
                                                 placeholder="Name"
-                                                size="small"
                                                 value={attr.name}
                                                 onChange={(e) => handleUpdateAttribute(def, index, 'name', e.target.value)}
-                                                sx={{ flex: 1 }}
-                                                inputProps={{ style: { fontSize: '0.85rem' } }}
+                                                className="!w-full"
                                             />
-                                            {/* Autocomplete for Type */}
-                                            <Autocomplete
-                                                freeSolo
-                                                options={typeSuggestions}
-                                                value={attr.type}
-                                                onChange={(_, newValue) => {
-                                                    // Handle selection
-                                                    if (newValue) {
-                                                        handleUpdateAttribute(def, index, 'type', newValue);
+
+                                            <div className="relative w-40">
+                                                <GlassInput
+                                                    placeholder="Type"
+                                                    value={attr.type}
+                                                    onChange={(e) => handleUpdateAttribute(def, index, 'type', e.target.value)}
+                                                    list={`type-suggestions-${def.id}`}
+                                                />
+                                                <datalist id={`type-suggestions-${def.id}`}>
+                                                    {typeSuggestions.map(t => <option key={t} value={t} />)}
+                                                </datalist>
+                                            </div>
+
+                                            <button
+                                                onClick={() => {
+                                                    const currentAttributes = [...(def.attributes || [])];
+                                                    if (currentAttributes[index]) {
+                                                        currentAttributes[index] = { ...currentAttributes[index], isPII: !attr.isPII };
+                                                        onUpdateDefinition(def.id, { attributes: currentAttributes });
                                                     }
                                                 }}
-                                                onInputChange={(_, newInputValue) => {
-                                                    // Handle raw input
-                                                    handleUpdateAttribute(def, index, 'type', newInputValue);
-                                                }}
-                                                renderInput={(params) => (
-                                                    <TextField
-                                                        {...params}
-                                                        placeholder="Type"
-                                                        size="small"
-                                                        inputProps={{ ...params.inputProps, style: { fontSize: '0.85rem' } }}
-                                                    />
-                                                )}
-                                                sx={{ width: 140 }}
-                                            />
-                                            <IconButton
-                                                size="small"
-                                                color="default"
-                                                onClick={() => handleDeleteAttribute(def, index)}
+                                                className={`p-2 rounded-lg transition-colors ${attr.isPII ? 'text-red-500 bg-red-500/10' : 'text-slate-300 hover:text-slate-500'}`}
+                                                title={attr.isPII ? "Marked as PII (Sensitive)" : "Mark as PII"}
                                             >
-                                                <CloseIcon fontSize="small" />
-                                            </IconButton>
-                                        </Box>
+                                                <Lock size={16} />
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleDeleteAttribute(def, index)}
+                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
                                     ))}
                                     {(def.attributes || []).length === 0 && (
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', py: 1 }}>
-                                            No attributes defined.
-                                        </Typography>
+                                        <p className="text-center text-xs text-slate-400 italic py-2">No attributes defined.</p>
                                     )}
-                                </Stack>
-                            </Box>
-                        </AccordionDetails>
-                    </Accordion>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 ))}
 
                 {definitions.length === 0 && (
-                    <Typography color="text.secondary" align="center" sx={{ mt: 4, fontStyle: 'italic' }}>
-                        No definitions created yet.
-                    </Typography>
+                    <p className="text-center text-slate-500 pt-8 italic">No definitions created yet.</p>
                 )}
-            </Box>
+            </div>
 
             {/* Confirm Deletion Menu */}
             <ConfirmMenu
@@ -330,7 +274,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                 }}
                 message="Delete this definition?"
             />
-        </Box>
+        </div>
     );
 };
 

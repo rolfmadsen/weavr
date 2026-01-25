@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useModelList } from '../../modeling';
-import { CloseIcon, PlusIcon, DeleteIcon } from '../../../shared/components/icons';
+import { X, Plus, Trash2, Edit2 } from 'lucide-react';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
+import { GlassCard } from '../../../shared/components/GlassCard';
+import { GlassButton } from '../../../shared/components/GlassButton';
+import { GlassInput } from '../../../shared/components/GlassInput';
 
 interface ModelListModalProps {
     isOpen: boolean;
@@ -46,28 +49,20 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
 
     const confirmDelete = () => {
         if (deleteModelId) {
-            // Check if we are deleting the CURRENT active model
             const isDeletingCurrent = deleteModelId === currentModelId;
-
-            // Remove the model
             removeModel(deleteModelId);
 
             if (isDeletingCurrent) {
-                // Determine restart strategy
                 const remainingModels = models
                     .filter(m => m.id !== deleteModelId)
                     .sort((a, b) => b.updatedAt - a.updatedAt);
 
                 if (remainingModels.length > 0) {
-                    // Switch to newest model
-                    const nextModel = remainingModels[0];
-                    window.location.hash = nextModel.id;
+                    window.location.hash = remainingModels[0].id;
                 } else {
-                    // No models left, start fresh
                     window.location.hash = uuidv4();
                 }
             }
-
             setDeleteModelId(null);
             setDeleteAnchorEl(null);
         }
@@ -97,66 +92,57 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+        <div className="fixed inset-0 bg-black/20 dark:bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200" onClick={onClose}>
+            <GlassCard
+                variant="panel"
+                className="w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="flex justify-between items-center p-6 border-b border-gray-200">
-                    <h2 className="text-2xl font-bold text-gray-800">My Models</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-900 p-2 rounded-full hover:bg-gray-200">
-                        <CloseIcon />
-                    </button>
+                <div className="flex justify-between items-center p-6 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">My Models</h2>
+                    <GlassButton variant="ghost" size="sm" onClick={onClose} className="rounded-full !p-2">
+                        <X size={20} />
+                    </GlassButton>
                 </div>
 
-                <div className="bg-blue-50 border-b border-blue-100 px-6 py-3">
-                    <p className="text-sm text-blue-800 flex items-start gap-2">
+                <div className="bg-blue-500/5 border-b border-blue-500/10 px-6 py-3 backdrop-blur-sm">
+                    <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
                         <span className="text-lg">💾</span>
                         <span>
                             These models live in your <strong>browser cache</strong>.
                             Clearing your history/cache will remove them.
                             <br />
-                            <span className="text-blue-600 font-semibold text-xs">
+                            <span className="font-semibold text-xs opacity-75">
                                 Tip: Export important models as backups.
                             </span>
                         </span>
                     </p>
                 </div>
 
-                <div className="p-6 overflow-y-auto text-gray-700 space-y-4">
+                <div className="p-6 overflow-y-auto text-slate-700 dark:text-slate-300 space-y-4 custom-scrollbar">
                     {/* Create New Section */}
-                    <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <div className="bg-slate-50/50 dark:bg-black/20 p-4 rounded-xl border border-slate-200/50 dark:border-white/5">
                         {!isCreating ? (
-                            <button
+                            <GlassButton
+                                variant="ghost"
                                 onClick={() => setIsCreating(true)}
-                                className="w-full flex items-center justify-center gap-2 text-indigo-600 font-bold hover:text-indigo-800 transition-colors"
+                                className="w-full !justify-start gap-2 text-purple-600 dark:text-purple-300 font-bold hover:bg-purple-500/10"
                             >
-                                <PlusIcon className="text-xl" />
+                                <Plus size={20} className="text-xl" />
                                 Create New Model
-                            </button>
+                            </GlassButton>
                         ) : (
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
+                            <div className="flex gap-2 items-center">
+                                <GlassInput
                                     value={newModelName}
                                     onChange={e => setNewModelName(e.target.value)}
                                     placeholder="Enter model name..."
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     autoFocus
                                     onKeyDown={e => e.key === 'Enter' && handleCreate()}
+                                    className="flex-1"
                                 />
-                                <button
-                                    onClick={handleCreate}
-                                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700"
-                                >
-                                    Create
-                                </button>
-                                <button
-                                    onClick={() => setIsCreating(false)}
-                                    className="text-gray-500 px-4 py-2 hover:text-gray-700"
-                                >
-                                    Cancel
-                                </button>
+                                <GlassButton onClick={handleCreate} size="md">Create</GlassButton>
+                                <GlassButton variant="ghost" onClick={() => setIsCreating(false)} size="md">Cancel</GlassButton>
                             </div>
                         )}
                     </div>
@@ -164,63 +150,64 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                     {/* List Section */}
                     <div className="space-y-2">
                         {models.length === 0 ? (
-                            <p className="text-center text-gray-500 py-8">No models found. Create one to get started!</p>
+                            <p className="text-center text-slate-500 py-8">No models found. Create one to get started!</p>
                         ) : (
                             models.sort((a, b) => b.updatedAt - a.updatedAt).map(model => (
                                 <div
                                     key={model.id}
                                     onClick={() => handleSwitch(model.id)}
                                     className={`group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${model.id === currentModelId
-                                        ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-200'
-                                        : 'bg-white border-gray-100 hover:border-gray-300 hover:shadow-sm'
+                                        ? 'bg-purple-500/10 border-purple-500/30 ring-1 ring-purple-500/30'
+                                        : 'bg-white/40 dark:bg-slate-800/40 border-slate-200/50 dark:border-white/10 hover:bg-white/60 dark:hover:bg-slate-700/50 hover:border-purple-500/30 shadow-sm'
                                         }`}
                                 >
                                     <div className="flex-1 min-w-0 mr-4">
                                         {editingId === model.id ? (
                                             <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                                <input
-                                                    type="text"
+                                                <GlassInput
                                                     value={editName}
                                                     onChange={e => setEditName(e.target.value)}
-                                                    className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                     autoFocus
                                                     onBlur={() => saveEditing(model.id)}
                                                     onKeyDown={e => e.key === 'Enter' && saveEditing(model.id)}
+                                                    className="w-full"
                                                 />
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2">
-                                                <h3 className="font-bold text-gray-800 truncate">{model.name}</h3>
+                                                <h3 className="font-bold text-slate-800 dark:text-slate-200 truncate">{model.name}</h3>
                                                 <button
                                                     onClick={(e) => startEditing(model.id, model.name, e)}
-                                                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-600 transition-opacity p-1"
+                                                    className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-purple-600 transition-opacity p-1"
                                                     title="Rename"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                                    <Edit2 size={14} />
                                                 </button>
                                                 {model.id === currentModelId && (
-                                                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">Current</span>
+                                                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full">Current</span>
                                                 )}
                                             </div>
                                         )}
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-slate-500 mt-1">
                                             Last modified: {formatDate(model.updatedAt)}
                                         </p>
                                     </div>
 
-                                    <button
+                                    <GlassButton
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={(e) => handleDelete(model.id, e)}
-                                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-all"
+                                        className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-500/10 !p-2 rounded-full"
                                         title="Remove from list"
                                     >
-                                        <DeleteIcon className="text-lg" />
-                                    </button>
+                                        <Trash2 size={20} />
+                                    </GlassButton>
                                 </div>
                             ))
                         )}
                     </div>
                 </div>
-            </div>
+            </GlassCard>
 
             <ConfirmMenu
                 anchorEl={deleteAnchorEl}
@@ -229,7 +216,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                 onConfirm={confirmDelete}
                 message="Are you sure you want to remove this model from your list?"
             />
-        </div>
+        </div >
     );
 };
 

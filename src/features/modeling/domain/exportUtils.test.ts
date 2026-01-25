@@ -99,4 +99,50 @@ describe('exportUtils Data Dictionary', () => {
         expect(customer?.attributes).toHaveLength(2);
         expect(customer?.attributes?.find(a => a.name === 'age')?.type).toBe('Int');
     });
+
+    it('should export and import Slice Chapters', () => {
+        const slicesWithChapters: any[] = [
+            { id: 's1', title: 'Slice 1', chapter: 'Chapter A' },
+            { id: 's2', title: 'Slice 2' } // No chapter
+        ];
+
+        const json = exportWeavrProject([], [], slicesWithChapters, mockEdgeRoutes, 'model-chap', 'Chapters', 'WEAVR', []) as WeavrExportData;
+
+        // Verify Export
+        const exportedSlices = json.eventModel.slices;
+        expect(exportedSlices.find(s => s.id === 's1').chapter).toBe('Chapter A');
+        expect(exportedSlices.find(s => s.id === 's2').chapter).toBeUndefined();
+
+        // Verify Import
+        const result = importWeavrProject(json);
+        expect(result.slices?.['s1']?.chapter).toBe('Chapter A');
+        expect(result.slices?.['s2']?.chapter).toBeUndefined();
+    });
+
+    it('should export and import Slice Specifications', () => {
+        const specStep = { id: 's1', title: 'Step 1', type: 'SPEC_COMMAND' };
+        const specs = [{
+            id: 'spec1',
+            title: 'My Spec',
+            given: [],
+            when: [specStep],
+            then: []
+        }];
+
+        const slicesWithSpecs: any[] = [
+            { id: 's1', title: 'Slice 1', specifications: specs }
+        ];
+
+        const json = exportWeavrProject([], [], slicesWithSpecs, mockEdgeRoutes, 'model-spec', 'Specs', 'WEAVR', []) as WeavrExportData;
+
+        // Verify Export
+        const exportedSlices = json.eventModel.slices;
+        expect(exportedSlices.find(s => s.id === 's1').specifications).toHaveLength(1);
+        expect(exportedSlices.find(s => s.id === 's1').specifications[0].title).toBe('My Spec');
+
+        // Verify Import
+        const result = importWeavrProject(json);
+        expect(result.slices?.['s1']?.specifications).toHaveLength(1);
+        expect(result.slices?.['s1']?.specifications?.[0].title).toBe('My Spec');
+    });
 });

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Menu, Typography, Button, Box } from '@mui/material';
+import { GlassCard } from './GlassCard';
+import { GlassButton } from './GlassButton';
 
 interface ConfirmMenuProps {
     anchorEl: HTMLElement | null;
@@ -7,66 +8,50 @@ interface ConfirmMenuProps {
     onClose: () => void;
     onConfirm: () => void;
     message: string;
+    confirmLabel?: string;
 }
 
 const ConfirmMenu: React.FC<ConfirmMenuProps> = ({
-    anchorEl,
     open,
     onClose,
     onConfirm,
-    message
+    message,
+    confirmLabel = "Confirm Delete"
 }) => {
-    return (
-        <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={onClose}
-            anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-            }}
-            transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-            }}
-            PaperProps={{
-                elevation: 3,
-                sx: {
-                    p: 1.5,
-                    width: 280,
-                    borderRadius: 2,
-                    mt: 1
-                }
-            }}
-        >
-            <Typography variant="body2" sx={{ mb: 2, px: 0.5, lineHeight: 1.4 }}>
-                {message}
-            </Typography>
+    // Note: anchorEl is unused in this centered modal implementation, 
+    // but kept in interface to avoid breaking call sites immediately 
+    // (though we can remove it from call sites later).
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <Button
-                    size="small"
-                    variant="outlined"
-                    color="inherit"
-                    onClick={onClose}
-                    sx={{ textTransform: 'none', color: 'text.secondary', borderColor: 'divider' }}
-                >
-                    Cancel
-                </Button>
-                <Button
-                    size="small"
-                    variant="contained"
-                    color="error"
-                    onClick={() => {
-                        onConfirm();
-                        onClose();
-                    }}
-                    sx={{ textTransform: 'none', boxShadow: 'none' }}
-                >
-                    Delete
-                </Button>
-            </Box>
-        </Menu>
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]" onClick={onClose}>
+            <GlassCard
+                variant="panel"
+                className="w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 border-red-500/20"
+                onClick={e => e.stopPropagation()}
+            >
+                <p className="text-slate-800 dark:text-slate-200 mb-6 font-medium leading-relaxed">
+                    {message}
+                </p>
+
+                <div className="flex justify-end gap-3">
+                    <GlassButton variant="ghost" size="sm" onClick={onClose}>
+                        Cancel
+                    </GlassButton>
+                    <GlassButton
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                            onConfirm();
+                            onClose();
+                        }}
+                    >
+                        {confirmLabel}
+                    </GlassButton>
+                </div>
+            </GlassCard>
+        </div>
     );
 };
 

@@ -54,6 +54,19 @@ describe('ValidationService', () => {
             const target = createNode(ElementType.Command);
             expect(validationService.isValidConnection(source, target)).toBe(true);
         });
+
+        // Strict Mode Tests
+        it('should invalidate IntegrationEvent -> ReadModel (Strict Mode)', () => {
+            const source = createNode(ElementType.IntegrationEvent);
+            const target = createNode(ElementType.ReadModel);
+            expect(validationService.isValidConnection(source, target)).toBe(false);
+        });
+
+        it('should validate IntegrationEvent -> Automation (Translation Pattern)', () => {
+            const source = createNode(ElementType.IntegrationEvent);
+            const target = createNode(ElementType.Automation);
+            expect(validationService.isValidConnection(source, target)).toBe(true);
+        });
     });
 
     describe('getConnectionRule', () => {
