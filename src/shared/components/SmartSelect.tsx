@@ -23,7 +23,7 @@ interface SmartSelectProps {
     autoFocus?: boolean;
 }
 
-const SmartSelect: React.FC<SmartSelectProps> = ({
+const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
     options,
     value,
     onChange,
@@ -32,12 +32,11 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
     allowCustomValue = false,
     onSearchChange,
     autoFocus
-}) => {
+}, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [focusedIndex, setFocusedIndex] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
 
     // Sync internal input value with selected external value ID when not open/typing
@@ -71,13 +70,21 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
     }, [value, options, allowCustomValue]);
 
     const filteredOptions = useMemo(() => {
+        if (!inputValue.trim()) return options;
+
+        const selected = options.find(o => o.id === value);
+        // If the user just focused and hasn't changed the input, show all options
+        if (selected && inputValue === selected.label) {
+            return options;
+        }
+
         const lowerInput = inputValue.toLowerCase();
         let filtered = options.filter(o =>
             o.label.toLowerCase().includes(lowerInput) ||
             (o.subLabel && o.subLabel.toLowerCase().includes(lowerInput))
         );
         return filtered;
-    }, [options, inputValue]);
+    }, [options, inputValue, value]);
 
     // Reset focused index when filtering changes
     useEffect(() => {
@@ -162,7 +169,9 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
             }
         } else if (e.key === 'Escape') {
             setIsOpen(false);
-            inputRef.current?.blur();
+            if (ref && 'current' in ref && ref.current) {
+                ref.current.blur();
+            }
         }
     };
 
@@ -173,7 +182,7 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
     return (
         <div className="relative w-full" ref={containerRef}>
             <GlassInput
-                ref={inputRef}
+                ref={ref}
                 value={inputValue}
                 onChange={(e) => {
                     setInputValue(e.target.value);
@@ -210,8 +219,8 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
                                                 data-index={globalIndex}
                                                 onClick={() => handleSelect(opt)}
                                                 className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex flex-col group ${isFocused
-                                                        ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300'
-                                                        : 'hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-300'
+                                                    ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300'
+                                                    : 'hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-300'
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">
@@ -245,6 +254,6 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
             )}
         </div>
     );
-};
+});
 
 export default SmartSelect;

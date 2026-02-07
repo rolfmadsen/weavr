@@ -3,11 +3,13 @@ import { Stage, Layer, Rect, Line } from 'react-konva';
 import Konva from 'konva';
 
 import { useTheme } from '../../../shared/providers/ThemeProvider';
+import { bus } from '../../../shared/events/eventBus';
 
 import {
     Node,
     Link,
-    Slice
+    Slice,
+    Actor
 } from '../../modeling';
 
 import { MIN_NODE_HEIGHT, NODE_WIDTH, GRID_SIZE } from '../../../shared/constants';
@@ -17,10 +19,10 @@ import { useSpatialIndex } from '../store/useSpatialIndex';
 import { useCanvasInteractions } from '../store/useCanvasInteractions';
 
 // NEW: Modular Components
-import NodeGroup from './NodeGroup';
-import LinkGroup from './LinkGroup';
-import SliceGroup from './SliceGroup';
-import ChapterGroup from './ChapterGroup';
+import NodeGroup from '../../nodes/ui/NodeGroup';
+import LinkGroup from '../../links/ui/LinkGroup';
+import SliceGroup from '../../slices/ui/SliceGroup';
+import ChapterGroup from '../../slices/ui/ChapterGroup';
 
 // NEW: Utilities
 import { safeNum, safeStr } from '../domain/canvasUtils';
@@ -39,6 +41,7 @@ interface GraphCanvasKonvaProps {
     nodes: Node[];
     links: Link[];
     slices?: Slice[];
+    actors?: Actor[]; // New Prop
     selectedIds: string[];
     edgeRoutes?: Map<string, number[]>;
     onNodeClick: (node: Node, event?: any) => void;
@@ -53,8 +56,8 @@ interface GraphCanvasKonvaProps {
     onViewChange?: (view: { x: number, y: number, scale: number, width: number, height: number }) => void;
     onSliceClick?: (slice: Slice) => void;
     initialViewState?: { x: number, y: number, scale: number, width?: number, height?: number };
-    onUnpinNode?: (id: string) => void;
     onRenameChapter?: (sub: string, newName: string) => void;
+    autoLayoutSliceBounds?: Map<string, { x: number, y: number, width: number, height: number }>;
 }
 
 // PERFORMANCE: Disable Perfect Draw globally for better perf
@@ -74,6 +77,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     nodes,
     links,
     slices = [], // Default to empty array
+    actors = [], // Default to empty array
     selectedIds,
     edgeRoutes,
     onNodeClick,
@@ -87,8 +91,8 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     onViewChange,
     onSliceClick,
     initialViewState,
-    onUnpinNode,
-    onRenameChapter
+    onRenameChapter,
+    autoLayoutSliceBounds = new Map()
 }, ref) => {
     // console.log(`[GraphCanvasKonva Render] selectedIds=${selectedIds.length}`);
 
@@ -126,7 +130,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     }, [nodes]);
 
     // NEW: Calculate Slice Bounds for Smart Routing
-    const sliceBounds = useMemo(() => {
+    const calculatedSliceBounds = useMemo(() => {
         const bounds = new Map<string, { minX: number, maxX: number, minY: number, maxY: number }>();
         const DEFAULT_SLICE_ID = '__default_slice__';
 
@@ -150,6 +154,58 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         });
         return bounds;
     }, [safeNodes]);
+
+    // NEW: Calculate Unified Slice Bounds (Merge Calc + Auto)
+    // These are the TIGHT bounds of the content.
+    const unifiedSliceBounds = useMemo(() => {
+        const unified = new Map<string, { minX: number, maxX: number, minY: number, maxY: number }>();
+
+        // 1. Start with Auto Layout bounds (fallback for empty slices)
+        autoLayoutSliceBounds.forEach((b, id) => {
+            unified.set(id, {
+                minX: b.x,
+                maxX: b.x + b.width,
+                minY: b.y,
+                maxY: b.y + b.height
+            });
+        });
+
+        // 2. Override with Calculated bounds (tightness for slices with nodes)
+        calculatedSliceBounds.forEach((b, id) => {
+            unified.set(id, b);
+        });
+
+        return unified;
+    }, [autoLayoutSliceBounds, calculatedSliceBounds]);
+
+    // NEW: Calculate Final Visual Bounds for Slices (Adds Padding & Ensuring Visibility)
+    const finalSliceVisualBounds = useMemo(() => {
+        const visuals = new Map<string, { x: number, y: number, width: number, height: number, minX: number, maxX: number, minY: number, maxY: number }>();
+        const PADDING = 40;
+
+        // Ensure ALL slices are accounted for, even if empty/no layout yet
+        slices.forEach(s => {
+            const b = unifiedSliceBounds.get(s.id);
+
+            // Default center if no layout data exists yet
+            const tightMinX = b ? b.minX : 0;
+            const tightMaxX = b ? b.maxX : 150;
+            const tightMinY = b ? b.minY : 0;
+            const tightMaxY = b ? b.maxY : 100;
+
+            const x = tightMinX - PADDING;
+            const y = tightMinY - PADDING;
+            const width = Math.max(100, (tightMaxX - tightMinX) + (PADDING * 2));
+            const height = (tightMaxY - tightMinY) + (PADDING * 2);
+
+            visuals.set(s.id, {
+                x, y, width, height,
+                minX: tightMinX, maxX: tightMaxX, minY: tightMinY, maxY: tightMaxY
+            });
+        });
+
+        return visuals;
+    }, [slices, unifiedSliceBounds]);
 
     // NEW: Calculate Chapter Groups for Visuals
     const chapterGroups = useMemo(() => {
@@ -359,7 +415,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         onValidateConnection,
 
         updateVisibleNodes,
-        sliceBounds
+        sliceBounds: calculatedSliceBounds
     });
 
     // Internal Pan Logic for ref use
@@ -420,7 +476,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         panToSlice: (sliceId: string) => {
             if (!stageRef.current) return;
             const stage = stageRef.current;
-            const bounds = sliceBounds.get(sliceId);
+            const bounds = calculatedSliceBounds.get(sliceId);
 
             if (bounds && bounds.minX !== Infinity) {
                 const padding = 20;
@@ -547,7 +603,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             const stage = stageRef.current;
 
             if (config && config.sliceId) {
-                const bounds = sliceBounds.get(config.sliceId);
+                const bounds = calculatedSliceBounds.get(config.sliceId);
                 // Only crop if valid bounds exist
                 if (bounds && bounds.minX !== Infinity) {
                     const scale = stage.scaleX();
@@ -677,6 +733,17 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         });
     }, [safeNodes, slices]);
 
+    // NEW: Actor Map (Color and Name)
+    const actorInfo = useMemo(() => {
+        const colorMap = new Map<string, string>();
+        const nameMap = new Map<string, string>();
+        actors.forEach(a => {
+            colorMap.set(a.id, a.color || '#9333ea');
+            nameMap.set(a.id, a.name || 'Unknown');
+        });
+        return { colorMap, nameMap };
+    }, [actors]);
+
     // NEW: Global Keyboard Listener (Bypasses focus issues)
     useEffect(() => {
         const handleWindowKeyDown = (e: KeyboardEvent) => {
@@ -791,22 +858,23 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
 
                 {/* Slices Layer (Behind Nodes/Links) */}
                 <Layer>
-                    {/* Chapter Visuals (Behind Slices) */}
+                    {/* 1. Chapter Visuals (Behind) */}
                     {chapterGroups.map(group => (
                         <ChapterGroup
                             key={group.name}
                             chapterName={group.name}
                             slices={group.slices}
-                            sliceBounds={sliceBounds}
+                            sliceBounds={finalSliceVisualBounds}
                             onRenameChapter={onRenameChapter}
                         />
                     ))}
 
+                    {/* 2. Slice Visuals */}
                     {slices.map(slice => (
                         <SliceGroup
                             key={slice.id}
                             slice={slice}
-                            nodes={safeNodes.filter(n => n.sliceId === slice.id)}
+                            finalBounds={finalSliceVisualBounds.get(slice.id)}
                             onSliceClick={onSliceClick}
                         />
                     ))}
@@ -831,7 +899,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         const points = resolveLinkPoints(
                             sourceNode,
                             targetNode,
-                            sliceBounds,
+                            unifiedSliceBounds,
                             edgeRoutes?.get(link.id),
                             portData?.sIdx,
                             portData?.sTot,
@@ -878,12 +946,14 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                                 node={node}
                                 isSelected={isSelected}
                                 isValidTarget={isValidTarget}
+                                actorColor={node.actor ? actorInfo.colorMap.get(node.actor) : undefined}
+                                actorName={node.actor ? actorInfo.nameMap.get(node.actor) : undefined}
                                 onNodeClick={onNodeClick}
                                 onNodeDoubleClick={onNodeDoubleClick}
                                 onDragMove={handleNodeDragMove}
                                 onDragEnd={handleNodeDragEnd}
                                 onLinkStart={(pos: { x: number; y: number }) => setTempLink({ sourceId: node.id, startPos: pos, currentPos: pos })}
-                                onUnpin={(id) => onUnpinNode?.(id)}
+                                onUnpin={(id) => bus.emit('command:unpinNode', { id })}
                                 stagePos={stagePos}
                                 stageScale={stageScale}
                                 isDraggable={true}

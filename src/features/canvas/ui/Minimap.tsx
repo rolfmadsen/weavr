@@ -1,3 +1,4 @@
+import Konva from 'konva';
 import React, { useMemo } from 'react';
 import { Stage, Layer, Rect, Group } from 'react-konva';
 import { Node, Slice } from '../../modeling';
@@ -103,11 +104,12 @@ const Minimap: React.FC<MinimapProps> = ({
     }, [nodes, showSlices, swimlanePositions, stageScale, stagePos, viewportWidth, viewportHeight]);
 
     // Håndter klik på baggrunden (hop til punkt)
-    const handleStageClick = (e: any) => {
+    const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
         // Hvis vi trækker (drag), skal vi ikke også navigere via klik
         if (e.target.attrs.draggable) return;
 
         const stage = e.target.getStage();
+        if (!stage) return;
         const pointer = stage.getPointerPosition();
         if (!pointer) return;
 

@@ -1,4 +1,4 @@
-import { Slice, Node, ElementType } from '../domain/types';
+import { Slice, Node, ElementType, DataDefinition, Field, Attribute } from '../domain/types';
 import { GraphCanvasKonvaRef } from '../../canvas/ui/GraphCanvas';
 
 interface GeneratorConfig {
@@ -10,14 +10,15 @@ export class DocumentationGenerator {
     private canvasRef: GraphCanvasKonvaRef;
     private slices: Slice[];
     private nodes: Node[];
-    private definitions: any[];
+    // Justification: Legacy generator processes raw definition objects that may differ from strict DataDefinition types.
+    private definitions: DataDefinition[];
     private setHiddenSliceIds: (ids: string[]) => void;
 
     constructor(
         canvasRef: GraphCanvasKonvaRef,
         slices: Slice[],
         nodes: Node[],
-        definitions: any[] = [],
+        definitions: DataDefinition[] = [],
         setHiddenSliceIds: (ids: string[]) => void
     ) {
         this.canvasRef = canvasRef;
@@ -45,7 +46,7 @@ export class DocumentationGenerator {
         return `<div class="slice-metadata">${parts.join('')}</div>`;
     }
 
-    private generateFieldTable(fields?: any[]): string {
+    private generateFieldTable(fields?: Field[]): string {
         if (!fields || fields.length === 0) return '';
 
         let html = '<table class="field-table"><thead><tr><th>Field</th><th>Type</th><th>PII</th><th>Required</th><th>Description</th></tr></thead><tbody>';
@@ -61,7 +62,7 @@ export class DocumentationGenerator {
              </tr>`;
             if (f.subfields) {
                 // Simple nested representation
-                f.subfields.forEach((sf: any) => {
+                f.subfields.forEach((sf: Field) => {
                     const sfTypeDisplay = sf.schema ? `<a href="#def-${sf.schema}">${sf.type}</a>` : sf.type;
                     const sfPiiDisplay = sf.isPII ? '<span style="color: red; font-weight: bold;">PII</span>' : '-';
                     html += `<tr>
@@ -569,7 +570,7 @@ export class DocumentationGenerator {
                     <table class="field-table">
                         <thead><tr><th>Attribute</th><th>Type</th><th>PII</th></tr></thead>
                         <tbody>
-                            ${def.attributes.map((attr: any) => `
+                            ${def.attributes.map((attr: Attribute) => `
                                 <tr>
                                     <td>${attr.name}</td>
                                     <td>${attr.type}</td>

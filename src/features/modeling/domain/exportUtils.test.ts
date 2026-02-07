@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { exportWeavrProject, importWeavrProject, type WeavrExportData } from './exportUtils';
 import { DefinitionType, DataDefinition } from './types';
 
+import { Node, Link, Slice } from './types';
+
 describe('exportUtils Data Dictionary', () => {
-    const mockNodes: any[] = [];
-    const mockLinks: any[] = [];
-    const mockSlices: any[] = [];
+    const mockNodes: Node[] = [];
+    const mockLinks: Link[] = [];
+    const mockSlices: Slice[] = [];
     const mockEdgeRoutes = new Map();
 
     it('should export Data Dictionary with Enums', () => {
@@ -101,12 +103,12 @@ describe('exportUtils Data Dictionary', () => {
     });
 
     it('should export and import Slice Chapters', () => {
-        const slicesWithChapters: any[] = [
+        const slicesWithChapters = [
             { id: 's1', title: 'Slice 1', chapter: 'Chapter A' },
             { id: 's2', title: 'Slice 2' } // No chapter
         ];
 
-        const json = exportWeavrProject([], [], slicesWithChapters, mockEdgeRoutes, 'model-chap', 'Chapters', 'WEAVR', []) as WeavrExportData;
+        const json = exportWeavrProject([], [], slicesWithChapters as unknown as Slice[], mockEdgeRoutes, 'model-chap', 'Chapters', 'WEAVR', []) as WeavrExportData;
 
         // Verify Export
         const exportedSlices = json.eventModel.slices;
@@ -129,11 +131,11 @@ describe('exportUtils Data Dictionary', () => {
             then: []
         }];
 
-        const slicesWithSpecs: any[] = [
+        const slicesWithSpecs = [
             { id: 's1', title: 'Slice 1', specifications: specs }
         ];
 
-        const json = exportWeavrProject([], [], slicesWithSpecs, mockEdgeRoutes, 'model-spec', 'Specs', 'WEAVR', []) as WeavrExportData;
+        const json = exportWeavrProject([], [], slicesWithSpecs as unknown as Slice[], mockEdgeRoutes, 'model-spec', 'Specs', 'WEAVR', []) as WeavrExportData;
 
         // Verify Export
         const exportedSlices = json.eventModel.slices;

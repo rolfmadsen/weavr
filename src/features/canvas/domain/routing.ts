@@ -20,7 +20,12 @@ const getRect = (node: Node) => {
 
 /**
  * Determines which visual side an edge should use between two nodes.
- * Uses Aspect Ratio logic to find the true closest side.
+ * 
+ * Logic:
+ * 1. Calculate the center points of both nodes.
+ * 2. Calculate the aspect ratio adjusted slope between them.
+ * 3. Map the vector (Source -> Target) to one of the 4 cardinal directions (N, S, E, W).
+ * 4. This ensures edges exit from the "face" most directly looking at the target.
  */
 export function getLogicalSide(s: Node, t: Node): { s: 'N' | 'S' | 'E' | 'W'; t: 'N' | 'S' | 'E' | 'W' } {
     const sR = getRect(s);
@@ -44,6 +49,11 @@ export function getLogicalSide(s: Node, t: Node): { s: 'N' | 'S' | 'E' | 'W'; t:
 
 /**
  * Calculates a point on the node boundary for a specific side and port offset.
+ * 
+ * Logic:
+ * 1. Distributes ports evenly along the specified side.
+ * 2. If only one link exists, it uses the center of the side.
+ * 3. Uses a (tot + 1) step calculation to avoid links hitting the corners.
  */
 function getPortPoint(node: Node, side: 'N' | 'S' | 'E' | 'W', idx: number, tot: number) {
     const r = getRect(node);
@@ -92,7 +102,13 @@ function applyArrowPadding(route: number[]): number[] {
 }
 
 /**
- * Generates an orthogonal path between two points with prescribed exit/entry directions.
+ * Generates an orthogonal (manhattan) path between two nodes within the same context.
+ * 
+ * Logic:
+ * 1. Determines optimal exit/entry sides.
+ * 2. Extends a "stub" (minSeg) out from each node to create clear separation.
+ * 3. If sides are opposite (e.g. East -> West), creates a Z-shaped "dogleg" through the midpoint.
+ * 4. Otherwise, creates a simple 90-degree corner.
  */
 export function calculateDynamicPoints(
     source: Node,
@@ -188,6 +204,22 @@ export function calculateDynamicPoints(
     return applyArrowPadding(result);
 }
 
+/**
+ * Implements "Gutter" (Lane) Routing for links that cross Slice boundaries.
+ * 
+ * This is a specialized routing pattern designed to keep inter-slice connections clean:
+ * 
+ * 1. **Exit Directionality**: 
+ *    - Domain Events: Exit from the BOTTOM (South) to represent "Eventual Consistency".
+ *    - Others: Exit East (Forward) or West (Feedback).
+ * 2. **Entry Directionality**: 
+ *    - Arrows always enter the target from the Left (West) for forward links, or Right (East) for feedback.
+ * 3. **The Lane**: 
+ *    - Instead of a random zig-zag, the path drops into a fixed "Lane" or gutter 
+ *      between the slices (e.g., 60px before the target slice).
+ *    - All vertical travel happens in this lane.
+ *    - This creates a structured "Bus" look for cross-slice communication.
+ */
 export function calculateSmartPoints(
     sourceNode: Node,
     targetNode: Node,

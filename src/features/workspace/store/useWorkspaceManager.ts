@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useModelList } from '../../modeling';
+import { useModelList, ViewState } from '../../modeling';
 
 interface UseWorkspaceManagerProps {
     modelId: string | null;
 }
+
+export type SidebarView = 'properties' | 'slices' | 'dictionary' | 'actors' | null;
 
 export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
     const [focusOnRender, setFocusOnRender] = useState(false);
@@ -14,10 +16,10 @@ export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
     const [activeSliceId, setActiveSliceId] = useState<string | null>(null);
     const [isSliceManagerOpen, setIsSliceManagerOpen] = useState(false);
     const [sliceManagerInitialId, setSliceManagerInitialId] = useState<string | null>(null);
-    const [sidebarView, setSidebarView] = useState<'properties' | 'slices' | 'dictionary' | null>(null);
+    const [sidebarView, setSidebarView] = useState<SidebarView>(null);
 
     // View state persistence
-    const [viewState, setViewState] = useState(() => {
+    const [viewState, setViewState] = useState<ViewState>(() => {
         const stored = localStorage.getItem('weavr-view-state');
         if (stored) {
             try {

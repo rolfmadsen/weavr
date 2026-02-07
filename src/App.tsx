@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { bus } from './shared/events/eventBus';
+import Konva from 'konva';
 
 
 // Features
@@ -15,17 +17,19 @@ import {
   useModelingStore
 } from './features/modeling';
 import { DocumentationGenerator } from './features/modeling/services/DocumentationGenerator';
-import { useLayoutManager } from './features/modeling/store/useLayoutManagerHook';
+import { useLayoutManager } from './features/modeling/store/useLayoutManager';
 import { GraphCanvas, type GraphCanvasKonvaRef } from './features/canvas';
 import { Minimap } from './features/canvas';
 import {
   PropertiesPanel,
   SliceFilter,
   ElementFilter,
-  SliceList,
-  DataDictionaryList,
-  SliceManagerModal
+  SliceManagerModal,
 } from './features/editor';
+import { SliceList } from './features/slices';
+import { DataDictionaryList } from './features/dictionary';
+import { ActorsList } from './features/actors';
+
 
 import {
   Header,
@@ -44,7 +48,7 @@ function getModelIdFromUrl(): string {
   const hash = window.location.hash.slice(1);
   if (hash === 'model') {
     window.history.replaceState(null, '', ' ');
-    return '';
+    return 'demo';
   }
   if (hash) return hash;
   try {
@@ -79,6 +83,14 @@ const App: React.FC = () => {
 
   // Plausible.io analytics
   const { signal } = usePlausible();
+
+  // Clear History on Model Change
+  useEffect(() => {
+    if (modelId) {
+      bus.emit('history:clear');
+    }
+  }, [modelId]);
+
   const graphRef = React.useRef<GraphCanvasKonvaRef>(null);
   const [windowSize, setWindowSize] = React.useState({ width: window.innerWidth, height: window.innerHeight });
 
@@ -128,6 +140,7 @@ const App: React.FC = () => {
     slices,
     slicesWithNodes,
     definitions,
+    orphanedFields,
     isReady,
     edgeRoutesMap: autoLayoutEdges,
     manualPositionsRef,
@@ -136,7 +149,6 @@ const App: React.FC = () => {
     handleAddNode,
     handleAddLink,
     handleDeleteSelection,
-    handleNodesDrag,
     handleNodeClick,
     handleLinkClick,
     handleNodeDoubleClick,
@@ -147,6 +159,7 @@ const App: React.FC = () => {
     addDefinition,
     updateDefinition,
     deleteDefinition,
+    handleLinkFieldToDefinition,
     updateSlice,
     deleteSlice,
     updateEdgeRoutes,
@@ -155,12 +168,16 @@ const App: React.FC = () => {
     canUndo,
     canRedo,
     unpinAllNodes,
-    unpinNode,
     modelName: syncedModelName,
     updateModelName: syncUpdateModelName,
-    gunUpdateNodePositionsBatch,
-    addToHistory,
-    pasteNodes
+
+    pasteNodes,
+    updateSliceBounds,
+    sliceBoundsMap,
+    actors,
+    addActor,
+    updateActor,
+    deleteActor
   } = modelingStore;
 
   // Fit View Effect whenever pendingFitView is true and nodes are present
@@ -182,9 +199,8 @@ const App: React.FC = () => {
     slicesWithNodes,
     layoutRequestId,
     updateEdgeRoutes,
-    gunUpdateNodePositionsBatch,
-    gunUpdateNodePosition: modelingStore.gunUpdateNodePosition,
-    addToHistory,
+    updateSliceBounds,
+
     signal
   });
 
@@ -326,10 +342,11 @@ const App: React.FC = () => {
     onAddNode: handleAddNode,
     onMoveNodes: (updates) => {
       const arrayUpdates = Array.from(updates.entries()).map(([nodeId, pos]) => ({
-        nodeId,
-        pos: { x: pos.fx, y: pos.fy }
+        id: nodeId,
+        x: pos.fx,
+        y: pos.fy
       }));
-      handleNodesDrag(arrayUpdates);
+      bus.emit('command:moveNodes', { updates: arrayUpdates, pinned: true });
     },
     onFocusNode: (id: string | undefined) => id && handleFocusNode(id),
     onAutoLayout: handleAutoLayout,
@@ -401,23 +418,24 @@ const App: React.FC = () => {
             onRenameModel={(name) => { syncUpdateModelName(name); signal("Model.Renamed"); }} // connect to GunDB write
             onGenerateDocs={handleGenerateDocs}
             onShare={() => signal("Share.Clicked")}
-            hasPinnedNodes={nodes.some(n => n.fx !== undefined || n.fy !== undefined)}
+            hasPinnedNodes={nodes.some(n => !!n.pinned)}
           />
 
           <GraphCanvas
             nodes={filteredNodes}
             links={filteredLinks}
             slices={slicesWithNodes}
+            actors={actors}
             selectedIds={selectedIds}
             edgeRoutes={autoLayoutEdges}
-            onNodeClick={(node: Node, event?: any) => {
-              const isMulti = event?.shiftKey || event?.evt?.shiftKey;
+            autoLayoutSliceBounds={sliceBoundsMap}
+            onNodeClick={(node: Node, event?: Konva.KonvaEventObject<MouseEvent>) => {
+              const isMulti = event?.evt?.shiftKey;
               handleNodeClick(node.id, !!isMulti);
             }}
             onLinkClick={(link: Link) => handleLinkClick(link.id)}
             onNodeDoubleClick={(node: Node) => handleNodeDoubleClick(node.id)}
             onLinkDoubleClick={(link: Link) => handleLinkDoubleClick(link.id)}
-            onUnpinNode={unpinNode}
             onAddLink={handleAddLink}
             onCanvasClick={() => {
               handleClosePanel();
@@ -425,7 +443,10 @@ const App: React.FC = () => {
             }}
             onMarqueeSelect={(ids: string[]) => {
               handleMarqueeSelect(ids);
-              if (ids.length > 0) setSidebarView('properties');
+              if (ids.length > 0) {
+                setSidebarView('properties');
+                setFocusOnRender(true);
+              }
             }}
             onValidateConnection={(s: Node, t: Node) => validationService.isValidConnection(s, t)}
             onViewChange={setViewState}
@@ -455,10 +476,10 @@ const App: React.FC = () => {
           <Sidebar
             isOpen={!!sidebarView}
             onClose={() => { setSidebarView(null); }}
-            title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : 'Data Dictionary'}
+            title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : sidebarView === 'actors' ? 'Actors' : 'Data Dictionary'}
             activeTab={sidebarView || 'properties'}
-            onTabChange={(tab: any) => { setSidebarView(tab as any); if (tab) signal("Sidebar.TabChanged", { tab }); }}
-            tabs={[{ id: 'properties', label: 'Properties', title: 'Alt + P' }, { id: 'dictionary', label: 'Data', title: 'Alt + D' }, { id: 'slices', label: 'Slices', title: 'Alt + S' }]}
+            onTabChange={(tab: string) => { setSidebarView(tab as any); if (tab) signal("Sidebar.TabChanged", { tab }); }}
+            tabs={[{ id: 'properties', label: 'Properties', title: 'Alt + P' }, { id: 'dictionary', label: 'Data', title: 'Alt + D' }, { id: 'slices', label: 'Slices', title: 'Alt + S' }, { id: 'actors', label: 'Actors', title: 'Start' }]}
           >
             {sidebarView === 'properties' && (
               <PropertiesPanel
@@ -482,10 +503,20 @@ const App: React.FC = () => {
             {sidebarView === 'dictionary' && (
               <DataDictionaryList
                 definitions={definitions}
-                onAddDefinition={(def: any) => addDefinition(def) || ''}
+                onAddDefinition={(def) => addDefinition(def) || ''}
                 onUpdateDefinition={updateDefinition}
                 onRemoveDefinition={deleteDefinition}
                 modelId={modelId}
+                orphanedFields={orphanedFields}
+                onLinkFieldToDefinition={handleLinkFieldToDefinition}
+              />
+            )}
+            {sidebarView === 'actors' && (
+              <ActorsList
+                actors={actors || []}
+                onAddActor={addActor}
+                onUpdateActor={updateActor}
+                onRemoveActor={deleteActor}
               />
             )}
           </Sidebar>

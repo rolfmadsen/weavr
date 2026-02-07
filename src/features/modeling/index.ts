@@ -6,7 +6,7 @@ export * from './store/useCrossModelData';
 
 export * from './store/useModelList';
 export * from './store/useModelManager';
-export * from './store/useLayoutManagerHook';
+export * from './store/useLayoutManager';
 export * from './store/useImportExport';
 export * from './store/useModelingStore';
 export * from './domain/events';

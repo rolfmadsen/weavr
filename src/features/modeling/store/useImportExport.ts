@@ -5,7 +5,8 @@ import {
     Link,
     Slice,
     DataDefinition,
-    ModelData
+    ModelData,
+    GunPersisted
 } from '../domain/types';
 import {
     exportWeavrProject,
@@ -92,56 +93,56 @@ export function useImportExport({
                 }
 
                 if (data.slices) {
-                    const slicesBatch: Record<string, any> = {};
+                    const slicesBatch: Record<string, GunPersisted<Slice>> = {};
                     Object.values(data.slices).forEach(slice => {
                         if (!slice.id) return;
                         const { nodeIds, ...sliceData } = slice;
 
                         // Sanitize Arrays for GunDB
-                        const sanitizedSlice: any = { ...sliceData };
-                        if (Array.isArray(sanitizedSlice.specifications)) sanitizedSlice.specifications = JSON.stringify(sanitizedSlice.specifications);
-                        if (Array.isArray(sanitizedSlice.actors)) sanitizedSlice.actors = JSON.stringify(sanitizedSlice.actors);
-                        if (Array.isArray(sanitizedSlice.aggregates)) sanitizedSlice.aggregates = JSON.stringify(sanitizedSlice.aggregates);
+                        const sanitizedSlice = { ...sliceData } as unknown as GunPersisted<Slice>;
+
+                        // Strict check on original data before stringifying
+                        if (Array.isArray(sliceData.specifications)) sanitizedSlice.specifications = JSON.stringify(sliceData.specifications);
+                        if (Array.isArray(sliceData.actors)) sanitizedSlice.actors = JSON.stringify(sliceData.actors);
+                        if (Array.isArray(sliceData.aggregates)) sanitizedSlice.aggregates = JSON.stringify(sliceData.aggregates);
 
                         slicesBatch[slice.id] = sanitizedSlice;
                     });
-                    if (Object.keys(slicesBatch).length > 0) model.get('slices').put(slicesBatch);
+                    if (Object.keys(slicesBatch).length > 0) model.get('slices').put(slicesBatch as any); // Gun Generic
                 }
 
-                const nodesBatch: Record<string, any> = {};
+                const nodesBatch: Record<string, GunPersisted<Node>> = {};
                 (data.nodes || []).forEach(node => {
                     const { id, ...nodeData } = node;
                     if (!id) return;
 
-                    const sanitizedNodeData: any = {};
-                    Object.entries(nodeData).forEach(([key, value]) => {
-                        if (value !== undefined) {
-                            if (key === 'entityIds' && Array.isArray(value)) sanitizedNodeData[key] = JSON.stringify(value);
-                            else sanitizedNodeData[key] = value;
-                        }
-                    });
+                    const sanitizedNodeData = { ...nodeData } as unknown as GunPersisted<Node>;
+                    if (Array.isArray(nodeData.entityIds)) sanitizedNodeData.entityIds = JSON.stringify(nodeData.entityIds);
+                    // Fields is also an array in Node type?
+                    if (Array.isArray((nodeData as any).fields)) (sanitizedNodeData as any).fields = JSON.stringify((nodeData as any).fields);
+
                     nodesBatch[id] = sanitizedNodeData;
                 });
-                if (Object.keys(nodesBatch).length > 0) model.get('nodes').put(nodesBatch);
+                if (Object.keys(nodesBatch).length > 0) model.get('nodes').put(nodesBatch as any);
 
-                const linksBatch: Record<string, any> = {};
+                const linksBatch: Record<string, GunPersisted<Link>> = {};
                 (data.links || []).forEach(link => {
                     const { id, ...linkData } = link;
                     if (!id) return;
-                    linksBatch[id] = linkData;
+                    linksBatch[id] = linkData as unknown as GunPersisted<Link>;
                 });
-                if (Object.keys(linksBatch).length > 0) model.get('links').put(linksBatch);
+                if (Object.keys(linksBatch).length > 0) model.get('links').put(linksBatch as any);
 
                 if (data.definitions) {
-                    const defsBatch: Record<string, any> = {};
+                    const defsBatch: Record<string, GunPersisted<DataDefinition>> = {};
                     data.definitions.forEach(def => {
                         const { id, ...defData } = def;
                         if (!id) return;
-                        const sanitizedDef: any = { ...defData };
-                        if (Array.isArray(sanitizedDef.attributes)) sanitizedDef.attributes = JSON.stringify(sanitizedDef.attributes);
+                        const sanitizedDef = { ...defData } as unknown as GunPersisted<DataDefinition>;
+                        if (Array.isArray(defData.attributes)) sanitizedDef.attributes = JSON.stringify(defData.attributes);
                         defsBatch[id] = sanitizedDef;
                     });
-                    if (Object.keys(defsBatch).length > 0) model.get('definitions').put(defsBatch);
+                    if (Object.keys(defsBatch).length > 0) model.get('definitions').put(defsBatch as any);
                 }
 
                 // Handle Project Name for New Model
@@ -164,7 +165,7 @@ export function useImportExport({
 
                 if (Object.keys(nodesBatch).length > 0) {
                     pendingCritical++;
-                    model.get('nodes').put(nodesBatch, (_) => {
+                    model.get('nodes').put(nodesBatch as any, (_) => {
                         pendingCritical--;
                         if (pendingCritical === 0) navigate();
                     });
@@ -205,59 +206,56 @@ export function useImportExport({
                 }
 
                 if (data.slices) {
-                    const slicesBatch: Record<string, any> = {};
+                    const slicesBatch: Record<string, GunPersisted<Slice>> = {};
                     Object.values(data.slices).forEach(slice => {
                         if (!slice.id) return;
                         const { nodeIds, ...sliceData } = slice;
 
-                        // Sanitize Arrays for GunDB
-                        const sanitizedSlice: any = { ...sliceData };
-                        if (Array.isArray(sanitizedSlice.specifications)) sanitizedSlice.specifications = JSON.stringify(sanitizedSlice.specifications);
-                        if (Array.isArray(sanitizedSlice.actors)) sanitizedSlice.actors = JSON.stringify(sanitizedSlice.actors);
-                        if (Array.isArray(sanitizedSlice.aggregates)) sanitizedSlice.aggregates = JSON.stringify(sanitizedSlice.aggregates);
+                        const sanitizedSlice = { ...sliceData } as unknown as GunPersisted<Slice>;
+                        if (Array.isArray(sliceData.specifications)) sanitizedSlice.specifications = JSON.stringify(sliceData.specifications);
+                        if (Array.isArray(sliceData.actors)) sanitizedSlice.actors = JSON.stringify(sliceData.actors);
+                        if (Array.isArray(sliceData.aggregates)) sanitizedSlice.aggregates = JSON.stringify(sliceData.aggregates);
 
                         slicesBatch[slice.id] = sanitizedSlice;
                     });
-                    if (Object.keys(slicesBatch).length > 0) model.get('slices').put(slicesBatch);
+                    if (Object.keys(slicesBatch).length > 0) model.get('slices').put(slicesBatch as any);
                 }
 
-                const nodesBatch: Record<string, any> = {};
+                const nodesBatch: Record<string, GunPersisted<Node>> = {};
                 (data.nodes || []).forEach(node => {
                     const { id, ...nodeData } = node;
                     if (!id) return;
 
-                    const sanitizedNodeData: any = {};
-                    Object.entries(nodeData).forEach(([key, value]) => {
-                        if (value !== undefined) {
-                            if (key === 'entityIds' && Array.isArray(value)) sanitizedNodeData[key] = JSON.stringify(value);
-                            else sanitizedNodeData[key] = value;
-                        }
-                    });
+                    const sanitizedNodeData = { ...nodeData } as unknown as GunPersisted<Node>;
+
+                    if (Array.isArray(nodeData.entityIds)) sanitizedNodeData.entityIds = JSON.stringify(nodeData.entityIds);
+                    if (Array.isArray((nodeData as any).fields)) (sanitizedNodeData as any).fields = JSON.stringify((nodeData as any).fields);
+
                     nodesBatch[id] = sanitizedNodeData;
 
                     // Update manual positions locally for immediate feedback
                     if (node.fx != null && node.fy != null) manualPositionsRef.current?.set(id, { x: node.fx, y: node.fy });
                 });
-                if (Object.keys(nodesBatch).length > 0) model.get('nodes').put(nodesBatch);
+                if (Object.keys(nodesBatch).length > 0) model.get('nodes').put(nodesBatch as any);
 
-                const linksBatch: Record<string, any> = {};
+                const linksBatch: Record<string, GunPersisted<Link>> = {};
                 (data.links || []).forEach(link => {
                     const { id, ...linkData } = link;
                     if (!id) return;
-                    linksBatch[id] = linkData;
+                    linksBatch[id] = linkData as unknown as GunPersisted<Link>;
                 });
-                if (Object.keys(linksBatch).length > 0) model.get('links').put(linksBatch);
+                if (Object.keys(linksBatch).length > 0) model.get('links').put(linksBatch as any);
 
                 if (data.definitions) {
-                    const defsBatch: Record<string, any> = {};
+                    const defsBatch: Record<string, GunPersisted<DataDefinition>> = {};
                     data.definitions.forEach(def => {
                         const { id, ...defData } = def;
                         if (!id) return;
-                        const sanitizedDef: any = { ...defData };
-                        if (Array.isArray(sanitizedDef.attributes)) sanitizedDef.attributes = JSON.stringify(sanitizedDef.attributes);
+                        const sanitizedDef = { ...defData } as unknown as GunPersisted<DataDefinition>;
+                        if (Array.isArray(defData.attributes)) sanitizedDef.attributes = JSON.stringify(defData.attributes);
                         defsBatch[id] = sanitizedDef;
                     });
-                    if (Object.keys(defsBatch).length > 0) model.get('definitions').put(defsBatch);
+                    if (Object.keys(defsBatch).length > 0) model.get('definitions').put(defsBatch as any);
                 }
 
                 // NO Name Update for Merge

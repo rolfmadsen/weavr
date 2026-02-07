@@ -13,9 +13,18 @@ export interface Field {
   type: string;
   required?: boolean;
   isPII?: boolean; // Added for GDPR
+  definitionId?: string; // New: Linkage to Dictionary
+  attributeKey?: string; // New: Linkage to Dictionary
   description?: string;
   schema?: string; // Link to Data Definition
   subfields?: Field[];
+}
+
+export interface Actor {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
 }
 
 export interface Node {
@@ -34,6 +43,7 @@ export interface Node {
   // Strict Mode Properties
   service?: string;
   aggregate?: string;
+  actor?: string; // Added for Screen/Automation
   technicalTimestamp?: boolean;
   context?: 'INTERNAL' | 'EXTERNAL';
   pinned?: boolean;
@@ -117,7 +127,7 @@ export interface SpecificationStep {
   index?: number;
   specRow?: number;
   type: 'SPEC_EVENT' | 'SPEC_COMMAND' | 'SPEC_READMODEL' | 'SPEC_ERROR';
-  fields?: any[]; // Field definition can be complex, keeping loose for now or import Field
+  fields?: Field[]; // Field definition can be complex, keeping loose for now or import Field
   linkedId?: string;
   expectEmptyList?: boolean;
   comments?: Comment[];
@@ -159,6 +169,7 @@ export interface Attribute {
 }
 
 export enum DefinitionType {
+  Aggregate = 'Aggregate',
   ValueObject = 'Value Object',
   Entity = 'Entity',
   Enum = 'Enum'
@@ -168,10 +179,40 @@ export interface DataDefinition {
   id: string;
   name: string;
   type: DefinitionType;
-  description?: string;
-  attributes?: Attribute[];
+  description?: string | null;
+  attributes?: Attribute[] | null;
+  parentId?: string | null;
+  isRoot?: boolean | null;
 }
 
-export interface StorageEventModel {
-  slices: Record<string, StrictSlice>;
+
+export interface CrossModelSlice {
+  id: string;
+  label: string;
+  modelName: string;
+  originalData: Slice;
+}
+
+export interface CrossModelDefinition {
+  id: string;
+  label: string;
+  modelName: string;
+  originalData: DataDefinition;
+}
+
+/**
+ * Utility type for GunDB persistence.
+ * GunDB does not support arrays natively in the same way we use them (it prefers graph nodes).
+ * For simple storage, we JSON.stringify arrays, so their persisted type is 'string'.
+ */
+export type GunPersisted<T> = {
+  [K in keyof T]: (T[K] extends Array<any> | undefined | null ? string : T[K]) | null | undefined
+};
+
+export interface ViewState {
+  x: number;
+  y: number;
+  scale: number;
+  width?: number;
+  height?: number;
 }

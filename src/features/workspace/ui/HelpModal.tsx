@@ -9,7 +9,10 @@ import {
   Eye,
   Globe,
   Settings,
-  Upload
+  Upload,
+  BookOpen,
+  Link2,
+  Import
 } from 'lucide-react';
 import { GlassCard } from '../../../shared/components/GlassCard';
 import { GlassButton } from '../../../shared/components/GlassButton';
@@ -140,16 +143,16 @@ const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadEx
             Translation Pattern (System integration)
           </h4>
           <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event(s)</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>Read Model (View)</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>Automated Trigger</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event</span> →
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>Automation</span> →
             <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event(s)</span>
+            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event</span>
           </div>
           <p className="text-gray-600 dark:text-gray-300 text-sm">
-            Used for transferring knowledge from one system into another. Whenever you have to tell another system that something happened, use this pattern.
+            Used for transferring knowledge between systems. An external <strong>Integration Event</strong> triggers an <strong>Automation</strong> that issues a <strong>Command</strong> to produce an outgoing <strong>Integration Event</strong>. External data can also populate <strong>Read Models</strong> directly for visualization.
           </p>
         </div>
+
       </div>
     </div>
 
@@ -209,7 +212,125 @@ const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadEx
   </div>
 );
 
+const SemanticsContent = () => (
+  <div className="space-y-8 pb-4">
+    <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-500/10 rounded-xl p-5">
+      <h3 className="text-indigo-900 dark:text-indigo-300 font-bold mb-2 flex items-center gap-2">
+        <Monitor className="w-5 h-5" />
+        Beyond Just Drawing
+      </h3>
+      <p className="text-indigo-700/80 dark:text-indigo-400/80 text-sm leading-relaxed">
+        Weavr isn't just for sketching—it's a system specification engine. It helps you ensure that your design is logically complete and ready for implementation.
+      </p>
+    </div>
+
+    <div className="grid grid-cols-1 gap-6">
+      {/* 1. Properties */}
+      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-indigo-500/30">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <Settings className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">1. Properties & Fields</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Every element on your board carries information. We define this using <strong>Fields</strong> (like "Name" or "Price").
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-slate-100 dark:bg-slate-800 text-slate-500">Schema Control</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 1.5 Data Dictionary */}
+      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-indigo-500/30">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <BookOpen className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">2. The Data Dictionary</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Instead of typing fields manually, you can link them to the <strong>Data Dictionary</strong>. This ensures that "Order ID" is named exactly the same everywhere.
+            </p>
+            <div className="space-y-2 mb-3">
+              <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 p-2 rounded border border-emerald-500/10">
+                <Link2 className="w-3.5 h-3.5" />
+                <span>Linked fields stay synchronized and read-only.</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+              Use the <Import className="inline-block w-3 h-3 mx-1" /> icon in the Properties Panel to import from your Entities and Aggregates.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Aggregates */}
+      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-indigo-500/30">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <Globe className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">3. Aggregates (Swimlanes)</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Aggregates are logical boundaries (like "Inventory" or "User"). They help organize your events into horizontal tracks.
+            </p>
+            <div className="flex items-center gap-1.5 text-xs text-indigo-500 font-medium">
+              <span>Automatic Layout</span>
+              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+              <span>Visual Boundaries</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. OIC */}
+      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-indigo-500/30">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
+            <SquareActivity className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">3. The Quality Check (OIC)</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <strong>Information Completeness</strong> ensures that pieces of information never "just appear." <strong>All element types</strong> participate in this check.
+            </p>
+
+            <div className="space-y-2 max-w-xs">
+              <div className="flex items-center justify-between p-2 rounded bg-indigo-50/30 dark:bg-indigo-900/10 border border-indigo-100/30 dark:border-indigo-500/10">
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Screen</span>
+                <span className="text-[10px] text-gray-400">← Sources from</span>
+                <span className="text-xs font-semibold text-green-600 dark:text-green-400">Read Model</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded bg-indigo-50/30 dark:bg-indigo-900/10 border border-indigo-100/30 dark:border-indigo-500/10">
+                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Command</span>
+                <span className="text-[10px] text-gray-400">← Sources from</span>
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Screen</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded bg-indigo-50/30 dark:bg-indigo-900/10 border border-indigo-100/30 dark:border-indigo-500/10">
+                <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">Event</span>
+                <span className="text-[10px] text-gray-400">← Sources from</span>
+                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Command</span>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Every node with required fields is validated. If Weavr finds a gap, it flags an <strong>"Information Incomplete"</strong> warning in the Properties Panel.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+);
+
+
 const ControlsContent = () => (
+
   <div className="space-y-6">
     <div>
       <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Canvas Basics</h3>
@@ -283,7 +404,7 @@ const TabButton: React.FC<{
 );
 
 const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
-  const [activeTab, setActiveTab] = useState<'introduction' | 'controls'>('introduction');
+  const [activeTab, setActiveTab] = useState<'introduction' | 'semantics' | 'controls'>('introduction');
 
   const handleLoadExample = async () => {
     try {
@@ -319,7 +440,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
         </div>
 
         <div className="p-6 border-b border-gray-200/50 dark:border-white/10 bg-white/10 dark:bg-black/10">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <TabButton
               isActive={activeTab === 'introduction'}
               onClick={() => setActiveTab('introduction')}
@@ -327,18 +448,26 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
               Introduction
             </TabButton>
             <TabButton
+              isActive={activeTab === 'semantics'}
+              onClick={() => setActiveTab('semantics')}
+            >
+              Semantics
+            </TabButton>
+            <TabButton
               isActive={activeTab === 'controls'}
               onClick={() => setActiveTab('controls')}
             >
-              Controls & Shortcuts
+              Controls
             </TabButton>
           </div>
         </div>
 
         <div className="p-6 overflow-y-auto text-slate-700 dark:text-slate-300 custom-scrollbar">
           {activeTab === 'introduction' && <IntroductionContent onLoadExample={handleLoadExample} />}
+          {activeTab === 'semantics' && <SemanticsContent />}
           {activeTab === 'controls' && <ControlsContent />}
         </div>
+
 
         <div className="p-6 mt-auto border-t border-gray-200/50 dark:border-white/10 bg-white/10 dark:bg-black/10 rounded-b-xl text-right">
           <button

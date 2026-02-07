@@ -36,8 +36,10 @@
     "elkjs": "^0.11.0",
     "express": "^5.2.1",
     "gun": "^0.2020.1241",
+    "idb": "^8.0.3",
     "konva": "^10.0.12",
     "lucide-react": "^0.563.0",
+    "mitt": "^3.0.1",
     "rbush": "4.0.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -45,7 +47,8 @@
     "react-konva-utils": "^2.0.0",
     "tailwind-merge": "^3.4.0",
     "uuid": "^13.0.0",
-    "web-worker": "^1.5.0"
+    "web-worker": "^1.5.0",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",

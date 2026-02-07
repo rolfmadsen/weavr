@@ -1,6 +1,6 @@
 import type { LayoutOptions } from 'elkjs';
 export type { LayoutOptions };
-import { Node, Link, Slice } from './types';
+import { Node, Link, Slice, ElementType } from './types';
 import { NODE_WIDTH } from '../../../shared/constants.ts';
 import { calculateNodeHeight } from './textUtils.ts';
 
@@ -18,7 +18,19 @@ const getWorker = () => {
 export interface LayoutResult {
     positions: Map<string, { x: number; y: number }>;
     edgeRoutes: Map<string, number[]>;
+    containerBounds?: Map<string, { x: number; y: number; width: number; height: number }>;
 }
+
+const getPartitionKey = (node: Node) => {
+    // 1. Screens and Automations are partitioned by Actor (Swimlanes)
+    if (node.type === 'SCREEN' || node.type === ElementType.Automation) return node.actor || '';
+
+    // 2. Commands and Read Models are ALWAYS in the shared "Interaction" layer (No partitioning)
+    if (node.type === 'COMMAND' || node.type === ElementType.ReadModel) return '';
+
+    // 3. Events are partitioned by Service/Context (Bounded Contexts)
+    return node.service || '';
+};
 
 export const calculateElkLayout = async (
     nodes: Node[],
@@ -39,7 +51,13 @@ export const calculateElkLayout = async (
             sliceId: node.sliceId,
             pinned: node.pinned,
             x: node.fx ?? node.x ?? 0,
-            y: node.fy ?? node.y ?? 0
+            y: node.fy ?? node.y ?? 0,
+            actor: node.actor,
+            aggregate: node.aggregate,
+            layoutOptions: {
+                // @ts-ignore - dynamic properties
+                'partitionKey': getPartitionKey(node)
+            }
         }));
 
         // 2. Prepare Edges
@@ -54,7 +72,7 @@ export const calculateElkLayout = async (
 
         // 4. Handle Worker Messages
         const handleMessage = (event: MessageEvent) => {
-            const { type, positions, edgeRoutes, message, requestId: respId } = event.data;
+            const { type, positions, edgeRoutes, containerBounds, message, requestId: respId } = event.data;
 
             // Only process if this is the response for our current request
             if (respId !== requestId) return;
@@ -75,7 +93,14 @@ export const calculateElkLayout = async (
                     });
                 }
 
-                resolve({ positions: positionMap, edgeRoutes: edgeRoutesMap });
+                const containerBoundsMap = new Map<string, { x: number; y: number; width: number; height: number }>();
+                if (containerBounds) {
+                    Object.entries(containerBounds as Record<string, { x: number, y: number, width: number; height: number }>).forEach(([id, bounds]) => {
+                        containerBoundsMap.set(id, bounds);
+                    });
+                }
+
+                resolve({ positions: positionMap, edgeRoutes: edgeRoutesMap, containerBounds: containerBoundsMap });
             } else if (type === 'ERROR') {
                 console.error("ELK Worker Error:", message);
                 reject(new Error(message));

@@ -5,7 +5,7 @@ This directory contains the scripts and source files used to generate the canoni
 ## Files
 
 *   **`weavr-model.json`**: The final, valid JSON file used by the Weavr application.
-*   **`weavr-self-model.json`**: The "source of truth" definition of the Weavr model itself (Event Modeling of the Event Modeling tool). This file is edited manually to add new features or correct logic.
+the Event Modeling tool). This file is edited manually to add new features or correct logic.
 *   **`fix_weavr_model.py`**: A Python script that transforms `weavr-self-model.json` into `weavr-model.json`. It fixes dependency directions (INBOUND to OUTBOUND), maps types (e.g., `DOMAIN_EVENT` -> `EVENT`), and generates the layout coordinates for correct visualization.
 *   **`audit_patterns.py`**: A validation script that checks `weavr-self-model.json` for strict adherence to Event Modeling patterns (e.g., Commands must be triggered by Screens/Automations, Events must trigger Read Models/Automations).
 

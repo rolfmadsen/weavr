@@ -15,6 +15,8 @@ if (typeof window !== 'undefined' && (window as any).Radix) {
   // Full replacement of Radix.map to handle recursive calls and internal primitive errors
   // Original Source: gun/lib/radix.js
   const _ = String.fromCharCode(24);
+  // Justification: 'Radix' is a global internal of GunDB not exposed in types.
+  // We must monkey-patch 'map' to prevent crashes on malformed graph data.
   (window as any).Radix.map = function rap(radix: any, cb: any, opt: any, pre: any): any {
     try {
       pre = pre || [];

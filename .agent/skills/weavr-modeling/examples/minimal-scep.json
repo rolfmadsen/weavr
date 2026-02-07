@@ -1,0 +1,111 @@
+{
+    "project": {
+        "id": "minimal-example",
+        "name": "Minimal SCEP Flow",
+        "description": "A single-slice example of the Screen-Command-Event-Projection pattern."
+    },
+    "definitions": [
+        {
+            "id": "def_thing",
+            "name": "Thing",
+            "type": "Entity",
+            "aggregate": "Core",
+            "isRoot": true,
+            "attributes": [
+                {
+                    "name": "id",
+                    "type": "UUID"
+                },
+                {
+                    "name": "name",
+                    "type": "String"
+                }
+            ]
+        }
+    ],
+    "slices": [
+        {
+            "id": "slice_core",
+            "title": "Core Logic",
+            "aggregates": [
+                "Core"
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "scr_view",
+            "type": "SCREEN",
+            "name": "Main Screen",
+            "sliceId": "slice_core",
+            "actor": "actor_user"
+        },
+        {
+            "id": "cmd_add",
+            "type": "COMMAND",
+            "name": "Add Thing",
+            "sliceId": "slice_core",
+            "actor": "actor_user",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "String",
+                    "schema": "def_thing"
+                }
+            ]
+        },
+        {
+            "id": "evt_added",
+            "type": "DOMAIN_EVENT",
+            "name": "Thing Added",
+            "sliceId": "slice_core",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "UUID",
+                    "schema": "def_thing"
+                }
+            ]
+        },
+        {
+            "id": "rm_list",
+            "type": "READ_MODEL",
+            "name": "Thing List",
+            "sliceId": "slice_core",
+            "actor": "actor_system",
+            "fields": [
+                {
+                    "name": "items",
+                    "type": "Array",
+                    "schema": "def_thing"
+                }
+            ]
+        }
+    ],
+    "links": [
+        {
+            "id": "l1",
+            "source": "scr_view",
+            "target": "cmd_add",
+            "label": "triggers"
+        },
+        {
+            "id": "l2",
+            "source": "cmd_add",
+            "target": "evt_added",
+            "label": "persists"
+        },
+        {
+            "id": "l3",
+            "source": "evt_added",
+            "target": "rm_list",
+            "label": "updates"
+        },
+        {
+            "id": "l4",
+            "source": "rm_list",
+            "target": "scr_view",
+            "label": "displayed by"
+        }
+    ]
+}

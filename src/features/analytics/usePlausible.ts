@@ -46,7 +46,7 @@ export const usePlausible = () => {
         }
     }, []);
 
-    const signal = (eventName: string, props?: Record<string, any>) => {
+    const signal = (eventName: string, props?: Record<string, unknown>) => {
         // Weavr's "signal" pattern often sends complex nested objects.
         // Plausible properties are flat { string: string | number | boolean }.
         // TSA: Types require string values.

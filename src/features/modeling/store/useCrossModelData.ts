@@ -69,7 +69,7 @@ export function useCrossModelData(currentModelId: string | null) {
             });
         });
 
-        let timeout: any;
+        let timeout: ReturnType<typeof setTimeout>;
         const scheduleUpdate = () => {
             clearTimeout(timeout);
             timeout = setTimeout(() => {

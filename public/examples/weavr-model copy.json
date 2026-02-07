@@ -1,0 +1,1195 @@
+{
+  "meta": {
+    "version": "1.3.0",
+    "generator": "Weavr",
+    "createdAt": "2026-01-25T12:30:00.000Z",
+    "updatedAt": "2026-01-25T12:30:00.000Z",
+    "projectId": "weavr-self-spec",
+    "projectName": "Weavr Meta Model"
+  },
+  "eventModel": {
+    "slices": [
+      {
+        "id": "slice-create-model",
+        "title": "Create Model",
+        "sliceType": "STATE_CHANGE",
+        "order": 1,
+        "chapter": "Workspace",
+        "commands": [
+          {
+            "id": "cmd-create-model",
+            "title": "Create Model",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-model-created",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-model-created",
+            "title": "Model Created",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-project-list",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              },
+              {
+                "id": "rm-search-results-proxy-1",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-project-list",
+            "title": "Projects Index",
+            "type": "READMODEL",
+            "dependencies": [
+              {
+                "id": "scr-model-list-modal",
+                "type": "OUTBOUND",
+                "elementType": "SCREEN"
+              }
+            ]
+          },
+          {
+            "id": "rm-search-results-proxy-1",
+            "title": "Filtered Results (Index)",
+            "type": "READMODEL",
+            "dependencies": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr-model-list-modal",
+            "title": "My Models Modal",
+            "type": "SCREEN",
+            "dependencies": [
+              {
+                "id": "cmd-create-model",
+                "type": "OUTBOUND",
+                "elementType": "COMMAND"
+              }
+            ]
+          }
+        ],
+        "specifications": [
+          {
+            "id": "spec-create-project",
+            "title": "Create New Project",
+            "given": [
+              {
+                "id": "g-workspace-open",
+                "title": "User is in Workspace",
+                "type": "SPEC_READMODEL"
+              }
+            ],
+            "when": [
+              {
+                "id": "w-click-new",
+                "title": "User clicks '+ New Model'",
+                "type": "SPEC_COMMAND"
+              }
+            ],
+            "then": [
+              {
+                "id": "t-model-evt",
+                "title": "ModelCreated event fired",
+                "type": "SPEC_EVENT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "slice-rename-model",
+        "title": "Rename Model",
+        "sliceType": "STATE_CHANGE",
+        "order": 2,
+        "chapter": "Workspace",
+        "commands": [
+          {
+            "id": "cmd-rename-model",
+            "title": "Rename Model",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-model-renamed",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-model-renamed",
+            "title": "Model Renamed",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-project-list-rename",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              },
+              {
+                "id": "rm-search-results-proxy-2",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-project-list-rename",
+            "title": "Projects Index",
+            "type": "READMODEL",
+            "dependencies": [
+              {
+                "id": "scr-model-list-rename",
+                "type": "OUTBOUND",
+                "elementType": "SCREEN"
+              }
+            ]
+          },
+          {
+            "id": "rm-search-results-proxy-2",
+            "title": "Filtered Results (Index)",
+            "type": "READMODEL",
+            "dependencies": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr-model-list-rename",
+            "title": "My Models Modal",
+            "type": "SCREEN",
+            "dependencies": [
+              {
+                "id": "cmd-rename-model",
+                "type": "OUTBOUND",
+                "elementType": "COMMAND"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "slice-delete-model",
+        "title": "Delete Model",
+        "sliceType": "STATE_CHANGE",
+        "order": 3,
+        "chapter": "Workspace",
+        "commands": [
+          {
+            "id": "cmd-delete-model",
+            "title": "Delete Model",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-model-deleted",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-model-deleted",
+            "title": "Model Deleted",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-project-list-delete",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              },
+              {
+                "id": "rm-search-results-proxy-3",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-project-list-delete",
+            "title": "Projects Index",
+            "type": "READMODEL",
+            "dependencies": [
+              {
+                "id": "scr-model-list-delete",
+                "type": "OUTBOUND",
+                "elementType": "SCREEN"
+              }
+            ]
+          },
+          {
+            "id": "rm-search-results-proxy-3",
+            "title": "Filtered Results (Index)",
+            "type": "READMODEL",
+            "dependencies": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr-model-list-delete",
+            "title": "My Models Modal",
+            "type": "SCREEN",
+            "dependencies": [
+              {
+                "id": "cmd-delete-model",
+                "type": "OUTBOUND",
+                "elementType": "COMMAND"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "slice-add-element",
+        "title": "Add Element",
+        "sliceType": "STATE_CHANGE",
+        "order": 4,
+        "chapter": "Modeling",
+        "commands": [
+          {
+            "id": "cmd-add-element",
+            "title": "Add Element",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-element-added",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-element-added",
+            "title": "Element Added",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-active-graph",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              },
+              {
+                "id": "rm-search-results-proxy-4",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-active-graph",
+            "title": "Canvas State",
+            "type": "READMODEL",
+            "dependencies": [
+              {
+                "id": "scr-main-canvas",
+                "type": "OUTBOUND",
+                "elementType": "SCREEN"
+              }
+            ]
+          },
+          {
+            "id": "rm-search-results-proxy-4",
+            "title": "Filtered Results (Index)",
+            "type": "READMODEL",
+            "dependencies": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr-main-canvas",
+            "title": "Graph Canvas",
+            "type": "SCREEN",
+            "dependencies": [
+              {
+                "id": "cmd-add-element",
+                "type": "OUTBOUND",
+                "elementType": "COMMAND"
+              }
+            ]
+          }
+        ],
+        "specifications": [
+          {
+            "id": "spec-add-event",
+            "title": "Add Event Node",
+            "given": [
+              {
+                "id": "g-canvas-idle",
+                "title": "Canvas is ready",
+                "type": "SPEC_READMODEL"
+              }
+            ],
+            "when": [
+              {
+                "id": "w-drop-event",
+                "title": "User drops Event node",
+                "type": "SPEC_COMMAND"
+              }
+            ],
+            "then": [
+              {
+                "id": "t-evt-stored",
+                "title": "ElementAdded (EVENT) event stored",
+                "type": "SPEC_EVENT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "slice-connect",
+        "title": "Connect Elements",
+        "sliceType": "STATE_CHANGE",
+        "order": 5,
+        "chapter": "Modeling",
+        "commands": [
+          {
+            "id": "cmd-connect-elements",
+            "title": "Connect Elements",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-link-created",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-link-created",
+            "title": "Link Created",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-active-graph-connect",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              },
+              {
+                "id": "rm-search-results-proxy-5",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-active-graph-connect",
+            "title": "Canvas State",
+            "type": "READMODEL",
+            "dependencies": [
+              {
+                "id": "scr-main-canvas-connect",
+                "type": "OUTBOUND",
+                "elementType": "SCREEN"
+              }
+            ]
+          },
+          {
+            "id": "rm-search-results-proxy-5",
+            "title": "Filtered Results (Index)",
+            "type": "READMODEL",
+            "dependencies": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr-main-canvas-connect",
+            "title": "Graph Canvas",
+            "type": "SCREEN",
+            "dependencies": [
+              {
+                "id": "cmd-connect-elements",
+                "type": "OUTBOUND",
+                "elementType": "COMMAND"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "slice-search-filter",
+        "title": "Search & Filtering",
+        "sliceType": "STATE_VIEW",
+        "order": 6,
+        "chapter": "Discovery",
+        "commands": [
+          {
+            "id": "cmd-set-search-query",
+            "title": "Set Search Query",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-search-changed",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-search-changed",
+            "title": "Search Query Updated",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-search-results",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "evt-model-created-proxy",
+            "title": "Model Created",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-search-results",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "evt-model-renamed-proxy",
+            "title": "Model Renamed",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-search-results",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "evt-model-deleted-proxy",
+            "title": "Model Deleted",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-search-results",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "evt-element-added-proxy",
+            "title": "Element Added",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-search-results",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "evt-link-created-proxy",
+            "title": "Link Created",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-search-results",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-search-results",
+            "title": "Filtered Results",
+            "type": "READMODEL",
+            "dependencies": [
+              {
+                "id": "scr-search-sidebar",
+                "type": "OUTBOUND",
+                "elementType": "SCREEN"
+              }
+            ]
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr-search-sidebar",
+            "title": "Search Sidebar",
+            "type": "SCREEN",
+            "dependencies": [
+              {
+                "id": "cmd-set-search-query",
+                "type": "OUTBOUND",
+                "elementType": "COMMAND"
+              }
+            ]
+          }
+        ],
+        "specifications": [
+          {
+            "id": "spec-search-nodes",
+            "title": "Search Nodes by Name",
+            "given": [
+              {
+                "id": "g-nodes-pop",
+                "title": "Graph has 10 nodes",
+                "type": "SPEC_READMODEL"
+              }
+            ],
+            "when": [
+              {
+                "id": "w-search-term",
+                "title": "User types 'Order'",
+                "type": "SPEC_COMMAND"
+              }
+            ],
+            "then": [
+              {
+                "id": "t-results-shown",
+                "title": "Read Model shows only 'Order' nodes",
+                "type": "SPEC_READMODEL"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "slice-minimap",
+        "title": "Minimap Navigation",
+        "sliceType": "STATE_VIEW",
+        "order": 7,
+        "chapter": "Discovery",
+        "commands": [
+          {
+            "id": "cmd-pan-view",
+            "title": "Pan Viewport",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-view-panned",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-view-panned",
+            "title": "View Panned",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-viewport-state",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-viewport-state",
+            "title": "Viewport Bounds",
+            "type": "READMODEL",
+            "dependencies": [
+              {
+                "id": "scr-minimap-ui",
+                "type": "OUTBOUND",
+                "elementType": "SCREEN"
+              }
+            ]
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr-minimap-ui",
+            "title": "Minimap Widget",
+            "type": "SCREEN",
+            "dependencies": [
+              {
+                "id": "cmd-pan-view",
+                "type": "OUTBOUND",
+                "elementType": "COMMAND"
+              }
+            ]
+          }
+        ],
+        "specifications": [
+          {
+            "id": "spec-minimap-move",
+            "title": "Move View via Minimap",
+            "given": [
+              {
+                "id": "g-minimap-visible",
+                "title": "Minimap is rendered",
+                "type": "SPEC_READMODEL"
+              }
+            ],
+            "when": [
+              {
+                "id": "w-click-minimap",
+                "title": "User clicks on minimap area",
+                "type": "SPEC_COMMAND"
+              }
+            ],
+            "then": [
+              {
+                "id": "t-canvas-panned",
+                "title": "Main canvas moves to location",
+                "type": "SPEC_READMODEL"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "slice-analytics",
+        "title": "Usage Analytics",
+        "sliceType": "AUTOMATION",
+        "order": 8,
+        "chapter": "System",
+        "events": [
+          {
+            "id": "evt-element-added-analytics-proxy",
+            "title": "Element Added (Shared)",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "proc-plausible-adapter",
+                "type": "OUTBOUND",
+                "elementType": "AUTOMATION"
+              }
+            ]
+          }
+        ],
+        "processors": [
+          {
+            "id": "proc-plausible-adapter",
+            "title": "Plausible Tracker",
+            "type": "AUTOMATION",
+            "dependencies": [
+              {
+                "id": "evt-plausible-signal",
+                "type": "OUTBOUND",
+                "elementType": "INTEGRATION_EVENT"
+              }
+            ]
+          }
+        ],
+        "events_ext": [
+          {
+            "id": "evt-plausible-signal",
+            "title": "Analytics Event Sent",
+            "type": "INTEGRATION_EVENT"
+          }
+        ],
+        "specifications": [
+          {
+            "id": "spec-track-action",
+            "title": "Track Node Creation",
+            "given": [
+              {
+                "id": "g-anonymous",
+                "title": "Anonymous user",
+                "type": "SPEC_READMODEL"
+              }
+            ],
+            "when": [
+              {
+                "id": "w-add-node",
+                "title": "User adds any node",
+                "type": "SPEC_EVENT"
+              }
+            ],
+            "then": [
+              {
+                "id": "t-analytics-sent",
+                "title": "HTTP request to Plausible API",
+                "type": "SPEC_EVENT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "slice-export",
+        "title": "Export Project",
+        "sliceType": "STATE_VIEW",
+        "order": 9,
+        "chapter": "System",
+        "commands": [
+          {
+            "id": "cmd-export-project",
+            "title": "Export Project",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-export-requested",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-export-requested",
+            "title": "Export Requested",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "proc-json-serializer",
+                "type": "OUTBOUND",
+                "elementType": "AUTOMATION"
+              }
+            ]
+          }
+        ],
+        "processors": [
+          {
+            "id": "proc-json-serializer",
+            "title": "JSON Serializer",
+            "type": "AUTOMATION",
+            "dependencies": [
+              {
+                "id": "evt-file-downloaded",
+                "type": "OUTBOUND",
+                "elementType": "INTEGRATION_EVENT"
+              }
+            ]
+          }
+        ],
+        "events_ext": [
+          {
+            "id": "evt-file-downloaded",
+            "title": "File Downloaded",
+            "type": "INTEGRATION_EVENT"
+          }
+        ]
+      },
+      {
+        "id": "slice-undo-action",
+        "title": "Undo",
+        "sliceType": "STATE_CHANGE",
+        "order": 10,
+        "chapter": "History",
+        "commands": [
+          {
+            "id": "cmd-undo",
+            "title": "Undo Action",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-state-reverted",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-state-reverted",
+            "title": "State Reverted",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-active-graph-undo",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-active-graph-undo",
+            "title": "Canvas State",
+            "type": "READMODEL",
+            "dependencies": []
+          }
+        ]
+      },
+      {
+        "id": "slice-redo-action",
+        "title": "Redo",
+        "sliceType": "STATE_CHANGE",
+        "order": 11,
+        "chapter": "History",
+        "commands": [
+          {
+            "id": "cmd-redo",
+            "title": "Redo Action",
+            "type": "COMMAND",
+            "dependencies": [
+              {
+                "id": "evt-state-restored",
+                "type": "OUTBOUND",
+                "elementType": "EVENT"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-state-restored",
+            "title": "State Restored",
+            "type": "EVENT",
+            "dependencies": [
+              {
+                "id": "rm-active-graph-redo",
+                "type": "OUTBOUND",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm-active-graph-redo",
+            "title": "Canvas State",
+            "type": "READMODEL",
+            "dependencies": []
+          }
+        ]
+      }
+    ]
+  },
+  "layout": {
+    "scr-model-list-modal": {
+      "x": 100,
+      "y": 100,
+      "type": "SCREEN"
+    },
+    "cmd-create-model": {
+      "x": 100,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-model-created": {
+      "x": 100,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-project-list": {
+      "x": 100,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "rm-search-results-proxy-1": {
+      "x": 250,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "scr-model-list-rename": {
+      "x": 400,
+      "y": 100,
+      "type": "SCREEN"
+    },
+    "cmd-rename-model": {
+      "x": 400,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-model-renamed": {
+      "x": 400,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-project-list-rename": {
+      "x": 400,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "rm-search-results-proxy-2": {
+      "x": 550,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "scr-model-list-delete": {
+      "x": 700,
+      "y": 100,
+      "type": "SCREEN"
+    },
+    "cmd-delete-model": {
+      "x": 700,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-model-deleted": {
+      "x": 700,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-project-list-delete": {
+      "x": 700,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "rm-search-results-proxy-3": {
+      "x": 850,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "scr-main-canvas": {
+      "x": 1000,
+      "y": 100,
+      "type": "SCREEN"
+    },
+    "cmd-add-element": {
+      "x": 1000,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-element-added": {
+      "x": 1000,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-active-graph": {
+      "x": 1000,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "rm-search-results-proxy-4": {
+      "x": 1150,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "scr-main-canvas-connect": {
+      "x": 1300,
+      "y": 100,
+      "type": "SCREEN"
+    },
+    "cmd-connect-elements": {
+      "x": 1300,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-link-created": {
+      "x": 1300,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-active-graph-connect": {
+      "x": 1300,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "rm-search-results-proxy-5": {
+      "x": 1450,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "scr-search-sidebar": {
+      "x": 1600,
+      "y": 100,
+      "type": "SCREEN"
+    },
+    "cmd-set-search-query": {
+      "x": 1600,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-search-changed": {
+      "x": 1600,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-search-results": {
+      "x": 1600,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "evt-model-created-proxy": {
+      "x": 1750,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "evt-model-renamed-proxy": {
+      "x": 1750,
+      "y": 420,
+      "type": "EVENT"
+    },
+    "evt-model-deleted-proxy": {
+      "x": 1750,
+      "y": 440,
+      "type": "EVENT"
+    },
+    "evt-element-added-proxy": {
+      "x": 1750,
+      "y": 460,
+      "type": "EVENT"
+    },
+    "evt-link-created-proxy": {
+      "x": 1750,
+      "y": 480,
+      "type": "EVENT"
+    },
+    "scr-minimap-ui": {
+      "x": 1900,
+      "y": 100,
+      "type": "SCREEN"
+    },
+    "cmd-pan-view": {
+      "x": 1900,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-view-panned": {
+      "x": 1900,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-viewport-state": {
+      "x": 1900,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "evt-element-added-analytics-proxy": {
+      "x": 2200,
+      "y": 250,
+      "type": "EVENT"
+    },
+    "proc-plausible-adapter": {
+      "x": 2200,
+      "y": 400,
+      "type": "AUTOMATION"
+    },
+    "evt-plausible-signal": {
+      "x": 2200,
+      "y": 550,
+      "type": "INTEGRATION_EVENT"
+    },
+    "cmd-export-project": {
+      "x": 2500,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-export-requested": {
+      "x": 2500,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "proc-json-serializer": {
+      "x": 2500,
+      "y": 550,
+      "type": "AUTOMATION"
+    },
+    "evt-file-downloaded": {
+      "x": 2500,
+      "y": 700,
+      "type": "INTEGRATION_EVENT"
+    },
+    "cmd-undo": {
+      "x": 2800,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-state-reverted": {
+      "x": 2800,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-active-graph-undo": {
+      "x": 2800,
+      "y": 550,
+      "type": "READMODEL"
+    },
+    "cmd-redo": {
+      "x": 3100,
+      "y": 250,
+      "type": "COMMAND"
+    },
+    "evt-state-restored": {
+      "x": 3100,
+      "y": 400,
+      "type": "EVENT"
+    },
+    "rm-active-graph-redo": {
+      "x": 3100,
+      "y": 550,
+      "type": "READMODEL"
+    }
+  },
+  "dataDictionary": {
+    "definitions": {
+      "Model": {
+        "title": "Project Data",
+        "type": "Entity",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Node": {
+        "title": "Diagram Node",
+        "type": "Entity",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "Link": {
+        "title": "Connection",
+        "type": "Entity",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

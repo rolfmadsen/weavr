@@ -4,7 +4,8 @@ import { Node, Link } from '../../modeling';
 import { GRID_SIZE } from '../../../shared/constants';
 import { safeNum, safeStr, getPolylineMidpoint } from '../domain/canvasUtils';
 import { resolveLinkPoints } from '../domain/routing';
-import { useModelingContext } from '../../modeling/store/ModelingContext';
+import { bus } from '../../../shared/events/eventBus';
+// useModelingContext removed
 
 interface UseCanvasInteractionsProps {
     stageRef: React.RefObject<Konva.Stage>;
@@ -42,7 +43,6 @@ export function useCanvasInteractions({
     const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
     const [marqueeRect, setMarqueeRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
     const [validTargetIds, setValidTargetIds] = useState<Set<string>>(new Set());
-    const modelingStore = useModelingContext();
 
     const dragDistance = useRef(0);
     const lastDragPos = useRef({ x: 0, y: 0 });
@@ -336,8 +336,10 @@ export function useCanvasInteractions({
         } else {
             updates.push({ id: nodeId, x, y });
         }
-        modelingStore.moveNodes(updates);
-    }, [lookup, selectedIds, modelingStore]);
+
+        // Emitting command directly (Canvas Isolation)
+        bus.emit('command:moveNodes', { updates, pinned: true });
+    }, [lookup, selectedIds]);
 
     useEffect(() => {
         if (tempLink && onValidateConnection) {

@@ -152,3 +152,9 @@ Support "Data Minimalism" and "Crypto-Shredding" patterns.
 Prevents "External Data Leaks" by enforcing the Translation Pattern.
 *   **Rule**: `External Event` -> `Read Model` is **Forbidden**.
 *   **Solution**: Use `External Event` -> `Automation` -> `Command` to translate external data.
+
+### 4. Actor Management
+Define and manage Actors (Users/Personas) and associate them with specific screens or automations.
+*   **Actors Sidebar**: A dedicated tab to Create, Read, Update, and Delete actors. Syncs in real-time.
+*   **Association**: Link an Actor to a `Screen` or `Automation` via the Properties Panel.
+*   **Smart Creation**: Create new actors directly from the properties dropdown while modeling.
