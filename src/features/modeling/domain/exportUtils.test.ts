@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { exportWeavrProject, importWeavrProject, type WeavrExportData } from './exportUtils';
-import { DefinitionType, DataDefinition } from './types';
+import { DefinitionType, DataDefinition, SliceType } from './types';
 
 import { Node, Link, Slice } from './types';
 
@@ -24,7 +24,7 @@ describe('exportUtils Data Dictionary', () => {
             }
         ];
 
-        const json = exportWeavrProject(mockNodes, mockLinks, mockSlices, mockEdgeRoutes, 'model-1', 'Test', 'WEAVR', definitions) as WeavrExportData;
+        const json = exportWeavrProject(mockNodes, mockLinks, mockSlices, mockEdgeRoutes, new Map(), 'model-1', 'Test', 'WEAVR', definitions) as WeavrExportData;
 
         expect(json.dataDictionary).toBeDefined();
         expect(json.dataDictionary.definitions['OrderStatus']).toBeDefined();
@@ -46,7 +46,7 @@ describe('exportUtils Data Dictionary', () => {
             }
         ];
 
-        const json = exportWeavrProject(mockNodes, mockLinks, mockSlices, mockEdgeRoutes, 'model-1', 'Test', 'WEAVR', definitions) as WeavrExportData;
+        const json = exportWeavrProject(mockNodes, mockLinks, mockSlices, mockEdgeRoutes, new Map(), 'model-1', 'Test', 'WEAVR', definitions) as WeavrExportData;
 
         expect(json.dataDictionary.definitions['Customer']).toBeDefined();
         expect(json.dataDictionary.definitions['Customer'].type).toBe('object');
@@ -108,7 +108,7 @@ describe('exportUtils Data Dictionary', () => {
             { id: 's2', title: 'Slice 2' } // No chapter
         ];
 
-        const json = exportWeavrProject([], [], slicesWithChapters as unknown as Slice[], mockEdgeRoutes, 'model-chap', 'Chapters', 'WEAVR', []) as WeavrExportData;
+        const json = exportWeavrProject([], [], slicesWithChapters as unknown as Slice[], mockEdgeRoutes, new Map(), 'model-chap', 'Chapters', 'WEAVR', []) as WeavrExportData;
 
         // Verify Export
         const exportedSlices = json.eventModel.slices;
@@ -135,7 +135,7 @@ describe('exportUtils Data Dictionary', () => {
             { id: 's1', title: 'Slice 1', specifications: specs }
         ];
 
-        const json = exportWeavrProject([], [], slicesWithSpecs as unknown as Slice[], mockEdgeRoutes, 'model-spec', 'Specs', 'WEAVR', []) as WeavrExportData;
+        const json = exportWeavrProject([], [], slicesWithSpecs as unknown as Slice[], mockEdgeRoutes, new Map(), 'model-spec', 'Specs', 'WEAVR', []) as WeavrExportData;
 
         // Verify Export
         const exportedSlices = json.eventModel.slices;
@@ -146,5 +146,36 @@ describe('exportUtils Data Dictionary', () => {
         const result = importWeavrProject(json);
         expect(result.slices?.['s1']?.specifications).toHaveLength(1);
         expect(result.slices?.['s1']?.specifications?.[0].title).toBe('My Spec');
+    });
+
+    it('should import Slice properties correctly (sliceType, context, actors, aggregates)', () => {
+        const sliceData = {
+            id: 's1',
+            title: 'Complex Slice',
+            sliceType: SliceType.Automation, // Use Enum
+            context: 'EXTERNAL',
+            chapter: 'Core',
+            actors: ['actor1'],
+            aggregates: ['agg1'],
+            specifications: []
+        };
+
+        const json = {
+            meta: { projectId: 'p1', projectName: 'Test' },
+            eventModel: { slices: [sliceData] },
+            layout: {},
+            dataDictionary: { definitions: {} }
+        };
+
+        const result = importWeavrProject(json);
+        const importedSlice = result.slices?.['s1'];
+
+        expect(importedSlice).toBeDefined();
+        expect(importedSlice?.title).toBe('Complex Slice');
+        expect(importedSlice?.sliceType).toBe(SliceType.Automation);
+        expect(importedSlice?.context).toBe('EXTERNAL');
+        expect(importedSlice?.chapter).toBe('Core');
+        expect(importedSlice?.actors).toEqual(['actor1']);
+        expect(importedSlice?.aggregates).toEqual(['agg1']);
     });
 });

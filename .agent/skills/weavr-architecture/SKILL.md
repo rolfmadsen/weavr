@@ -66,7 +66,6 @@ Choose the correct path for a requirement:
 
 ---
 
-## ⏪ 4. Undo/Redo & Resilience
-Weavr implements **Event-Based Undo**.
-- `UndoService` records the inverse of emitted facts.
-- **Resilience**: Every projection must assume data might be partial or eventually consistent (the "P2P vibe").
+## 🌊 4. Resilience
+- **Defense in Depth**: Every projection must assume data might be partial or eventually consistent (the "P2P vibe").
+- **Graceful Failures**: Use optional chaining and fallback values for all Gunnery/State reads.

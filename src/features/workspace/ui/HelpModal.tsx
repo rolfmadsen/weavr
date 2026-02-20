@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ElementType } from '../../modeling';
 import { ELEMENT_STYLE } from '../../../shared/constants';
 import {
@@ -354,7 +354,6 @@ const ControlsContent = () => (
         <li><strong>Navigate:</strong> Use <Kbd>Tab</Kbd> and <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> to cycle through elements.</li>
         <li><strong>Focus Node:</strong> Press <Kbd>F</Kbd> to center the view on the selected element.</li>
         <li><strong>Copy/Paste:</strong> Press <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> to Copy, <Kbd>Ctrl</Kbd>+<Kbd>V</Kbd> to Paste.</li>
-        <li><strong>Undo/Redo:</strong> Press <Kbd>Ctrl</Kbd>+<Kbd>Z</Kbd> to Undo, <Kbd>Ctrl</Kbd>+<Kbd>Y</Kbd> (or <Kbd>Shift</Kbd>+<Kbd>Z</Kbd>) to Redo.</li>
       </ul>
     </div>
 
@@ -405,6 +404,16 @@ const TabButton: React.FC<{
 
 const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
   const [activeTab, setActiveTab] = useState<'introduction' | 'semantics' | 'controls'>('introduction');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleLoadExample = async () => {
     try {

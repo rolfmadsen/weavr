@@ -35,6 +35,9 @@ export interface GraphCanvasKonvaRef {
     panToCenter: () => void;
     handleNavigate: (x: number, y: number) => void;
     getStageDataURL: (config?: any) => string | null;
+    zoomIn: () => void;
+    zoomOut: () => void;
+    resetZoom: () => void;
 }
 
 interface GraphCanvasKonvaProps {
@@ -401,6 +404,9 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         handleMouseUp,
         handleNodeDragMove,
         handleNodeDragEnd,
+        zoomIn,
+        zoomOut,
+        resetZoom,
         lookup
     } = useCanvasInteractions({
         stageRef: stageRef as React.RefObject<Konva.Stage>,
@@ -631,7 +637,10 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             }
 
             return stage.toDataURL(config);
-        }
+        },
+        zoomIn,
+        zoomOut,
+        resetZoom
     }));
 
     const [gridImage, setGridImage] = useState<HTMLImageElement | null>(null);

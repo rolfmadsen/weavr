@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useModelList } from '../../modeling';
 import { X, Plus, Trash2, Edit2 } from 'lucide-react';
@@ -24,6 +24,27 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
     const [deleteModelId, setDeleteModelId] = useState<string | null>(null);
 
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (isCreating) {
+                    setIsCreating(false);
+                } else if (editingId) {
+                    setEditingId(null);
+                } else if (deleteAnchorEl) {
+                    setDeleteAnchorEl(null);
+                    setDeleteModelId(null);
+                } else {
+                    onClose();
+                }
+            }
+        };
+        if (isOpen) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose, isCreating, editingId, deleteAnchorEl]);
+
     if (!isOpen) return null;
 
     const handleCreate = () => {
@@ -42,6 +63,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
     };
 
     const handleDelete = (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
         e.stopPropagation();
         setDeleteModelId(id);
         setDeleteAnchorEl(e.currentTarget as HTMLElement);

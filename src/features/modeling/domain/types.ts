@@ -85,6 +85,9 @@ export interface ModelData {
   slices?: Record<string, Slice>; // Added for Strict Mode Storage
   nodeSliceMap?: Record<string, string>;
   definitions?: DataDefinition[];
+  layout?: Record<string, { x: number, y: number }>;
+  sliceBounds?: Record<string, { x: number, y: number, width: number, height: number }>;
+  edgeRoutes?: Record<string, number[]>;
 }
 
 

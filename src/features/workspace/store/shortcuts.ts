@@ -22,8 +22,6 @@ interface UseKeyboardShortcutsProps {
     onMoveNodes: (updates: Map<string, { fx: number, fy: number }>) => void;
     onFocusNode: (id?: string) => void;
     onAutoLayout: () => void;
-    onUndo: () => void;
-    onRedo: () => void;
     onPaste: (nodes: Node[]) => void;
 }
 
@@ -47,8 +45,6 @@ export function useKeyboardShortcuts({
     onMoveNodes,
     onFocusNode,
     onAutoLayout,
-    onUndo,
-    onRedo,
     onPaste
 }: UseKeyboardShortcutsProps) {
 
@@ -181,20 +177,6 @@ export function useKeyboardShortcuts({
                     break;
             }
 
-            // Undo/Redo
-            if ((event.metaKey || event.ctrlKey) && (event.key === 'z' || event.key === 'Z')) {
-                if (event.shiftKey) {
-                    onRedo();
-                } else {
-                    onUndo();
-                }
-                shouldPreventDefault = true;
-            }
-
-            if ((event.metaKey || event.ctrlKey) && (event.key === 'y' || event.key === 'Y')) {
-                onRedo();
-                shouldPreventDefault = true;
-            }
 
             if (isToolbarOpen) {
                 const tools = [ElementType.Screen, ElementType.Command, ElementType.DomainEvent, ElementType.ReadModel, ElementType.IntegrationEvent, ElementType.Automation];
@@ -255,6 +237,6 @@ export function useKeyboardShortcuts({
         nodes, selectedNodeIds, selectedLinkId, isPanelOpen, isToolbarOpen, isReady,
         showSlices, swimlanePositions, onDeleteSelection, onClosePanel, onToggleToolbar,
         onOpenPropertiesPanel, onOpenSlices, onOpenDictionary, onSelectNode, onAddNode, onMoveNodes, onFocusNode,
-        onAutoLayout, onUndo, onRedo, onPaste
+        onAutoLayout, onPaste
     ]);
 }

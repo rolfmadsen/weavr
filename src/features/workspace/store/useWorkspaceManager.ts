@@ -28,7 +28,7 @@ export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
                 console.error("Failed to parse view state", e);
             }
         }
-        return { x: 0, y: 0, scale: 1 };
+        return { x: 0, y: 0, scale: 1.0 };
     });
 
     useEffect(() => {

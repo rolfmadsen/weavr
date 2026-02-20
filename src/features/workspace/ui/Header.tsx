@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Wand2,
   Menu,
-  Undo,
-  Redo,
   Edit,
   Share2,
   PinOff
@@ -18,10 +16,6 @@ interface HeaderProps {
   onExport: () => void;
   onStandardExport?: () => void;
   onOpenHelp: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
   onAutoLayout: () => void;
   onUnpinAll: () => void;
   onOpenModelList: () => void;
@@ -64,10 +58,6 @@ const Header: React.FC<HeaderProps> = ({
   onExport,
   onStandardExport,
   onOpenHelp,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
   onAutoLayout,
   onUnpinAll,
   onOpenModelList,
@@ -139,11 +129,6 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop Tools */}
         <div className="hidden md:flex items-center gap-3">
-          {/* Undo / Redo */}
-          <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-full p-0.5">
-            <IconButton onClick={onUndo} disabled={!canUndo} title="Undo"><Undo size={16} /></IconButton>
-            <IconButton onClick={onRedo} disabled={!canRedo} title="Redo"><Redo size={16} /></IconButton>
-          </div>
 
           <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-1"></div>
 

@@ -25,7 +25,10 @@ const ConfirmMenu: React.FC<ConfirmMenuProps> = ({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]" onClick={onClose}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]" onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+        }}>
             <GlassCard
                 variant="panel"
                 className="w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 border-red-500/20"
@@ -36,13 +39,19 @@ const ConfirmMenu: React.FC<ConfirmMenuProps> = ({
                 </p>
 
                 <div className="flex justify-end gap-3">
-                    <GlassButton variant="ghost" size="sm" onClick={onClose}>
+                    <GlassButton variant="ghost" size="sm" onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onClose();
+                    }}>
                         Cancel
                     </GlassButton>
                     <GlassButton
                         variant="danger"
                         size="sm"
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
                             onConfirm();
                             onClose();
                         }}

@@ -32,11 +32,6 @@ interface ModelingState {
     addActor: (actor: Actor) => void;
     updateActor: (id: string, changes: Partial<Actor>) => void;
     removeActor: (id: string) => void;
-
-    // History State
-    canUndo: boolean;
-    canRedo: boolean;
-    setHistoryState: (canUndo: boolean, canRedo: boolean) => void;
 }
 
 export const useModelingData = create<ModelingState>((set) => ({
@@ -44,8 +39,6 @@ export const useModelingData = create<ModelingState>((set) => ({
     links: [],
     slices: [],
     definitions: [],
-    canUndo: false,
-    canRedo: false,
 
     setNodes: (nodes) => set({ nodes }),
     addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
@@ -82,6 +75,4 @@ export const useModelingData = create<ModelingState>((set) => ({
     removeActor: (id) => set((state) => ({
         actors: state.actors.filter(a => a.id !== id)
     })),
-
-    setHistoryState: (canUndo, canRedo) => set({ canUndo, canRedo }),
 }));

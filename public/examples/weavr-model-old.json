@@ -1,0 +1,2559 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "generator": "Weavr",
+    "createdAt": "2026-02-07T17:01:56.657Z",
+    "updatedAt": "2026-02-07T17:01:56.657Z",
+    "projectId": "81820277-f337-4d46-af2e-f0edc475d0a5",
+    "projectName": "Weavr the Event Modeling Collaboration Editor"
+  },
+  "eventModel": {
+    "slices": [
+      {
+        "id": "slice_maintenance",
+        "title": "System Maintenance",
+        "sliceType": "STATE_CHANGE",
+        "commands": [],
+        "events": [
+          {
+            "id": "evt_migrated",
+            "title": "Data Updated",
+            "type": "EVENT",
+            "description": "Schema Normalized",
+            "dependencies": [
+              {
+                "id": "rm_graph_4",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_graph_4",
+            "title": "Graph Projection",
+            "type": "READMODEL",
+            "description": "Clean Data",
+            "dependencies": [
+              {
+                "id": "scr_canvas",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [],
+        "screenImages": [],
+        "processors": [
+          {
+            "id": "auto_migration",
+            "title": "System Maintenance",
+            "type": "AUTOMATION",
+            "description": "Migration & Normalization",
+            "dependencies": [
+              {
+                "id": "evt_migrated",
+                "type": "OUTBOUND",
+                "title": "updates data",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_migration",
+            "title": "Data Migration",
+            "given": [
+              {
+                "id": "given_legacy_node",
+                "title": "Legacy Node Type Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_migration_runs",
+                "title": "Migration Runs on Load"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_node_updated_mig",
+                "title": "Node Updated to Current Schema"
+              }
+            ]
+          },
+          {
+            "id": "spec_normalizer",
+            "title": "Attribute Normalizer",
+            "given": [
+              {
+                "id": "given_legacy_attr",
+                "title": "Legacy Attribute Type"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_norm_runs",
+                "title": "Normalizer Runs"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_attr_updated",
+                "title": "Attribute Type Normalized"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_modeling",
+        "title": "Modeling (Add Element)",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_node",
+            "title": "Create Node",
+            "type": "COMMAND",
+            "description": "Add a new node to the canvas",
+            "dependencies": [
+              {
+                "id": "evt_node_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_node_created",
+            "title": "Node Created",
+            "type": "EVENT",
+            "description": "Node persisted",
+            "dependencies": [
+              {
+                "id": "rm_graph",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_graph",
+            "title": "Graph Projection",
+            "type": "READMODEL",
+            "description": "Visual Graph State",
+            "dependencies": [
+              {
+                "id": "scr_canvas",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Main Editing Interface",
+            "dependencies": [
+              {
+                "id": "cmd_create_node",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_add_element",
+            "title": "Add Element",
+            "given": [
+              {
+                "id": "given_project_exists",
+                "title": "Project Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_create_node",
+                "title": "Create Node (Command)"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_node_persisted",
+                "title": "Node Persisted in GunDB"
+              }
+            ]
+          },
+          {
+            "id": "spec_update_node",
+            "title": "Update Node Properties",
+            "given": [
+              {
+                "id": "given_node_exists",
+                "title": "Node 'A' Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_update_node",
+                "title": "Update Node (Name: 'Process')"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_node_updated",
+                "title": "Node Metadata Updated"
+              }
+            ]
+          },
+          {
+            "id": "spec_delete_node",
+            "title": "Delete Node",
+            "given": [
+              {
+                "id": "given_node_exists_del",
+                "title": "Node 'A' Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_delete_node",
+                "title": "Delete Node 'A'"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_node_removed",
+                "title": "Node & Links Removed"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_connecting",
+        "title": "Connecting (Connect Elements)",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_link",
+            "title": "Create Link",
+            "type": "COMMAND",
+            "description": "Connect two nodes",
+            "dependencies": [
+              {
+                "id": "evt_link_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_link_created",
+            "title": "Link Created",
+            "type": "EVENT",
+            "description": "Link persisted",
+            "dependencies": [
+              {
+                "id": "rm_graph_2",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_graph_2",
+            "title": "Graph Projection",
+            "type": "READMODEL",
+            "description": "Updated Connections",
+            "dependencies": [
+              {
+                "id": "scr_canvas_2",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_2",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Interactive Ports",
+            "dependencies": [
+              {
+                "id": "cmd_create_link",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_connect_elements",
+            "title": "Connect Elements",
+            "given": [
+              {
+                "id": "given_nodes_exist",
+                "title": "Source & Target Nodes Exist"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_create_link",
+                "title": "Create Link"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_link_persisted",
+                "title": "Link Persisted (Causal Relationship)"
+              }
+            ]
+          },
+          {
+            "id": "spec_update_link",
+            "title": "Update Link Label",
+            "given": [
+              {
+                "id": "given_link_exists",
+                "title": "Link 'L1' Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_update_link",
+                "title": "Update Link (Label: 'triggers')"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_link_updated",
+                "title": "Relationship Description Updated"
+              }
+            ]
+          },
+          {
+            "id": "spec_delete_link",
+            "title": "Delete Link",
+            "given": [
+              {
+                "id": "given_link_exists_del",
+                "title": "Link 'L1' Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_delete_link",
+                "title": "Delete Link 'L1'"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_link_removed",
+                "title": "Relationship Removed"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_organizing",
+        "title": "Organizing (Slice Management)",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_slice",
+            "title": "Create Slice",
+            "type": "COMMAND",
+            "description": "Add a new slice",
+            "dependencies": [
+              {
+                "id": "evt_slice_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_slice_created",
+            "title": "Slice Created",
+            "type": "EVENT",
+            "description": "Slice persisted",
+            "dependencies": [
+              {
+                "id": "rm_structure",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_structure",
+            "title": "Structure Projection",
+            "type": "READMODEL",
+            "description": "Swimlanes Layout",
+            "dependencies": [
+              {
+                "id": "scr_canvas_3",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_3",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Slice Headers",
+            "dependencies": [
+              {
+                "id": "cmd_create_slice",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_create_slice",
+            "title": "Create Slice",
+            "given": [
+              {
+                "id": "given_project_exists_slice",
+                "title": "Project Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_create_slice",
+                "title": "Create Slice 'Fulfillment'"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_slice_created",
+                "title": "New Swimlane Created"
+              }
+            ]
+          },
+          {
+            "id": "spec_update_slice",
+            "title": "Update Slice",
+            "given": [
+              {
+                "id": "given_slice_exists",
+                "title": "Slice 'Auth' Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_update_slice",
+                "title": "Update Slice (Title: 'Authentication')"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_slice_updated",
+                "title": "Metadata Updated, Nodes Context Updated"
+              }
+            ]
+          },
+          {
+            "id": "spec_delete_slice",
+            "title": "Delete Slice",
+            "given": [
+              {
+                "id": "given_slice_exists_del",
+                "title": "Slice 'S1' Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_delete_slice",
+                "title": "Delete Slice 'S1'"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_slice_removed",
+                "title": "Slice Removed from Layout"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_dictionary",
+        "title": "Dictionary (Define Data)",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_def",
+            "title": "Create Definition",
+            "type": "COMMAND",
+            "description": "Define a new data type",
+            "dependencies": [
+              {
+                "id": "evt_def_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_def_created",
+            "title": "Definition Created",
+            "type": "EVENT",
+            "description": "Definition stored",
+            "dependencies": [
+              {
+                "id": "rm_dictionary",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              },
+              {
+                "id": "auto_dict_verify",
+                "type": "OUTBOUND",
+                "title": "Verified by",
+                "elementType": "AUTOMATION"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_dictionary",
+            "title": "Dictionary Projection",
+            "type": "READMODEL",
+            "description": "List of Definitions",
+            "dependencies": [
+              {
+                "id": "scr_dict_modal",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_dict_modal",
+            "title": "Dictionary Modal",
+            "type": "SCREEN",
+            "description": "Schema Editor",
+            "dependencies": [
+              {
+                "id": "cmd_create_def",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_create_def",
+            "title": "Create Definition",
+            "given": [
+              {
+                "id": "given_no_def",
+                "title": "No Definition for 'User'"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_create_def",
+                "title": "Create Definition 'User'"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_def_stored",
+                "title": "Global Definition Stored"
+              }
+            ]
+          },
+          {
+            "id": "spec_add_attr",
+            "title": "Add Attribute",
+            "given": [
+              {
+                "id": "given_entity_exists",
+                "title": "Entity 'User' Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_add_attr",
+                "title": "Add Attribute 'email'"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_schema_updated",
+                "title": "Schema Updated with 'email'"
+              }
+            ]
+          },
+          {
+            "id": "spec_update_attr_type",
+            "title": "Update Attribute Type",
+            "given": [
+              {
+                "id": "given_attr_exists",
+                "title": "Attribute 'age' is String"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_update_attr",
+                "title": "Update Attribute Type to 'Int'"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_type_enforced",
+                "title": "Strict Type Enforced"
+              }
+            ]
+          },
+          {
+            "id": "spec_link_field",
+            "title": "Link Field to Definition",
+            "given": [
+              {
+                "id": "given_field_def_exist",
+                "title": "Field 'customer_id' & Def 'Customer' Exist"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_link_field",
+                "title": "Link Field to Definition"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_field_linked",
+                "title": "Type Consistency Enforced"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_dictionary_verification",
+        "title": "Dictionary Verification",
+        "sliceType": "STATE_CHANGE",
+        "commands": [],
+        "events": [
+          {
+            "id": "evt_dict_verified",
+            "title": "Dictionary Verified",
+            "type": "EVENT",
+            "description": "Consistency Result",
+            "dependencies": [
+              {
+                "id": "rm_dict_status",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_dict_status",
+            "title": "Dictionary Status",
+            "type": "READMODEL",
+            "description": "Health Report",
+            "dependencies": [
+              {
+                "id": "0be6206a-09ca-46db-9aaa-913788dadb09",
+                "type": "OUTBOUND",
+                "title": "",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "0be6206a-09ca-46db-9aaa-913788dadb09",
+            "title": "Dictionary Modal",
+            "type": "SCREEN",
+            "description": "",
+            "dependencies": [],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [
+          {
+            "id": "auto_dict_verify",
+            "title": "Dictionary Verifier",
+            "type": "AUTOMATION",
+            "description": "Consistency Checks",
+            "dependencies": [
+              {
+                "id": "evt_dict_verified",
+                "type": "OUTBOUND",
+                "title": "produces report",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_verify_definitions",
+            "title": "Verify Definitions",
+            "given": [
+              {
+                "id": "given_invalid_def",
+                "title": "Invalid Definition Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_verification_runs",
+                "title": "Verification Runs"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_flagged",
+                "title": "Inconsistency Flagged"
+              }
+            ]
+          },
+          {
+            "id": "spec_orphaned_attributes",
+            "title": "Check Orphaned Attributes",
+            "given": [
+              {
+                "id": "given_orphan_attr",
+                "title": "Attribute without Definition"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_check_orphans",
+                "title": "Orphan Check Runs"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_alert_generated",
+                "title": "Cleanup Alert Generated"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_collaboration",
+        "title": "Collaboration & Portability",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_export",
+            "title": "Export Model",
+            "type": "COMMAND",
+            "description": "Download model as JSON",
+            "dependencies": [
+              {
+                "id": "evt_exported",
+                "type": "OUTBOUND",
+                "title": "generates",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_exported",
+            "title": "Model Exported",
+            "type": "EVENT",
+            "description": "JSON generated",
+            "dependencies": [],
+            "fields": []
+          }
+        ],
+        "readmodels": [],
+        "screens": [
+          {
+            "id": "scr_start",
+            "title": "Start Screen",
+            "type": "SCREEN",
+            "description": "My Models",
+            "dependencies": [
+              {
+                "id": "cmd_export",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_export",
+            "title": "Export Model",
+            "given": [
+              {
+                "id": "given_model_exists",
+                "title": "Local Model Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_export",
+                "title": "Export Model (JSON)"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_file_generated",
+                "title": "JSON File Generated"
+              }
+            ]
+          },
+          {
+            "id": "spec_import",
+            "title": "Import Model",
+            "given": [
+              {
+                "id": "given_local_model",
+                "title": "Local Model Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_import",
+                "title": "Import Model (Merge)"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_merged",
+                "title": "External Nodes Merged into Graph"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_project",
+        "title": "Project Management",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_rename_model",
+            "title": "Rename Model",
+            "type": "COMMAND",
+            "description": "Change project title",
+            "dependencies": [
+              {
+                "id": "evt_model_renamed",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_model_renamed",
+            "title": "Model Renamed",
+            "type": "EVENT",
+            "description": "Project name changed",
+            "dependencies": [],
+            "fields": []
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_rename_model",
+            "title": "Rename Model",
+            "given": [
+              {
+                "id": "given_model_exists_rename",
+                "title": "Model Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_rename_model",
+                "title": "Rename Model (Command)"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_model_renamed",
+                "title": "Model Internal Name Updated"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_canvas_interaction",
+        "title": "Canvas Interaction",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_layout",
+            "title": "Auto Layout",
+            "type": "COMMAND",
+            "description": "Key: Cmd+L",
+            "dependencies": [
+              {
+                "id": "evt_layout",
+                "type": "OUTBOUND",
+                "title": "recalculates",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_layout",
+            "title": "Layout Calculated",
+            "type": "EVENT",
+            "description": "Positions Updated",
+            "dependencies": [
+              {
+                "id": "rm_graph_3",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_graph_3",
+            "title": "Graph Projection",
+            "type": "READMODEL",
+            "description": "New Coordinates",
+            "dependencies": [
+              {
+                "id": "scr_canvas_7",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_7",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Layout Controls",
+            "dependencies": [
+              {
+                "id": "cmd_layout",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_auto_layout",
+            "title": "Auto Layout",
+            "given": [
+              {
+                "id": "given_nodes_scattered",
+                "title": "Nodes Scattered"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_auto_layout",
+                "title": "Auto Layout (Cmd+L)"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_nodes_aligned",
+                "title": "Nodes Aligned by ELK"
+              }
+            ]
+          },
+          {
+            "id": "spec_move_node",
+            "title": "Move Node",
+            "given": [
+              {
+                "id": "given_node_at_100",
+                "title": "Node at 100,100"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_move_node",
+                "title": "Move Node to 200,200"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_coords_updated",
+                "title": "Coordinates Persisted"
+              }
+            ]
+          },
+          {
+            "id": "spec_pin_node",
+            "title": "Pin Node",
+            "given": [
+              {
+                "id": "given_node_unpinned",
+                "title": "Node Unpinned"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_pin_node",
+                "title": "Pin Node"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_node_pinned",
+                "title": "Node Pinned (Resists Layout)"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_analytics",
+        "title": "Usage Analytics",
+        "sliceType": "STATE_CHANGE",
+        "commands": [],
+        "events": [
+          {
+            "id": "evt_help",
+            "title": "Event Appended to Event Store",
+            "type": "EVENT",
+            "description": "User clicked help",
+            "dependencies": [
+              {
+                "id": "auto_plausible",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "AUTOMATION"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "screenImages": [],
+        "processors": [
+          {
+            "id": "auto_plausible",
+            "title": "Plausible Tracker",
+            "type": "AUTOMATION",
+            "description": "Send signal",
+            "dependencies": [],
+            "fields": []
+          }
+        ],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_analytics",
+            "title": "Telemetry Tracking",
+            "given": [
+              {
+                "id": "given_app_loaded",
+                "title": "App Loaded"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_help_opened",
+                "title": "Help Opened"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_signal_sent",
+                "title": "Signal Sent to Plausible"
+              }
+            ]
+          },
+          {
+            "id": "spec_layout_analytics",
+            "title": "Layout Tracking",
+            "given": [
+              {
+                "id": "given_layout_triggered",
+                "title": "Layout Triggered"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_layout_req",
+                "title": "Layout Requested"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_layout_signal",
+                "title": "Layout Signal Sent"
+              }
+            ]
+          },
+          {
+            "id": "spec_model_analytics",
+            "title": "Model Rename Tracking",
+            "given": [
+              {
+                "id": "given_model_renamed",
+                "title": "Model Renamed"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_rename_event",
+                "title": "Model Renamed Event"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_rename_signal",
+                "title": "Rename Signal Sent"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_interaction",
+        "title": "User Interaction",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_toggle_toolbar",
+            "title": "Toggle Toolbar",
+            "type": "COMMAND",
+            "description": "Key: 'A'",
+            "dependencies": [
+              {
+                "id": "evt_toolbar_toggled",
+                "type": "OUTBOUND",
+                "title": "updates UI",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_toolbar_toggled",
+            "title": "Toolbar Toggled",
+            "type": "EVENT",
+            "description": "Visibility Changed",
+            "dependencies": [
+              {
+                "id": "rm_ui_state",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_ui_state",
+            "title": "UI Projection",
+            "type": "READMODEL",
+            "description": "View Preferences",
+            "dependencies": [
+              {
+                "id": "scr_canvas_5",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_5",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Toolbar",
+            "dependencies": [
+              {
+                "id": "cmd_toggle_toolbar",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_toolbar",
+            "title": "Toggle Toolbar",
+            "given": [
+              {
+                "id": "given_toolbar_visible",
+                "title": "Toolbar Visible"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_toggle_toolbar",
+                "title": "Toggle Toolbar ('A')"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_toolbar_hidden",
+                "title": "Toolbar Hidden"
+              }
+            ]
+          },
+          {
+            "id": "spec_properties",
+            "title": "Open Properties",
+            "given": [
+              {
+                "id": "given_node_selected",
+                "title": "Node Selected"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_open_props",
+                "title": "Open Properties (Enter)"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_panel_opens",
+                "title": "Properties Panel Opens"
+              }
+            ]
+          },
+          {
+            "id": "spec_copy_paste",
+            "title": "Copy & Paste",
+            "given": [
+              {
+                "id": "given_nodes_selected",
+                "title": "Nodes Selected"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_copy",
+                "title": "Copy Selection"
+              },
+              {
+                "id": "when_paste",
+                "title": "Paste Selection"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_nodes_duplicated",
+                "title": "Nodes Duplicated with New IDs"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "slice_actors",
+        "title": "Manage Actors",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_actor",
+            "title": "Create Actor",
+            "type": "COMMAND",
+            "description": "Register new stakeholder",
+            "dependencies": [
+              {
+                "id": "evt_actor_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_actor_created",
+            "title": "Actor Created",
+            "type": "EVENT",
+            "description": "Actor available",
+            "dependencies": [
+              {
+                "id": "rm_actors",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_actors",
+            "title": "Actor Projection",
+            "type": "READMODEL",
+            "description": "Available Roles",
+            "dependencies": [
+              {
+                "id": "scr_canvas_4",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_4",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Actor Management",
+            "dependencies": [
+              {
+                "id": "cmd_create_actor",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [
+          {
+            "id": "spec_create_actor",
+            "title": "Create Actor",
+            "given": [
+              {
+                "id": "given_proj_exists",
+                "title": "Project Exists"
+              }
+            ],
+            "when": [
+              {
+                "id": "when_create_actor",
+                "title": "Create Actor 'Admin'"
+              }
+            ],
+            "then": [
+              {
+                "id": "then_actor_persisted",
+                "title": "Actor Persisted & Assignable"
+              }
+            ]
+          }
+        ],
+        "actors": [],
+        "aggregates": []
+      }
+    ]
+  },
+  "layout": {
+    "scr_canvas_7": {
+      "x": 3660,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_dict_modal": {
+      "x": 2180,
+      "y": 140,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Dictionary Modal"
+    },
+    "scr_start": {
+      "x": 2980,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Start Screen"
+    },
+    "auto_dict_verify": {
+      "x": 2700,
+      "y": 220,
+      "height": 40,
+      "type": "AUTOMATION",
+      "title": "Dictionary Verifier"
+    },
+    "auto_migration": {
+      "x": 220,
+      "y": 140,
+      "height": 40,
+      "type": "AUTOMATION",
+      "title": "System Maintenance"
+    },
+    "auto_plausible": {
+      "x": 4060,
+      "y": 200,
+      "height": 40,
+      "type": "AUTOMATION",
+      "title": "Plausible Tracker"
+    },
+    "cmd_create_actor": {
+      "x": 5580,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Actor"
+    },
+    "cmd_create_def": {
+      "x": 2300,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Definition"
+    },
+    "cmd_create_link": {
+      "x": 1260,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Link"
+    },
+    "cmd_create_node": {
+      "x": 740,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Node"
+    },
+    "cmd_create_slice": {
+      "x": 1780,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Slice"
+    },
+    "cmd_toggle_toolbar": {
+      "x": 4580,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Toggle Toolbar"
+    },
+    "evt_actor_created": {
+      "x": 5460,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Actor Created"
+    },
+    "evt_def_created": {
+      "x": 2180,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Definition Created"
+    },
+    "evt_dict_verified": {
+      "x": 2640,
+      "y": 460,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Dictionary Verified"
+    },
+    "evt_help": {
+      "x": 4060,
+      "y": 320,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Event Appended to Event Store"
+    },
+    "evt_layout": {
+      "x": 3660,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Layout Calculated"
+    },
+    "evt_link_created": {
+      "x": 1140,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Link Created"
+    },
+    "evt_migrated": {
+      "x": 160,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Data Updated"
+    },
+    "evt_model_renamed": {
+      "x": 3260,
+      "y": 340,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Model Renamed"
+    },
+    "evt_node_created": {
+      "x": 620,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Node Created"
+    },
+    "evt_toolbar_toggled": {
+      "x": 4460,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Toolbar Toggled"
+    },
+    "scr_canvas": {
+      "x": 620,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_canvas_2": {
+      "x": 1140,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_canvas_3": {
+      "x": 1660,
+      "y": 140,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_canvas_4": {
+      "x": 5460,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_canvas_5": {
+      "x": 4460,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "evt_exported": {
+      "x": 2980,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Model Exported"
+    },
+    "cmd_export": {
+      "x": 2980,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Export Model"
+    },
+    "cmd_layout": {
+      "x": 3780,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Auto Layout"
+    },
+    "cmd_rename_model": {
+      "x": 3260,
+      "y": 220,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Rename Model"
+    },
+    "evt_slice_created": {
+      "x": 1660,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Slice Created"
+    },
+    "rm_actors": {
+      "x": 5340,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Actor Projection"
+    },
+    "rm_dict_status": {
+      "x": 2580,
+      "y": 340,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Dictionary Status"
+    },
+    "rm_dictionary": {
+      "x": 2060,
+      "y": 260,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Dictionary Projection"
+    },
+    "rm_graph_2": {
+      "x": 1020,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Graph Projection"
+    },
+    "rm_graph_3": {
+      "x": 3540,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Graph Projection"
+    },
+    "rm_structure": {
+      "x": 1540,
+      "y": 260,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Structure Projection"
+    },
+    "rm_ui_state": {
+      "x": 4340,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "UI Projection"
+    },
+    "rm_graph_4": {
+      "x": 100,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Graph Projection"
+    },
+    "rm_graph": {
+      "x": 500,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Graph Projection"
+    },
+    "0be6206a-09ca-46db-9aaa-913788dadb09": {
+      "x": 2580,
+      "y": 100,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Dictionary Modal"
+    },
+    "cmd_create_node_evt_node_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        820,
+        360,
+        820,
+        360,
+        720,
+        360,
+        720,
+        400
+      ]
+    },
+    "cmd_layout_evt_layout": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3860,
+        360,
+        3860,
+        360,
+        3760,
+        360,
+        3760,
+        400
+      ]
+    },
+    "auto_migration_evt_migrated": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        300,
+        240,
+        300,
+        380,
+        260,
+        380,
+        260,
+        400
+      ]
+    },
+    "auto_dict_verify_evt_dict_verified": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2780,
+        300,
+        2780,
+        420,
+        2740,
+        420,
+        2740,
+        460
+      ]
+    },
+    "cmd_create_link_evt_link_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1340,
+        360,
+        1340,
+        360,
+        1240,
+        360,
+        1240,
+        400
+      ]
+    },
+    "cmd_create_slice_evt_slice_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1860,
+        360,
+        1860,
+        380,
+        1760,
+        380,
+        1760,
+        400
+      ]
+    },
+    "cmd_create_def_evt_def_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2380,
+        360,
+        2380,
+        380,
+        2280,
+        380,
+        2280,
+        400
+      ]
+    },
+    "cmd_export_evt_exported": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3060,
+        360,
+        3060,
+        400
+      ]
+    },
+    "evt_help_auto_plausible": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4140,
+        320,
+        4140,
+        280
+      ]
+    },
+    "cmd_create_actor_evt_actor_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        5660,
+        360,
+        5660,
+        360,
+        5560,
+        360,
+        5560,
+        400
+      ]
+    },
+    "cmd_toggle_toolbar_evt_toolbar_toggled": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4660,
+        360,
+        4660,
+        360,
+        4560,
+        360,
+        4560,
+        400
+      ]
+    },
+    "cmd_rename_model_evt_model_renamed": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3340,
+        300,
+        3340,
+        340
+      ]
+    },
+    "evt_node_created_rm_graph": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        660,
+        400,
+        660,
+        360,
+        580,
+        360,
+        580,
+        360
+      ]
+    },
+    "evt_migrated_rm_graph_4": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        200,
+        400,
+        200,
+        380,
+        180,
+        380,
+        180,
+        360
+      ]
+    },
+    "evt_dict_verified_rm_dict_status": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2680,
+        460,
+        2680,
+        420,
+        2660,
+        420,
+        2660,
+        420
+      ]
+    },
+    "evt_link_created_rm_graph_2": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1180,
+        400,
+        1180,
+        360,
+        1100,
+        360,
+        1100,
+        360
+      ]
+    },
+    "evt_slice_created_rm_structure": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1700,
+        400,
+        1700,
+        380,
+        1620,
+        380,
+        1620,
+        360
+      ]
+    },
+    "evt_def_created_rm_dictionary": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2220,
+        400,
+        2220,
+        380,
+        2140,
+        380,
+        2140,
+        360
+      ]
+    },
+    "evt_actor_created_rm_actors": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        5500,
+        400,
+        5500,
+        360,
+        5420,
+        360,
+        5420,
+        360
+      ]
+    },
+    "evt_toolbar_toggled_rm_ui_state": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4500,
+        400,
+        4500,
+        360,
+        4420,
+        360,
+        4420,
+        360
+      ]
+    },
+    "rm_graph_3_scr_canvas_7": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3620,
+        280,
+        3620,
+        240,
+        3700,
+        240,
+        3700,
+        240
+      ]
+    },
+    "rm_graph_4_scr_canvas": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        400,
+        300,
+        440,
+        300
+      ]
+    },
+    "rm_graph_2_scr_canvas_2": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1100,
+        280,
+        1100,
+        240,
+        1180,
+        240,
+        1180,
+        240
+      ]
+    },
+    "rm_structure_scr_canvas_3": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1620,
+        260,
+        1620,
+        240,
+        1700,
+        240,
+        1700,
+        220
+      ]
+    },
+    "rm_dictionary_scr_dict_modal": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2140,
+        260,
+        2140,
+        240,
+        2220,
+        240,
+        2220,
+        220
+      ]
+    },
+    "rm_actors_scr_canvas_4": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        5420,
+        280,
+        5420,
+        240,
+        5500,
+        240,
+        5500,
+        240
+      ]
+    },
+    "rm_ui_state_scr_canvas_5": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4420,
+        280,
+        4420,
+        240,
+        4500,
+        240,
+        4500,
+        240
+      ]
+    },
+    "scr_canvas_cmd_create_node": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        720,
+        240,
+        720,
+        240,
+        820,
+        240,
+        820,
+        280
+      ]
+    },
+    "scr_canvas_7_cmd_layout": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3760,
+        240,
+        3760,
+        240,
+        3860,
+        240,
+        3860,
+        280
+      ]
+    },
+    "scr_canvas_2_cmd_create_link": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1240,
+        240,
+        1240,
+        240,
+        1340,
+        240,
+        1340,
+        280
+      ]
+    },
+    "scr_canvas_3_cmd_create_slice": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1760,
+        220,
+        1760,
+        240,
+        1860,
+        240,
+        1860,
+        280
+      ]
+    },
+    "scr_dict_modal_cmd_create_def": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2280,
+        220,
+        2280,
+        240,
+        2380,
+        240,
+        2380,
+        280
+      ]
+    },
+    "scr_start_cmd_export": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3060,
+        240,
+        3060,
+        280
+      ]
+    },
+    "scr_canvas_4_cmd_create_actor": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        5560,
+        240,
+        5560,
+        240,
+        5660,
+        240,
+        5660,
+        280
+      ]
+    },
+    "scr_canvas_5_cmd_toggle_toolbar": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4560,
+        240,
+        4560,
+        240,
+        4660,
+        240,
+        4660,
+        280
+      ]
+    },
+    "evt_layout_rm_graph_3": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3700,
+        400,
+        3700,
+        360,
+        3620,
+        360,
+        3620,
+        360
+      ]
+    },
+    "rm_graph_scr_canvas": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        580,
+        280,
+        580,
+        240,
+        660,
+        240,
+        660,
+        240
+      ]
+    },
+    "rm_dict_status_0be6206a-09ca-46db-9aaa-913788dadb09": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2660,
+        340,
+        2660,
+        180
+      ]
+    },
+    "evt_def_created_auto_dict_verify": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2480,
+        300,
+        2520,
+        300
+      ]
+    }
+  },
+  "dataDictionary": {
+    "definitions": {
+      "Project": {
+        "type": "object",
+        "title": "Project",
+        "description": "The top-level container for a modeling project.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "apiHost": {
+            "type": "string"
+          }
+        }
+      },
+      "Slice": {
+        "type": "object",
+        "title": "Slice",
+        "description": "A horizontal swimming lane grouping related functionality.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "context": {
+            "type": "string"
+          },
+          "sliceType": {
+            "type": "string"
+          }
+        }
+      },
+      "UIState": {
+        "type": "object",
+        "title": "UIState",
+        "description": "Transient state of the user interface.",
+        "properties": {
+          "isVisible": {
+            "type": "boolean"
+          },
+          "isToolbarOpen": {
+            "type": "boolean"
+          }
+        }
+      },
+      "VerificationResult": {
+        "type": "object",
+        "title": "VerificationResult",
+        "description": "Results from consistency verification.",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "issuesFound": {
+            "type": "integer"
+          },
+          "report": {
+            "type": "string"
+          }
+        }
+      },
+      "Actor": {
+        "type": "object",
+        "title": "Actor",
+        "description": "A user role or external system interacting with the application.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      },
+      "AnalyticsEvent": {
+        "type": "object",
+        "title": "AnalyticsEvent",
+        "description": "A trackable interaction signal.",
+        "properties": {
+          "element": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          }
+        }
+      },
+      "DataDefinition": {
+        "type": "object",
+        "title": "DataDefinition",
+        "description": "A schema definition for the Data Dictionary.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "string"
+          }
+        }
+      },
+      "LayoutResult": {
+        "type": "object",
+        "title": "LayoutResult",
+        "description": "Metrics from an auto-layout calculation.",
+        "properties": {
+          "algorithm": {
+            "type": "string"
+          },
+          "nodeCount": {
+            "type": "integer"
+          },
+          "durationMs": {
+            "type": "integer"
+          }
+        }
+      },
+      "Link": {
+        "type": "object",
+        "title": "Link",
+        "description": "A connection between two nodes.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "MaintenanceTask": {
+        "type": "object",
+        "title": "MaintenanceTask",
+        "description": "Parameters and results for system maintenance.",
+        "properties": {
+          "targetVersion": {
+            "type": "string"
+          },
+          "recordsUpdated": {
+            "type": "integer"
+          }
+        }
+      },
+      "Node": {
+        "type": "object",
+        "title": "Node",
+        "description": "A visual element on the canvas representing a domain concept.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "sliceId": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "aggregate": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

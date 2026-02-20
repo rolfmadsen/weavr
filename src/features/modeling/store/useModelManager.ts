@@ -15,7 +15,6 @@ import { default as validationService } from '../domain/validation';
 import { useGraphSync } from '../../collaboration';
 import { useSelection, type GraphCanvasKonvaRef } from '../../canvas';
 import { bus } from '../../../shared/events/eventBus';
-import { useModelingData } from './modelingStore';
 
 interface UseModelManagerProps {
     modelId: string | null;
@@ -83,10 +82,6 @@ export const useModelManager = ({
         });
         return Array.from(orphaned.values());
     }, [nodes]);
-
-    // History managed by UndoService + Zustand Store
-    const canUndo = useModelingData(s => s.canUndo);
-    const canRedo = useModelingData(s => s.canRedo);
 
     const {
         selectedNodeIds,
@@ -352,15 +347,6 @@ export const useModelManager = ({
         signal("Nodes.Pasted", { count: newSelectionIds.length });
     }, [modelId, setSelection, signal]);
 
-    const handleUndo = useCallback(() => {
-        bus.emit('command:undo');
-        signal("History.Undo");
-    }, [signal]);
-
-    const handleRedo = useCallback(() => {
-        bus.emit('command:redo');
-        signal("History.Redo");
-    }, [signal]);
 
     const addActor = useCallback((actor: { name: string; description: string; color: string }) => {
         const id = uuidv4();
@@ -439,10 +425,6 @@ export const useModelManager = ({
             bus.emit('command:deleteSlice', { id });
         },
         updateEdgeRoutes,
-        undo: handleUndo,
-        redo: handleRedo,
-        canUndo,
-        canRedo,
         selectNode,
         selectLink,
         clearSelection,

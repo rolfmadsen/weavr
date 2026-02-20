@@ -14,6 +14,7 @@ export interface WeavrExportData {
         slices: any[];
     };
     layout: Record<string, any>;
+    sliceBounds?: Record<string, { x: number, y: number, width: number, height: number }>;
     dataDictionary: {
         definitions: Record<string, any>;
     };
@@ -58,6 +59,7 @@ export const exportWeavrProject = (
     links: Link[],
     slices: Slice[],
     edgeRoutes: Map<string, number[]>,
+    sliceBoundsMap: Map<string, { x: number, y: number, width: number, height: number }>,
     modelId: string,
     projectName: string = 'Untitled Project',
     format: 'WEAVR' | 'STANDARD' = 'WEAVR',
@@ -258,6 +260,13 @@ export const exportWeavrProject = (
         }
     });
 
+    const sliceBounds: Record<string, any> = {};
+    if (sliceBoundsMap) {
+        sliceBoundsMap.forEach((bounds: { x: number, y: number, width: number, height: number }, id: string) => {
+            sliceBounds[id] = bounds;
+        });
+    }
+
     if (format === 'STANDARD') {
         return {
             slices: Array.from(sliceMap.values())
@@ -270,16 +279,18 @@ export const exportWeavrProject = (
             slices: Array.from(sliceMap.values())
         },
         layout,
+        sliceBounds,
         dataDictionary: {
             definitions: dictionary
         }
     };
 };
 
-export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record<string, number[]>, definitions?: DataDefinition[] } => {
+export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record<string, number[]>, sliceBounds?: Record<string, { x: number, y: number, width: number, height: number }>, definitions?: DataDefinition[] } => {
     const nodes: Node[] = [];
     const links: Link[] = [];
     const edgeRoutes: Record<string, number[]> = {};
+    const sliceBounds: Record<string, { x: number, y: number, width: number, height: number }> = {};
     const slices: Slice[] = [];
     const definitions: DataDefinition[] = [];
 
@@ -348,6 +359,10 @@ export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record
             nodeIds: new Set(), // Will populate
             color: s.color || '#e5e7eb', // Default to visible gray
             chapter: s.chapter, // Added chapter support
+            sliceType: s.sliceType,
+            context: s.context,
+            actors: s.actors || [],
+            aggregates: s.aggregates || [],
             specifications: s.specifications || []
         });
 
@@ -363,6 +378,9 @@ export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record
         elements.forEach((el: any) => {
             const layoutData = layoutSource[el.id] || {};
             const elId = String(el.id);
+
+            // Add the id to the slice's nodeIds Set
+            slices[slices.length - 1].nodeIds.add(elId);
 
             nodes.push({
                 id: elId,
@@ -405,6 +423,13 @@ export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record
         });
     });
 
+    // Parse Slice Bounds
+    if (json.sliceBounds) {
+        Object.keys(json.sliceBounds).forEach(key => {
+            sliceBounds[key] = json.sliceBounds[key];
+        });
+    }
+
     const slicesRecord: Record<string, Slice> = {};
     slices.forEach(s => {
         slicesRecord[s.id] = s;
@@ -415,6 +440,7 @@ export const importWeavrProject = (json: any): ModelData & { edgeRoutes?: Record
         links,
         slices: slicesRecord,
         edgeRoutes,
+        sliceBounds,
         definitions
     };
 };

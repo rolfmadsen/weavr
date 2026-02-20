@@ -14,6 +14,27 @@ import {
 } from '../domain/exportUtils';
 import { gunClient } from '../../collaboration';
 
+/**
+ * GunDB completely rejects any object payload containing `undefined` values.
+ * This utility safely iterates through properties and specifically sets `undefined` to `null`.
+ */
+function sanitizeGunData<T>(obj: T): any {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(sanitizeGunData);
+
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+        if (value === undefined) {
+            sanitized[key] = null;
+        } else if (value && typeof value === 'object') {
+            sanitized[key] = sanitizeGunData(value);
+        } else {
+            sanitized[key] = value;
+        }
+    }
+    return sanitized;
+}
+
 interface UseImportExportProps {
     modelId: string | null;
     nodes: Node[];
@@ -26,7 +47,10 @@ interface UseImportExportProps {
     handleClosePanel: () => void;
     manualPositionsRef: React.RefObject<Map<string, { x: number, y: number }>>;
     updateEdgeRoutes: (routes: Map<string, number[]>) => void;
+    updateSliceBounds: (bounds: Map<string, { x: number, y: number, width: number, height: number }>) => void;
     onImportComplete?: () => void;
+    onRequestAutoLayout?: () => void;
+    sliceBoundsMap: Map<string, { x: number, y: number, width: number, height: number }>;
 }
 
 export function useImportExport({
@@ -41,11 +65,24 @@ export function useImportExport({
     handleClosePanel,
     manualPositionsRef,
     updateEdgeRoutes,
-    onImportComplete
+    updateSliceBounds,
+    onImportComplete,
+    onRequestAutoLayout,
+    sliceBoundsMap
 }: UseImportExportProps) {
 
     const handleExport = useCallback(() => {
-        const data = exportWeavrProject(nodes, links, slices, edgeRoutesMap || new Map(), modelId || uuidv4(), 'Untitled Project', 'WEAVR', definitions);
+        const data = exportWeavrProject(
+            nodes,
+            links,
+            slices,
+            edgeRoutesMap || new Map(),
+            sliceBoundsMap || new Map(),
+            modelId || uuidv4(),
+            'Untitled Project',
+            'WEAVR',
+            definitions
+        );
         signal("Export.Started", { format: 'WEAVR', nodeCount: nodes.length.toString(), linkCount: links.length.toString() });
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -57,7 +94,17 @@ export function useImportExport({
     }, [nodes, links, slices, edgeRoutesMap, modelId, definitions, signal]);
 
     const handleStandardExport = useCallback(() => {
-        const data = exportWeavrProject(nodes, links, slices, edgeRoutesMap || new Map(), modelId || uuidv4(), 'Untitled Project', 'STANDARD', definitions);
+        const data = exportWeavrProject(
+            nodes,
+            links,
+            slices,
+            edgeRoutesMap || new Map(),
+            sliceBoundsMap || new Map(),
+            modelId || uuidv4(),
+            'Untitled Project',
+            'STANDARD',
+            definitions
+        );
         signal("Export.Started", { format: 'STANDARD', nodeCount: nodes.length.toString(), linkCount: links.length.toString() });
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -85,92 +132,146 @@ export function useImportExport({
                 const newModelId = uuidv4();
                 const model = gunClient.getModel(newModelId);
 
-                // Write Data to New Model
+                // Prepare Data Batches
+                const importedProjectName = (json.meta && json.meta.projectName) || json.projectName;
+
+                const routeMap: Record<string, number[]> = {};
                 if (importedData.edgeRoutes) {
-                    const routeMap: Record<string, number[]> = {};
                     Object.entries(importedData.edgeRoutes).forEach(([id, points]) => routeMap[id] = points as number[]);
-                    model.get('edgeRoutes').put({ routes: JSON.stringify(routeMap) });
                 }
 
+                const slicesBatch: Record<string, GunPersisted<Slice>> = {};
                 if (data.slices) {
-                    const slicesBatch: Record<string, GunPersisted<Slice>> = {};
                     Object.values(data.slices).forEach(slice => {
                         if (!slice.id) return;
                         const { nodeIds, ...sliceData } = slice;
-
-                        // Sanitize Arrays for GunDB
-                        const sanitizedSlice = { ...sliceData } as unknown as GunPersisted<Slice>;
-
-                        // Strict check on original data before stringifying
+                        const sanitizedSlice = sanitizeGunData({ ...sliceData }) as unknown as GunPersisted<Slice>;
                         if (Array.isArray(sliceData.specifications)) sanitizedSlice.specifications = JSON.stringify(sliceData.specifications);
                         if (Array.isArray(sliceData.actors)) sanitizedSlice.actors = JSON.stringify(sliceData.actors);
                         if (Array.isArray(sliceData.aggregates)) sanitizedSlice.aggregates = JSON.stringify(sliceData.aggregates);
-
                         slicesBatch[slice.id] = sanitizedSlice;
                     });
-                    if (Object.keys(slicesBatch).length > 0) model.get('slices').put(slicesBatch as any); // Gun Generic
                 }
 
                 const nodesBatch: Record<string, GunPersisted<Node>> = {};
                 (data.nodes || []).forEach(node => {
                     const { id, ...nodeData } = node;
                     if (!id) return;
-
-                    const sanitizedNodeData = { ...nodeData } as unknown as GunPersisted<Node>;
+                    const sanitizedNodeData = sanitizeGunData({ ...nodeData }) as unknown as GunPersisted<Node>;
                     if (Array.isArray(nodeData.entityIds)) sanitizedNodeData.entityIds = JSON.stringify(nodeData.entityIds);
-                    // Fields is also an array in Node type?
                     if (Array.isArray((nodeData as any).fields)) (sanitizedNodeData as any).fields = JSON.stringify((nodeData as any).fields);
-
                     nodesBatch[id] = sanitizedNodeData;
                 });
-                if (Object.keys(nodesBatch).length > 0) model.get('nodes').put(nodesBatch as any);
 
                 const linksBatch: Record<string, GunPersisted<Link>> = {};
                 (data.links || []).forEach(link => {
                     const { id, ...linkData } = link;
                     if (!id) return;
-                    linksBatch[id] = linkData as unknown as GunPersisted<Link>;
+                    linksBatch[id] = sanitizeGunData(linkData) as unknown as GunPersisted<Link>;
                 });
-                if (Object.keys(linksBatch).length > 0) model.get('links').put(linksBatch as any);
 
+                const defsBatch: Record<string, GunPersisted<DataDefinition>> = {};
                 if (data.definitions) {
-                    const defsBatch: Record<string, GunPersisted<DataDefinition>> = {};
                     data.definitions.forEach(def => {
                         const { id, ...defData } = def;
                         if (!id) return;
-                        const sanitizedDef = { ...defData } as unknown as GunPersisted<DataDefinition>;
+                        const sanitizedDef = sanitizeGunData({ ...defData }) as unknown as GunPersisted<DataDefinition>;
                         if (Array.isArray(defData.attributes)) sanitizedDef.attributes = JSON.stringify(defData.attributes);
                         defsBatch[id] = sanitizedDef;
                     });
-                    if (Object.keys(defsBatch).length > 0) model.get('definitions').put(defsBatch as any);
                 }
 
-                // Handle Project Name for New Model
-                const importedProjectName = (json.meta && json.meta.projectName) || json.projectName;
+                // Diagnostic Logging
+                console.log(`[useImportExport] Starting import for project: ${importedProjectName}`);
+                console.log(`[useImportExport] Data Summary:`, {
+                    slices: Object.keys(slicesBatch).length,
+                    nodes: Object.keys(nodesBatch).length,
+                    links: Object.keys(linksBatch).length,
+                    definitions: Object.keys(defsBatch).length
+                });
 
-                // Helper to Navigate after critical write
+                // Helper to Navigate after ALL critical writes
                 const navigate = () => {
+                    console.log(`[useImportExport] Navigation triggered to model: ${newModelId}`);
                     window.location.hash = newModelId;
                 };
 
-                let pendingCritical = 0;
+                // Track all pending writes
+                let pendingWrites = 0;
 
+                const onWriteComplete = (ack: any, id?: string) => {
+                    if (ack && ack.err) {
+                        console.error(`[useImportExport] Write ERROR${id ? ' for ' + id : ''}:`, ack.err);
+                    } else if (id) {
+                        // console.log(`[useImportExport] Write complete: ${id}`);
+                    }
+
+                    pendingWrites--;
+                    if (pendingWrites <= 0) {
+                        console.log(`[useImportExport] All critical writes confirmed. Navigating...`);
+                        navigate();
+                    }
+                };
+
+                // 1. Meta
                 if (importedProjectName) {
-                    pendingCritical++;
-                    model.get('meta').put({ name: importedProjectName }, (_) => {
-                        pendingCritical--;
-                        if (pendingCritical === 0) navigate();
+                    pendingWrites++;
+                    model.get('meta').put({ name: importedProjectName }, onWriteComplete);
+                }
+
+                // 2. Edge Routes
+                if (Object.keys(routeMap).length > 0) {
+                    pendingWrites++;
+                    model.get('edgeRoutes').put({ routes: JSON.stringify(routeMap) }, onWriteComplete);
+                }
+
+                // 2.5 Slice Bounds (In-memory layout)
+                if (importedData.sliceBounds) {
+                    const boundsMap = new Map<string, { x: number, y: number, width: number, height: number }>();
+                    Object.entries(importedData.sliceBounds).forEach(([id, bounds]) => boundsMap.set(id, bounds));
+                    updateSliceBounds(boundsMap);
+                }
+
+                // 3. Slices (Individual writes for higher reliability)
+                if (Object.keys(slicesBatch).length > 0) {
+                    Object.entries(slicesBatch).forEach(([id, data]) => {
+                        pendingWrites++;
+                        model.get('slices').get(id).put(data as any, (ack) => onWriteComplete(ack, `slice:${id}`));
                     });
                 }
 
+                // 4. Nodes (Individual writes for higher reliability)
                 if (Object.keys(nodesBatch).length > 0) {
-                    pendingCritical++;
-                    model.get('nodes').put(nodesBatch as any, (_) => {
-                        pendingCritical--;
-                        if (pendingCritical === 0) navigate();
+                    Object.entries(nodesBatch).forEach(([id, data]) => {
+                        pendingWrites++;
+                        model.get('nodes').get(id).put(data as any, (ack) => onWriteComplete(ack, `node:${id}`));
                     });
+                }
+
+                // 5. Links
+                if (Object.keys(linksBatch).length > 0) {
+                    pendingWrites++;
+                    model.get('links').put(linksBatch as any, (ack) => onWriteComplete(ack, 'links_batch'));
+                }
+
+                // 6. Definitions
+                if (Object.keys(defsBatch).length > 0) {
+                    pendingWrites++;
+                    model.get('definitions').put(defsBatch as any, onWriteComplete);
+                }
+
+                // Fallback: If nothing to write (empty project?)
+                if (pendingWrites === 0) {
+                    navigate();
+                }
+
+
+                if (data.layout && Object.keys(data.layout).length > 0) {
+                    // Layout exists, used above in manualPositionsRef or by nodes/edges logic
                 } else {
-                    if (pendingCritical === 0) navigate();
+                    // Critical: If no layout, force one
+                    console.log('No layout found in project, requesting Auto Layout');
+                    setTimeout(() => onRequestAutoLayout?.(), 500); // Small delay to allow nodes to sync
                 }
 
             } catch (error) {
@@ -211,7 +312,7 @@ export function useImportExport({
                         if (!slice.id) return;
                         const { nodeIds, ...sliceData } = slice;
 
-                        const sanitizedSlice = { ...sliceData } as unknown as GunPersisted<Slice>;
+                        const sanitizedSlice = sanitizeGunData({ ...sliceData }) as unknown as GunPersisted<Slice>;
                         if (Array.isArray(sliceData.specifications)) sanitizedSlice.specifications = JSON.stringify(sliceData.specifications);
                         if (Array.isArray(sliceData.actors)) sanitizedSlice.actors = JSON.stringify(sliceData.actors);
                         if (Array.isArray(sliceData.aggregates)) sanitizedSlice.aggregates = JSON.stringify(sliceData.aggregates);
@@ -226,7 +327,7 @@ export function useImportExport({
                     const { id, ...nodeData } = node;
                     if (!id) return;
 
-                    const sanitizedNodeData = { ...nodeData } as unknown as GunPersisted<Node>;
+                    const sanitizedNodeData = sanitizeGunData({ ...nodeData }) as unknown as GunPersisted<Node>;
 
                     if (Array.isArray(nodeData.entityIds)) sanitizedNodeData.entityIds = JSON.stringify(nodeData.entityIds);
                     if (Array.isArray((nodeData as any).fields)) (sanitizedNodeData as any).fields = JSON.stringify((nodeData as any).fields);

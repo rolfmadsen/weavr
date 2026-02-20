@@ -114,6 +114,27 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
         }
     };
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (editingId) {
+                    cancelEdit();
+                } else if (deleteAnchorEl) {
+                    setDeleteAnchorEl(null);
+                    setDeleteSliceId(null);
+                } else if (viewingSpecsId) {
+                    setViewingSpecsId(null);
+                } else {
+                    onClose();
+                }
+            }
+        };
+        if (isOpen) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose, editingId, deleteAnchorEl, viewingSpecsId]);
+
     if (!isOpen) return null;
 
     return (

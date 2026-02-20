@@ -38,7 +38,7 @@ export const initDictionaryCommands = () => {
             description,
             parentId,
             isRoot,
-            attributes: JSON.stringify(attributes)
+            attributes: typeof attributes === 'string' ? attributes : JSON.stringify(attributes)
         };
 
         console.log(`[DictionaryCommands] Persisting new definition to Gun (${modelId}):`, gunData);
@@ -62,9 +62,9 @@ export const initDictionaryCommands = () => {
         Object.entries(cmd.changes).forEach(([key, value]) => {
             if (value === undefined) {
                 sanitizedChanges[key as keyof DataDefinition] = null;
-            } else if (key === 'attributes' && Array.isArray(value)) {
+            } else if (key === 'attributes') {
                 // @ts-ignore - manual stringify override
-                sanitizedChanges[key] = JSON.stringify(value);
+                sanitizedChanges[key] = typeof value === 'string' ? value : JSON.stringify(value);
             } else {
                 sanitizedChanges[key as keyof DataDefinition] = value as any;
             }

@@ -122,7 +122,6 @@ Weavr tracks the following custom events to understand feature usage:
 | :--- | :--- | :--- |
 | **Add Element** | `Node.Added` | `type`, `id` |
 | **Add Slice** | `Slice.Added` | `title` |
-| **Undo / Redo** | `History.Undo`, `History.Redo` | - |
 | **Auto Layout** | `Layout.Requested` | `method: 'MANUAL'` |
 | **Export Model** | `Export.Started` | `format`, `nodeCount` |
 | **Import / Merge** | `Import.Started` | `type: 'OPEN' | 'MERGE'` |

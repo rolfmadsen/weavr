@@ -64,6 +64,14 @@ export function useCanvasInteractions({
         return { nodeMap, linksByNode };
     }, [nodes, links]);
 
+    const MIN_ZOOM = 0.5;
+    const MAX_ZOOM = 2.0;
+    const ZOOM_STEP = 0.1;
+
+    const limitScale = (scale: number) => {
+        return Math.min(Math.max(scale, MIN_ZOOM), MAX_ZOOM);
+    };
+
     const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
         e.evt.preventDefault();
         const stage = stageRef.current;
@@ -78,8 +86,9 @@ export function useCanvasInteractions({
             y: (pointer.y - stage.y()) / oldScale,
         };
 
-        const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
-        if (newScale < 0.05 || newScale > 10) return;
+        const targetScale = e.evt.deltaY > 0 ? oldScale - ZOOM_STEP : oldScale + ZOOM_STEP;
+        const newScale = limitScale(Math.round(targetScale * 10) / 10);
+        if (newScale === oldScale) return;
 
         stage.scale({ x: newScale, y: newScale });
 
@@ -94,6 +103,105 @@ export function useCanvasInteractions({
         updateVisibleNodes();
 
         onViewChange?.({ ...newPos, scale: newScale, width: stage.width(), height: stage.height() });
+    }, [stageRef, updateVisibleNodes, onViewChange]);
+
+    const zoomIn = useCallback(() => {
+        const stage = stageRef.current;
+        if (stage) {
+            const oldScale = stage.scaleX();
+            const targetScale = oldScale + ZOOM_STEP;
+            const newScale = limitScale(Math.round(targetScale * 10) / 10);
+            if (newScale === oldScale) return;
+
+            // Zoom towards center of screen
+            const x = stage.width() / 2;
+            const y = stage.height() / 2;
+            const mousePointTo = {
+                x: (x - stage.x()) / oldScale,
+                y: (y - stage.y()) / oldScale,
+            };
+
+            const newPos = {
+                x: x - mousePointTo.x * newScale,
+                y: y - mousePointTo.y * newScale,
+            };
+
+            stage.to({
+                x: newPos.x, y: newPos.y, scaleX: newScale, scaleY: newScale,
+                duration: 0.2, easing: Konva.Easings.EaseOut,
+                onFinish: () => {
+                    setStagePos(newPos);
+                    setStageScale(newScale);
+                    updateVisibleNodes();
+                    onViewChange?.({ ...newPos, scale: newScale, width: stage.width(), height: stage.height() });
+                }
+            });
+        }
+    }, [stageRef, updateVisibleNodes, onViewChange]);
+
+    const zoomOut = useCallback(() => {
+        const stage = stageRef.current;
+        if (stage) {
+            const oldScale = stage.scaleX();
+            const targetScale = oldScale - ZOOM_STEP;
+            const newScale = limitScale(Math.round(targetScale * 10) / 10);
+            if (newScale === oldScale) return;
+
+            const x = stage.width() / 2;
+            const y = stage.height() / 2;
+            const mousePointTo = {
+                x: (x - stage.x()) / oldScale,
+                y: (y - stage.y()) / oldScale,
+            };
+
+            const newPos = {
+                x: x - mousePointTo.x * newScale,
+                y: y - mousePointTo.y * newScale,
+            };
+
+            stage.to({
+                x: newPos.x, y: newPos.y, scaleX: newScale, scaleY: newScale,
+                duration: 0.2, easing: Konva.Easings.EaseOut,
+                onFinish: () => {
+                    setStagePos(newPos);
+                    setStageScale(newScale);
+                    updateVisibleNodes();
+                    onViewChange?.({ ...newPos, scale: newScale, width: stage.width(), height: stage.height() });
+                }
+            });
+        }
+    }, [stageRef, updateVisibleNodes, onViewChange]);
+
+    const resetZoom = useCallback(() => {
+        const stage = stageRef.current;
+        if (stage) {
+            const oldScale = stage.scaleX();
+            const newScale = 1.0;
+            if (newScale === oldScale) return;
+
+            const x = stage.width() / 2;
+            const y = stage.height() / 2;
+            const mousePointTo = {
+                x: (x - stage.x()) / oldScale,
+                y: (y - stage.y()) / oldScale,
+            };
+
+            const newPos = {
+                x: x - mousePointTo.x * newScale,
+                y: y - mousePointTo.y * newScale,
+            };
+
+            stage.to({
+                x: newPos.x, y: newPos.y, scaleX: newScale, scaleY: newScale,
+                duration: 0.3, easing: Konva.Easings.EaseInOut,
+                onFinish: () => {
+                    setStagePos(newPos);
+                    setStageScale(newScale);
+                    updateVisibleNodes();
+                    onViewChange?.({ ...newPos, scale: newScale, width: stage.width(), height: stage.height() });
+                }
+            });
+        }
     }, [stageRef, updateVisibleNodes, onViewChange]);
 
     const handleDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
@@ -365,6 +473,7 @@ export function useCanvasInteractions({
         marqueeStart, setMarqueeStart,
         marqueeRect, setMarqueeRect,
         validTargetIds,
+        // Handlers
         handleWheel,
         handleDragMove,
         handleMouseDown,
@@ -372,6 +481,11 @@ export function useCanvasInteractions({
         handleMouseUp,
         handleNodeDragMove,
         handleNodeDragEnd,
+        zoomIn,
+        zoomOut,
+        resetZoom,
+
+        // Lookup
         lookup
     };
 }

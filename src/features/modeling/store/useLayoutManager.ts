@@ -59,6 +59,55 @@ export function useLayoutManager({
             // 1. Calculate Layout
             const { positions: newPositionsMap, edgeRoutes, containerBounds } = await calculateElkLayout(currentNodes, currentLinks, currentSlices);
 
+            // 1.5. Anchor Preservation (Center of Mass Shift)
+            // If the user has ZERO pinned nodes, ELK will force the layout to the origin (0,0).
+            // This causes the graph to "fly away" from the camera if they are panned out.
+            // We fix this by shifting the new layout back to the original center of mass.
+            const hasPinnedNodes = currentNodes.some(n => n.pinned);
+            if (!hasPinnedNodes && currentNodes.length > 0 && newPositionsMap.size > 0) {
+                // Find original Center of Mass
+                let origSumX = 0, origSumY = 0;
+                currentNodes.forEach(n => {
+                    origSumX += (n.x || 0);
+                    origSumY += (n.y || 0);
+                });
+                const origCenter = { x: origSumX / currentNodes.length, y: origSumY / currentNodes.length };
+
+                // Find new Center of Mass
+                let newSumX = 0, newSumY = 0;
+                newPositionsMap.forEach(pos => {
+                    newSumX += pos.x;
+                    newSumY += pos.y;
+                });
+                const newCenter = { x: newSumX / newPositionsMap.size, y: newSumY / newPositionsMap.size };
+
+                // Calculate Vector Delta
+                const dx = origCenter.x - newCenter.x;
+                const dy = origCenter.y - newCenter.y;
+
+                // Shift everything by the Delta
+                newPositionsMap.forEach(pos => {
+                    pos.x += dx;
+                    pos.y += dy;
+                });
+
+                if (containerBounds) {
+                    containerBounds.forEach(bounds => {
+                        bounds.x += dx;
+                        bounds.y += dy;
+                    });
+                }
+
+                if (edgeRoutes) {
+                    edgeRoutes.forEach(route => {
+                        for (let i = 0; i < route.length; i += 2) {
+                            route[i] += dx;
+                            route[i + 1] += dy;
+                        }
+                    });
+                }
+            }
+
             // 2. Update Metadata (visual only)
             updateEdgeRoutes(edgeRoutes);
             if (containerBounds) {

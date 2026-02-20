@@ -20,6 +20,7 @@ import { DocumentationGenerator } from './features/modeling/services/Documentati
 import { useLayoutManager } from './features/modeling/store/useLayoutManager';
 import { GraphCanvas, type GraphCanvasKonvaRef } from './features/canvas';
 import { Minimap } from './features/canvas';
+import { ZoomControls } from './features/canvas/ui/ZoomControls';
 import {
   PropertiesPanel,
   SliceFilter,
@@ -84,12 +85,6 @@ const App: React.FC = () => {
   // Plausible.io analytics
   const { signal } = usePlausible();
 
-  // Clear History on Model Change
-  useEffect(() => {
-    if (modelId) {
-      bus.emit('history:clear');
-    }
-  }, [modelId]);
 
   const graphRef = React.useRef<GraphCanvasKonvaRef>(null);
   const [windowSize, setWindowSize] = React.useState({ width: window.innerWidth, height: window.innerHeight });
@@ -163,10 +158,6 @@ const App: React.FC = () => {
     updateSlice,
     deleteSlice,
     updateEdgeRoutes,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
     unpinAllNodes,
     modelName: syncedModelName,
     updateModelName: syncUpdateModelName,
@@ -193,10 +184,26 @@ const App: React.FC = () => {
   }, [pendingFitView, nodes.length]);
 
   // 4. Layout Logic
+  const filteredNodes = useMemo(() => {
+    if (hiddenSliceIds.length === 0) return nodes;
+    return nodes.filter((node: Node) => !node.sliceId || !hiddenSliceIds.includes(node.sliceId));
+  }, [nodes, hiddenSliceIds]);
+
+  const filteredLinks = useMemo(() => {
+    if (hiddenSliceIds.length === 0) return links;
+    const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
+    return links.filter((link: Link) => nodeIds.has(link.source) && nodeIds.has(link.target));
+  }, [links, filteredNodes, hiddenSliceIds]);
+
+  const filteredSlices = useMemo(() => {
+    if (hiddenSliceIds.length === 0) return slicesWithNodes;
+    return slicesWithNodes.filter(s => !hiddenSliceIds.includes(s.id));
+  }, [slicesWithNodes, hiddenSliceIds]);
+
   const { handleAutoLayout } = useLayoutManager({
-    nodes,
-    links,
-    slicesWithNodes,
+    nodes: filteredNodes,
+    links: filteredLinks,
+    slicesWithNodes: filteredSlices,
     layoutRequestId,
     updateEdgeRoutes,
     updateSliceBounds,
@@ -212,20 +219,23 @@ const App: React.FC = () => {
     slices,
     definitions,
     edgeRoutesMap: autoLayoutEdges,
+    sliceBoundsMap,
     signal,
     clearSelection: () => { },
     handleClosePanel,
     manualPositionsRef,
     updateEdgeRoutes,
-    onImportComplete: () => setPendingFitView(true)
+    updateSliceBounds,
+    onImportComplete: () => setPendingFitView(true),
+    onRequestAutoLayout: handleRequestAutoLayout
   });
 
   const handleGenerateDocs = async () => {
     if (!graphRef.current) return;
     const generator = new DocumentationGenerator(
       graphRef.current,
-      slicesWithNodes,
-      nodes,
+      filteredSlices,
+      filteredNodes,
       definitions,
       setHiddenSliceIds
     );
@@ -283,18 +293,6 @@ const App: React.FC = () => {
     return selectedLinkId ? [...selectedNodeIdsArray, selectedLinkId] : selectedNodeIdsArray;
   }, [selectedNodeIdsArray, selectedLinkId]);
 
-  // Filters
-  const filteredNodes = useMemo(() => {
-    if (hiddenSliceIds.length === 0) return nodes;
-    return nodes.filter((node: Node) => !node.sliceId || !hiddenSliceIds.includes(node.sliceId));
-  }, [nodes, hiddenSliceIds]);
-
-  const filteredLinks = useMemo(() => {
-    if (hiddenSliceIds.length === 0) return links;
-    const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
-    return links.filter((link: Link) => nodeIds.has(link.source) && nodeIds.has(link.target));
-  }, [links, filteredNodes, hiddenSliceIds]);
-
   // Auto-Zoom on Filter Change
   useEffect(() => {
     if (slices.length === 0) return;
@@ -350,8 +348,6 @@ const App: React.FC = () => {
     },
     onFocusNode: (id: string | undefined) => id && handleFocusNode(id),
     onAutoLayout: handleAutoLayout,
-    onUndo: undo,
-    onRedo: redo,
     onPaste: pasteNodes
   });
 
@@ -407,10 +403,6 @@ const App: React.FC = () => {
             onMerge={handleMergeImport}
             onExport={handleExport}
             onOpenHelp={() => { setIsHelpModalOpen(true); signal("Help.Opened"); }}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
             onAutoLayout={handleAutoLayout}
             onUnpinAll={unpinAllNodes}
             onOpenModelList={() => { setIsModelListOpen(true); signal("ModelList.Opened"); }}
@@ -424,7 +416,7 @@ const App: React.FC = () => {
           <GraphCanvas
             nodes={filteredNodes}
             links={filteredLinks}
-            slices={slicesWithNodes}
+            slices={filteredSlices}
             actors={actors}
             selectedIds={selectedIds}
             edgeRoutes={autoLayoutEdges}
@@ -469,6 +461,12 @@ const App: React.FC = () => {
               graphRef.current?.handleNavigate?.(x, y);
               signal("Minimap.Navigated");
             }} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
+            <ZoomControls
+              scale={viewState.scale}
+              onZoomIn={() => graphRef.current?.zoomIn()}
+              onZoomOut={() => graphRef.current?.zoomOut()}
+              onResetZoom={() => graphRef.current?.resetZoom()}
+            />
           </div>
 
           <Toolbar onAddNode={handleAddNode} disabled={!isReady} isMenuOpen={isToolbarOpen} onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} />

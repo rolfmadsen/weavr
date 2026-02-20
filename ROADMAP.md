@@ -8,7 +8,6 @@ This document outlines the key features, enhancements, and tasks required to pre
 
 This phase focuses on refining the core modeling experience to be more intuitive, forgiving, and professional.
 
--   **[ ] Comprehensive Undo/Redo:** Implement a rock-solid undo/redo system that is fully compatible with all actions, including collaborative changes from other peers.
 -   **[ ] Advanced Canvas Controls:**
     -   **Snapping & Alignment Guides:** Help users create clean, professional-looking diagrams with ease.
     -   **Rich Text Formatting:** Allow bold, italics, lists, and links within element descriptions to capture more detailed context.

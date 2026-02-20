@@ -26,10 +26,7 @@ export type ModelingCommand =
     | { type: 'command:createActor'; payload: { name: string; description?: string; id?: string; color?: string } }
     | { type: 'command:updateActor'; payload: { id: string; changes: Partial<Actor> } }
     | { type: 'command:deleteActor'; payload: { id: string } }
-    | { type: 'command:updateModelName'; payload: { name: string } }
-    | { type: 'command:undo'; payload?: void }
-    | { type: 'command:redo'; payload?: void }
-    | { type: 'history:clear'; payload?: void };
+    | { type: 'command:updateModelName'; payload: { name: string } };
 
 // ==========================================
 // 2. EVENTS (Facts)
