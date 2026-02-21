@@ -153,8 +153,6 @@ export function useLayoutManager({
                 noChange: noChangeCount
             });
 
-            signal("Layout.Auto", { nodeCount: currentNodes.length.toString(), reason });
-
         } catch (error) {
             console.error(`[LayoutManager] Layout Failed. Reason: ${reason}`, error);
         } finally {

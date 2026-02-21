@@ -238,13 +238,11 @@ export const useModelManager = ({
 
     const handleNodeClick = useCallback((nodeId: string, multi: boolean = false) => {
         selectNode(nodeId, multi);
-        signal("Node.Clicked", { id: nodeId, multi });
-    }, [selectNode, signal]);
+    }, [selectNode]);
 
     const handleLinkClick = useCallback((linkId: string) => {
         selectLink(linkId);
-        signal("Link.Clicked", { id: linkId });
-    }, [selectLink, signal]);
+    }, [selectLink]);
 
     const handleNodeDoubleClick = useCallback((nodeId: string) => {
         selectNode(nodeId);
@@ -280,9 +278,8 @@ export const useModelManager = ({
     const handleUnpinAllNodes = useCallback(() => {
         const allIds = nodes.map(n => n.id);
         bus.emit('command:unpinNodes', { ids: allIds });
-        signal("Node.UnpinnedAll");
         onRequestAutoLayout?.();
-    }, [nodes, onRequestAutoLayout, signal]);
+    }, [nodes, onRequestAutoLayout]);
 
     const handleAddSlice = useCallback((title: string) => {
         signal("Slice.Added", { title });
@@ -302,14 +299,12 @@ export const useModelManager = ({
 
     const handlePinSelection = useCallback(() => {
         bus.emit('command:pinNodes', { ids: selectedNodeIdsArray });
-        signal("Selection.Pinned", { count: selectedNodeIdsArray.length });
-    }, [selectedNodeIdsArray, signal]);
+    }, [selectedNodeIdsArray]);
 
     const handleUnpinSelection = useCallback(() => {
         bus.emit('command:unpinNodes', { ids: selectedNodeIdsArray });
-        signal("Selection.Unpinned", { count: selectedNodeIdsArray.length });
         onRequestAutoLayout?.();
-    }, [selectedNodeIdsArray, onRequestAutoLayout, signal]);
+    }, [selectedNodeIdsArray, onRequestAutoLayout]);
 
     const handlePasteNodes = useCallback((nodesData: Node[]) => {
         if (!modelId || nodesData.length === 0) return;
@@ -357,8 +352,7 @@ export const useModelManager = ({
 
     const updateActor = useCallback((id: string, changes: Partial<Actor>) => {
         bus.emit('command:updateActor', { id, changes });
-        signal("Actor.Updated", { id });
-    }, [signal]);
+    }, []);
 
     const deleteActor = useCallback((id: string) => {
         bus.emit('command:deleteActor', { id });
@@ -411,7 +405,6 @@ export const useModelManager = ({
         updateDefinition: (id: string, changes: Partial<DataDefinition>) => {
             console.log('[ModelManager] updateDefinition called:', { id, changes });
             bus.emit('command:updateDefinition', { id, changes });
-            signal("Definition.Updated", { id });
         },
         deleteDefinition: (id: string) => {
             bus.emit('command:deleteDefinition', { id });

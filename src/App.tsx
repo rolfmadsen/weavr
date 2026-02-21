@@ -451,15 +451,12 @@ const App: React.FC = () => {
           <div className="absolute bottom-16 left-8 z-10 flex flex-col items-start pointer-events-none [&>*]:pointer-events-auto">
             <ElementFilter nodes={nodes} onNodeClick={(n: Node) => {
               handleFocusNode(n.id);
-              signal("Filter.ElementSelected", { type: n.type });
             }} />
             <SliceFilter slices={slices} hiddenSliceIds={hiddenSliceIds} onChange={(ids) => {
               setHiddenSliceIds(ids);
-              signal("Filter.SlicesChanged", { hiddenCount: ids.length });
             }} />
             <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => {
               graphRef.current?.handleNavigate?.(x, y);
-              signal("Minimap.Navigated");
             }} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
             <ZoomControls
               scale={viewState.scale}
@@ -476,7 +473,7 @@ const App: React.FC = () => {
             onClose={() => { setSidebarView(null); }}
             title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : sidebarView === 'actors' ? 'Actors' : 'Data Dictionary'}
             activeTab={sidebarView || 'properties'}
-            onTabChange={(tab: string) => { setSidebarView(tab as any); if (tab) signal("Sidebar.TabChanged", { tab }); }}
+            onTabChange={(tab: string) => { setSidebarView(tab as any); }}
             tabs={[{ id: 'properties', label: 'Properties', title: 'Alt + P' }, { id: 'dictionary', label: 'Data', title: 'Alt + D' }, { id: 'slices', label: 'Slices', title: 'Alt + S' }, { id: 'actors', label: 'Actors', title: 'Start' }]}
           >
             {sidebarView === 'properties' && (
