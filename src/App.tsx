@@ -102,6 +102,8 @@ const App: React.FC = () => {
     isHelpModalOpen, setIsHelpModalOpen,
     isModelListOpen, setIsModelListOpen,
     hiddenSliceIds, setHiddenSliceIds,
+    focusModeEnabled, setFocusModeEnabled,
+    focusModeSteps, setFocusModeSteps,
     activeSliceId, setActiveSliceId,
     isSliceManagerOpen, setIsSliceManagerOpen,
     sliceManagerInitialId, setSliceManagerInitialId,
@@ -183,22 +185,66 @@ const App: React.FC = () => {
     }
   }, [pendingFitView, nodes.length]);
 
-  // 4. Layout Logic
+  // 4. Layout Logic — Focus Mode BFS
+  const effectiveHiddenSliceIds = useMemo(() => {
+    if (!focusModeEnabled || selectedNodeIdsArray.length === 0) return hiddenSliceIds;
+
+    // 1. Find slices for selected nodes
+    const selectedSliceIds = new Set<string>();
+    selectedNodeIdsArray.forEach(nodeId => {
+      const node = nodes.find(n => n.id === nodeId);
+      if (node?.sliceId) selectedSliceIds.add(node.sliceId);
+    });
+    if (selectedSliceIds.size === 0) return hiddenSliceIds;
+
+    // 2. Build slice adjacency graph via links
+    const sliceAdjacency = new Map<string, Set<string>>();
+    links.forEach(link => {
+      const sourceNode = nodes.find(n => n.id === link.source);
+      const targetNode = nodes.find(n => n.id === link.target);
+      if (!sourceNode?.sliceId || !targetNode?.sliceId) return;
+      if (sourceNode.sliceId === targetNode.sliceId) return;
+      if (!sliceAdjacency.has(sourceNode.sliceId)) sliceAdjacency.set(sourceNode.sliceId, new Set());
+      if (!sliceAdjacency.has(targetNode.sliceId)) sliceAdjacency.set(targetNode.sliceId, new Set());
+      sliceAdjacency.get(sourceNode.sliceId)!.add(targetNode.sliceId);
+      sliceAdjacency.get(targetNode.sliceId)!.add(sourceNode.sliceId);
+    });
+
+    // 3. BFS with X steps
+    const visibleSliceIds = new Set(selectedSliceIds);
+    let frontier = [...selectedSliceIds];
+    for (let step = 0; step < focusModeSteps; step++) {
+      const nextFrontier: string[] = [];
+      frontier.forEach(sliceId => {
+        sliceAdjacency.get(sliceId)?.forEach(neighbor => {
+          if (!visibleSliceIds.has(neighbor)) {
+            visibleSliceIds.add(neighbor);
+            nextFrontier.push(neighbor);
+          }
+        });
+      });
+      frontier = nextFrontier;
+    }
+
+    // 4. Hide all slices NOT in BFS result
+    return slices.filter(s => !visibleSliceIds.has(s.id)).map(s => s.id);
+  }, [focusModeEnabled, selectedNodeIdsArray, nodes, links, slices, focusModeSteps, hiddenSliceIds]);
+
   const filteredNodes = useMemo(() => {
-    if (hiddenSliceIds.length === 0) return nodes;
-    return nodes.filter((node: Node) => !node.sliceId || !hiddenSliceIds.includes(node.sliceId));
-  }, [nodes, hiddenSliceIds]);
+    if (effectiveHiddenSliceIds.length === 0) return nodes;
+    return nodes.filter((node: Node) => !node.sliceId || !effectiveHiddenSliceIds.includes(node.sliceId));
+  }, [nodes, effectiveHiddenSliceIds]);
 
   const filteredLinks = useMemo(() => {
-    if (hiddenSliceIds.length === 0) return links;
+    if (effectiveHiddenSliceIds.length === 0) return links;
     const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
     return links.filter((link: Link) => nodeIds.has(link.source) && nodeIds.has(link.target));
-  }, [links, filteredNodes, hiddenSliceIds]);
+  }, [links, filteredNodes, effectiveHiddenSliceIds]);
 
   const filteredSlices = useMemo(() => {
-    if (hiddenSliceIds.length === 0) return slicesWithNodes;
-    return slicesWithNodes.filter(s => !hiddenSliceIds.includes(s.id));
-  }, [slicesWithNodes, hiddenSliceIds]);
+    if (effectiveHiddenSliceIds.length === 0) return slicesWithNodes;
+    return slicesWithNodes.filter(s => !effectiveHiddenSliceIds.includes(s.id));
+  }, [slicesWithNodes, effectiveHiddenSliceIds]);
 
   const { handleAutoLayout } = useLayoutManager({
     nodes: filteredNodes,
@@ -293,23 +339,24 @@ const App: React.FC = () => {
     return selectedLinkId ? [...selectedNodeIdsArray, selectedLinkId] : selectedNodeIdsArray;
   }, [selectedNodeIdsArray, selectedLinkId]);
 
-  // Auto-Zoom on Filter Change
+  // Auto-Zoom on Filter Change (works for both manual filtering and Focus Mode)
   useEffect(() => {
     if (slices.length === 0) return;
 
-    // Determine visible slices
-    const visibleSlices = slices.filter(s => !hiddenSliceIds.includes(s.id));
+    // Determine visible slices using the effective (Focus Mode-aware) hidden IDs
+    const visibleSlices = slices.filter(s => !effectiveHiddenSliceIds.includes(s.id));
 
     // Allow the canvas to update its nodes first
     setTimeout(() => {
       if (visibleSlices.length === 1) {
         graphRef.current?.panToSlice(visibleSlices[0].id);
+      } else if (visibleSlices.length > 0 && visibleSlices.length < slices.length) {
+        graphRef.current?.panToCenter();
       } else {
-        // If filtering changed (even to "Show All"), fit the view to the new visible set
         graphRef.current?.panToCenter();
       }
     }, 100);
-  }, [hiddenSliceIds, slices]);
+  }, [effectiveHiddenSliceIds, slices]);
 
   const handleSliceClick = useCallback((slice: Slice) => {
     setSidebarView('slices');
@@ -417,6 +464,7 @@ const App: React.FC = () => {
             nodes={filteredNodes}
             links={filteredLinks}
             slices={filteredSlices}
+            allNodes={nodes}
             actors={actors}
             selectedIds={selectedIds}
             edgeRoutes={autoLayoutEdges}
@@ -452,9 +500,16 @@ const App: React.FC = () => {
             <ElementFilter nodes={nodes} onNodeClick={(n: Node) => {
               handleFocusNode(n.id);
             }} />
-            <SliceFilter slices={slices} hiddenSliceIds={hiddenSliceIds} onChange={(ids) => {
-              setHiddenSliceIds(ids);
-            }} />
+            <SliceFilter
+              slices={slices}
+              hiddenSliceIds={hiddenSliceIds}
+              onChange={(ids) => setHiddenSliceIds(ids)}
+              focusModeEnabled={focusModeEnabled}
+              onFocusModeChange={setFocusModeEnabled}
+              focusModeSteps={focusModeSteps}
+              onFocusModeStepsChange={setFocusModeSteps}
+              effectiveHiddenSliceIds={effectiveHiddenSliceIds}
+            />
             <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => {
               graphRef.current?.handleNavigate?.(x, y);
             }} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />

@@ -44,6 +44,7 @@ interface GraphCanvasKonvaProps {
     nodes: Node[];
     links: Link[];
     slices?: Slice[];
+    allNodes?: Node[]; // All nodes (unfiltered) for Tab navigation across hidden slices
     actors?: Actor[]; // New Prop
     selectedIds: string[];
     edgeRoutes?: Map<string, number[]>;
@@ -80,6 +81,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     nodes,
     links,
     slices = [], // Default to empty array
+    allNodes, // All nodes for Tab navigation
     actors = [], // Default to empty array
     selectedIds,
     edgeRoutes,
@@ -693,10 +695,23 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     }, [nodes.length, updateVisibleNodes]);
 
     // NEW: Predictable Navigation Order (Slice Order -> Vertical Y)
+    // Uses allNodes (unfiltered) so Tab can navigate to nodes in hidden slices
+    const navigationNodes = useMemo(() => {
+        const base = allNodes || safeNodes;
+        // Apply same safety as safeNodes
+        const safe = base.map(n => ({
+            ...n,
+            x: safeNum(n.x),
+            y: safeNum(n.y),
+            computedHeight: n.computedHeight || calculateNodeHeight(n.name || '')
+        }));
+        return safe;
+    }, [allNodes, safeNodes]);
+
     const sortedNavigationNodes = useMemo(() => {
         if (!slices || slices.length === 0) {
             // Fallback: Sort all nodes by Y if no slices
-            return [...safeNodes].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+            return [...navigationNodes].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
         }
 
         // 1. Sort Slices by Order
@@ -728,7 +743,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         };
 
         // 3. Sort Nodes
-        return [...safeNodes].sort((a, b) => {
+        return [...navigationNodes].sort((a, b) => {
             const rankA = getRank(a);
             const rankB = getRank(b);
 
@@ -740,7 +755,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             // Same Slice: Sort by Vertical Position (Y)
             return (a.y ?? 0) - (b.y ?? 0);
         });
-    }, [safeNodes, slices]);
+    }, [navigationNodes, slices]);
 
     // NEW: Actor Map (Color and Name)
     const actorInfo = useMemo(() => {

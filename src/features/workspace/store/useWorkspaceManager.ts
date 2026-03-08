@@ -13,6 +13,8 @@ export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
     const [isModelListOpen, setIsModelListOpen] = useState(false);
     const [hiddenSliceIds, setHiddenSliceIds] = useState<string[]>([]);
+    const [focusModeEnabled, setFocusModeEnabled] = useState(false);
+    const [focusModeSteps, setFocusModeSteps] = useState(1);
     const [activeSliceId, setActiveSliceId] = useState<string | null>(null);
     const [isSliceManagerOpen, setIsSliceManagerOpen] = useState(false);
     const [sliceManagerInitialId, setSliceManagerInitialId] = useState<string | null>(null);
@@ -60,6 +62,8 @@ export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
         isHelpModalOpen, setIsHelpModalOpen,
         isModelListOpen, setIsModelListOpen,
         hiddenSliceIds, setHiddenSliceIds,
+        focusModeEnabled, setFocusModeEnabled,
+        focusModeSteps, setFocusModeSteps,
         activeSliceId, setActiveSliceId,
         isSliceManagerOpen, setIsSliceManagerOpen,
         sliceManagerInitialId, setSliceManagerInitialId,

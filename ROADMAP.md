@@ -58,3 +58,23 @@ What is most interesting is the "Information Completenes Check" ... and the chai
 
 1. From any element, it should be possible to select 0 or more entities, and for any entity chosen to select 0 or more attributes.
 2. From the Properties tab I would lke to be able to select from existing or create new entities
+
+---
+
+## 📐 Phase 4: Custom Event Modeling Layout Engine
+
+This phase focuses on replacing the generic ELKjs layout engine with a bespoke engine tailored specifically for Event Modeling and Weavr's SCEP architecture.
+
+-   **[ ] Domain-Aware Grid Layout:**
+    -   **Concept:** Build a custom layout engine that implicitly understands the Event Modeling 2D grid structure.
+    -   **Y-Axis (SCEP Swimlanes):** Enforce strict vertical swimlanes based on domain type (Screen at Y=0, Command at Y=1, Event at Y=2, Read Model at Y=3).
+    -   **X-Axis (Chronology):** Determine horizontal sorting via a topological sort of the graph's sequence, pushing elements left-to-right as time flows.
+-   **[ ] Performance Optimization (1000+ Nodes):**
+    -   Remove the heavy constraint-solving algorithms of ELKjs which are overkill for a strict grid.
+    -   Implement an `O(N)` or `O(N log N)` sorting algorithm for X/Y coordinates to drastically reduce Web Worker computation time.
+-   **[ ] P2P Visual Determinism:**
+    -   Ensure the custom layout is perfectly deterministic. Adding an Element at X=10 should predictably push subsequent elements to the right, minimizing visual thrashing and "butterfly effects" during live multi-user collaboration over GunDB.
+-   **[ ] Native "Completeness Check" Visuals:**
+    -   The layout engine should natively align Commands directly under their initiating Screens.
+    -   Visually cluster Entities and Value Objects within Emerald Aggregate boundaries natively without complex ELK hierarchies.
+    -   Visually flag structural violations (e.g., a Screen connecting to a Screen) as layout anomalies.
