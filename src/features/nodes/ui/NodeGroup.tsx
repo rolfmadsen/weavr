@@ -13,6 +13,7 @@ interface NodeGroupProps {
     isValidTarget: boolean;
     actorColor?: string;
     actorName?: string; // New Prop
+    aggregateName?: string; // New Prop
     onNodeClick: (node: Node, event?: any) => void;
     onNodeDoubleClick: (node: Node) => void;
     onDragMove: (nodeId: string, x: number, y: number) => void;
@@ -30,6 +31,7 @@ const NodeGroup = React.memo(({
     isValidTarget,
     actorColor,
     actorName,
+    aggregateName,
     onNodeClick,
     onNodeDoubleClick,
     onDragMove,
@@ -46,7 +48,8 @@ const NodeGroup = React.memo(({
     // ... (abridged for locator)
     const style = ELEMENT_STYLE[node.type as keyof typeof ELEMENT_STYLE] || defaultStyle;
 
-    const height = node.computedHeight || calculateNodeHeight(node.name);
+    const rawHeight = node.computedHeight || calculateNodeHeight(node.name);
+    const height = Math.ceil(rawHeight / GRID_SIZE) * GRID_SIZE;
     const width = NODE_WIDTH;
     const x = safeNum(node.x);
     const y = safeNum(node.y);
@@ -180,7 +183,7 @@ const NodeGroup = React.memo(({
                     listening={false}
                 />
                 <Text
-                    x={contentOffsetX} y={contentOffsetY + 30} width={width}
+                    x={contentOffsetX + NODE_PADDING} y={contentOffsetY + 30} width={width - NODE_PADDING * 2}
                     text={safeStr(node.name)}
                     align="center"
                     fontSize={FONT_SIZE}
@@ -189,7 +192,6 @@ const NodeGroup = React.memo(({
                     fontStyle="500"
                     fill={style.textColor}
                     wrap="word"
-                    padding={NODE_PADDING}
                     listening={false}
                 />
                 {node.pinned && (
@@ -226,6 +228,30 @@ const NodeGroup = React.memo(({
                         />
                         <Text
                             text={actorName}
+                            fontSize={10}
+                            fontFamily={FONT_FAMILY}
+                            fontStyle="bold"
+                            fill="white"
+                            padding={5}
+                            width={100}
+                            ellipsis={true}
+                            wrap="none"
+                        />
+                    </Group>
+                )}
+                {/* Aggregate Label */}
+                {aggregateName && node.type === 'DOMAIN_EVENT' && (
+                    <Group x={12} y={-22}>
+                        <Rect
+                            height={20}
+                            width={Math.min(100, aggregateName.length * 8 + 12)}
+                            fill={'#ea580c'} // Tailwind Orange-600
+                            cornerRadius={4}
+                            shadowBlur={2}
+                            shadowOpacity={0.1}
+                        />
+                        <Text
+                            text={aggregateName}
                             fontSize={10}
                             fontFamily={FONT_FAMILY}
                             fontStyle="bold"

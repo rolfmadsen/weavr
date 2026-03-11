@@ -1,6 +1,6 @@
 export * from './domain/types';
 export { default as validationService } from './domain/validation';
-export * from './domain/elkLayout';
+export * from './domain/eventModelLayout';
 export * from './domain/textUtils';
 export * from './store/useCrossModelData';
 

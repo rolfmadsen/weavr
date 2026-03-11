@@ -163,11 +163,11 @@ export function calculateDynamicPoints(
     if (isOpposite) {
         // Find Mid
         if (Math.abs(dS.x) > 0) { // Horizontal
-            const midX = (p1.x + pLast.x) / 2;
+            const midX = p1.x; // Always bend exactly minSeg (20px) from the source node
             points.push({ x: midX, y: p1.y });
             points.push({ x: midX, y: pLast.y });
         } else { // Vertical
-            const midY = (p1.y + pLast.y) / 2;
+            const midY = p1.y; // Always bend exactly minSeg (20px) from the source node 
             points.push({ x: p1.x, y: midY });
             points.push({ x: pLast.x, y: midY });
         }
@@ -325,25 +325,18 @@ export function resolveLinkPoints(
     sourceNode: Node,
     targetNode: Node,
     sliceBounds: Map<string, { minX: number; maxX: number; minY: number; maxY: number }>,
-    cachedRoute?: number[],
+    _cachedRoute?: number[],
     sIdx = 0, sTot = 1,
     tIdx = 0, tTot = 1
 ): number[] {
     // Try smart routing first for inter-slice consistency
-    // We pass indices if we want better port distribution later, but for now 0,1 is fine or we update signature below
-    // Actually, let's pass the indices to calculateSmartPoints if we update it to take them.
-    // For now, the implementation above uses 0,1. 
-    // Let's update the signature of calculateSmartPoints to take indices to be correct.
-
-    // Wait, I can only replace the block I see.
-    // I will update calculateSmartPoints to accept indices as optional or just reuse the logic.
-
     const smartRoute = calculateSmartPoints(sourceNode, targetNode, sliceBounds);
     if (smartRoute) return smartRoute;
 
-    if (cachedRoute && cachedRoute.length >= 4) {
-        // Logic omitted, fallback to dynamic
-    }
+    // Weavr: Cached routes from the Layout Engine are intentionally bypassed here
+    // in favor of calculateDynamicPoints to preserve the port-distribution aesthetics (sIdx/tIdx) 
+    // where multiple edges splay out along the boundary of the node rather than starting from center.
+
     return calculateDynamicPoints(sourceNode, targetNode, sIdx, sTot, tIdx, tTot);
 }
 

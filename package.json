@@ -33,7 +33,6 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "clsx": "^2.1.1",
     "compression": "^1.8.1",
-    "elkjs": "^0.11.0",
     "express": "^5.2.1",
     "gun": "^0.2020.1241",
     "idb": "^8.0.3",

@@ -50,9 +50,6 @@ export default defineConfig({
       'gun/lib/radisk',
       'gun/lib/store',
       'gun/lib/rindexed',
-      'elkjs/lib/elk-api.js',
-      'elkjs/lib/elk.bundled.js',
-      'elkjs/lib/elk-worker.js',
     ],
   },
   // 3. The Build Config (Fixes the "Large Chunk" warning)

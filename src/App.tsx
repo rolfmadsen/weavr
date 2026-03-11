@@ -466,6 +466,7 @@ const App: React.FC = () => {
             slices={filteredSlices}
             allNodes={nodes}
             actors={actors}
+            definitions={definitions}
             selectedIds={selectedIds}
             edgeRoutes={autoLayoutEdges}
             autoLayoutSliceBounds={sliceBoundsMap}

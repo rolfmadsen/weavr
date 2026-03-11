@@ -9,7 +9,8 @@ import {
     Node,
     Link,
     Slice,
-    Actor
+    Actor,
+    DataDefinition
 } from '../../modeling';
 
 import { MIN_NODE_HEIGHT, NODE_WIDTH, GRID_SIZE } from '../../../shared/constants';
@@ -46,6 +47,7 @@ interface GraphCanvasKonvaProps {
     slices?: Slice[];
     allNodes?: Node[]; // All nodes (unfiltered) for Tab navigation across hidden slices
     actors?: Actor[]; // New Prop
+    definitions?: DataDefinition[]; // New Prop to resolve aggregate names
     selectedIds: string[];
     edgeRoutes?: Map<string, number[]>;
     onNodeClick: (node: Node, event?: any) => void;
@@ -83,6 +85,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     slices = [], // Default to empty array
     allNodes, // All nodes for Tab navigation
     actors = [], // Default to empty array
+    definitions = [], // Default to empty array
     selectedIds,
     edgeRoutes,
     onNodeClick,
@@ -188,15 +191,29 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         const visuals = new Map<string, { x: number, y: number, width: number, height: number, minX: number, maxX: number, minY: number, maxY: number }>();
         const PADDING = 40;
 
+        // 1. Find global min/max Y to ensure uniform slice & chapter heights
+        let globalMinY = Infinity;
+        let globalMaxY = -Infinity;
+        slices.forEach(s => {
+            const b = unifiedSliceBounds.get(s.id);
+            if (b) {
+                if (b.minY < globalMinY) globalMinY = b.minY;
+                if (b.maxY > globalMaxY) globalMaxY = b.maxY;
+            }
+        });
+        if (globalMinY === Infinity) globalMinY = 0;
+        if (globalMaxY === -Infinity) globalMaxY = 100;
+
         // Ensure ALL slices are accounted for, even if empty/no layout yet
         slices.forEach(s => {
             const b = unifiedSliceBounds.get(s.id);
 
-            // Default center if no layout data exists yet
+            // X is based on individual slice tightness
             const tightMinX = b ? b.minX : 0;
             const tightMaxX = b ? b.maxX : 150;
-            const tightMinY = b ? b.minY : 0;
-            const tightMaxY = b ? b.maxY : 100;
+            // Y is forced to be perfectly uniform globally
+            const tightMinY = globalMinY;
+            const tightMaxY = globalMaxY;
 
             const x = tightMinX - PADDING;
             const y = tightMinY - PADDING;
@@ -670,7 +687,8 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             rect.position({ x: sx, y: sy });
             rect.width(dimensions.width / stageScale);
             rect.height(dimensions.height / stageScale);
-            rect.fillPatternOffset({ x: sx % (GRID_SIZE || 20), y: sy % (GRID_SIZE || 20) });
+            const grid = GRID_SIZE || 20;
+            rect.fillPatternOffset({ x: ((sx % grid) + grid) % grid, y: ((sy % grid) + grid) % grid });
         }
     }, [stagePos, stageScale, dimensions]); // Syncs only when idle/programmatic move
 
@@ -767,6 +785,15 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         });
         return { colorMap, nameMap };
     }, [actors]);
+
+    // NEW: Aggregate Map (Name)
+    const aggregateInfo = useMemo(() => {
+        const nameMap = new Map<string, string>();
+        definitions.forEach(d => {
+            nameMap.set(d.id, d.name || 'Unknown');
+        });
+        return { nameMap };
+    }, [definitions]);
 
     // NEW: Global Keyboard Listener (Bypasses focus issues)
     useEffect(() => {
@@ -972,6 +999,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                                 isValidTarget={isValidTarget}
                                 actorColor={node.actor ? actorInfo.colorMap.get(node.actor) : undefined}
                                 actorName={node.actor ? actorInfo.nameMap.get(node.actor) : undefined}
+                                aggregateName={node.aggregate ? aggregateInfo.nameMap.get(node.aggregate) : undefined}
                                 onNodeClick={onNodeClick}
                                 onNodeDoubleClick={onNodeDoubleClick}
                                 onDragMove={handleNodeDragMove}

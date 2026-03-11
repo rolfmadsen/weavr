@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Node, Link, Slice } from '../domain/types';
-import { calculateElkLayout } from '../domain/elkLayout';
+import { calculateLayout } from '../domain/eventModelLayout';
 import { bus } from '../../../shared/events/eventBus';
 
 interface UseLayoutManagerProps {
@@ -57,7 +57,7 @@ export function useLayoutManager({
 
         try {
             // 1. Calculate Layout
-            const { positions: newPositionsMap, edgeRoutes, containerBounds } = await calculateElkLayout(currentNodes, currentLinks, currentSlices);
+            const { positions: newPositionsMap, edgeRoutes, containerBounds } = await calculateLayout(currentNodes, currentLinks, currentSlices);
 
             // 1.5. Anchor Preservation (Center of Mass Shift)
             // If the user has ZERO pinned nodes, ELK will force the layout to the origin (0,0).

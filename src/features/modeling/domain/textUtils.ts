@@ -55,7 +55,6 @@ export function calculateNodeHeight(name: string): number {
     let requiredHeight = PADDING_Y * 2;
     requiredHeight += STEREOTYPE_HEIGHT;
     requiredHeight += lines.length * (FONT_SIZE * LINE_HEIGHT);
-    requiredHeight += 20; // Extra buffer for bottom padding
 
     // Round up to nearest multiple of GRID_SIZE to ensure alignment
     const rawHeight = Math.max(MIN_NODE_HEIGHT, requiredHeight);
