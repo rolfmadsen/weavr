@@ -207,7 +207,7 @@ export function useLayoutManager({
     // Event Triggers: Based on modeling facts (Slice changes, Pinned status changes)
     useEffect(() => {
         const onNodeUpdated = ({ changes }: { changes: Partial<Node> }) => {
-            if ('sliceId' in changes || 'name' in changes || 'actor' in changes || changes.pinned === false) {
+            if ('sliceId' in changes || 'name' in changes || 'actor' in changes || 'aggregate' in changes || changes.pinned === false) {
                 triggerLayout(`node:updated(${Object.keys(changes).join(',')})`, 300);
             }
         };
