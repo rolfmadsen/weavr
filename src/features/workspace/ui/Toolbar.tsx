@@ -9,6 +9,11 @@ import {
   SquareActivity
 } from 'lucide-react';
 import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface ToolbarProps {
   onAddNode: (type: any) => void;
@@ -47,7 +52,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
                 <button
                   onClick={() => handleAddClick(tool.type)}
                   aria-label={`Add ${tool.label}`}
-                  className="w-12 h-12 bg-white/40 dark:bg-slate-800/60 hover:bg-white/60 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-white/30 dark:border-white/10 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ease-out hover:scale-110 hover:shadow-purple-500/20 active:scale-95 backdrop-blur-md"
+                  className="w-12 h-12 bg-white/40 dark:bg-slate-800/60 hover:bg-white/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-white/30 dark:border-white/10 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ease-out hover:scale-110 hover:border-purple-500 hover:text-purple-600 active:scale-95 backdrop-blur-md outline-none"
                   title={`Add ${tool.label} (Press ${tool.shortcut})`}
                   style={{ transitionDelay: `${index * 30}ms` }}
                 >
@@ -63,13 +68,13 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
           onClick={onToggleMenu}
           aria-label={isMenuOpen ? "Close Menu" : "Add Element Menu"}
           disabled={disabled}
-          className={clsx(
-            "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ease-out border border-white/20 backdrop-blur-md",
+          className={cn(
+            "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ease-out border border-white/20 backdrop-blur-md outline-none",
             disabled ? 'bg-slate-400/50 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 hover:scale-105 hover:shadow-orange-500/40 active:scale-95 text-white'
           )}
           title={disabled ? 'Connecting...' : (isMenuOpen ? 'Close (Esc)' : 'Add Element (A/N)')}
         >
-          <div className={clsx("flex items-center justify-center transform transition-transform duration-300", isMenuOpen && !disabled ? 'rotate-45' : 'rotate-0')}>
+          <div className={cn("flex items-center justify-center transform transition-transform duration-300", isMenuOpen && !disabled ? 'rotate-45' : 'rotate-0')}>
             <Plus className="text-3xl md:text-4xl leading-none translate-y-px" size={32} />
           </div>
         </button>

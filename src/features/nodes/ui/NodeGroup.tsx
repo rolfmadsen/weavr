@@ -153,7 +153,7 @@ const NodeGroup = React.memo(({
                     setShowHandles(true);
                 }}
                 onMouseLeave={(e) => {
-                    setCanvasCursor(e, 'grab'); // Maintain grab as we exit the node back to canvas (which is grab)
+                    setCanvasCursor(e, ''); // Fallback to canvas CSS
                     setShowHandles(false);
                 }}
                 dragBoundFunc={(pos) => {
@@ -203,7 +203,7 @@ const NodeGroup = React.memo(({
                             onUnpin(node.id);
                         }}
                         onMouseEnter={(e) => setCanvasCursor(e, 'pointer')}
-                        onMouseLeave={(e) => setCanvasCursor(e, 'grab')}
+                        onMouseLeave={(e) => setCanvasCursor(e, '')}
                     >
                         <Circle radius={14} fill="#ef4444" shadowBlur={4} shadowOpacity={0.3} stroke="white" strokeWidth={2} />
                         <Path
@@ -272,7 +272,7 @@ const NodeGroup = React.memo(({
                             onNodeDoubleClick(node);
                         }}
                         onMouseEnter={(e) => setCanvasCursor(e, 'pointer')}
-                        onMouseLeave={(e) => setCanvasCursor(e, 'grab')}
+                        onMouseLeave={(e) => setCanvasCursor(e, '')}
                     >
                         <Circle radius={14} fill="#4f46e5" shadowBlur={4} shadowOpacity={0.3} stroke="white" strokeWidth={2} />
                         <Path
@@ -300,7 +300,7 @@ const NodeGroup = React.memo(({
                             setCanvasCursor(e, 'crosshair');
                         }}
                         onMouseLeave={(e) => {
-                            setCanvasCursor(e, 'grab');
+                            setCanvasCursor(e, '');
                         }}
                     />
                 ))}

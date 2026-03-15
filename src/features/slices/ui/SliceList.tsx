@@ -84,9 +84,9 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
     };
 
     return (
-        <div ref={setNodeRef} style={style} className={`mb-2 transition-opacity ${isDragging ? 'opacity-50' : 'opacity-100'} ${disabled ? 'pointer-events-none' : ''}`}>
+        <div ref={setNodeRef} style={style} className={`transition-opacity ${isDragging ? 'opacity-50' : 'opacity-100'} ${disabled ? 'pointer-events-none' : ''}`}>
             <div
-                className={`group bg-white/5 border border-white/10 rounded-lg overflow-hidden transition-all duration-200 ${expanded ? 'bg-white/10 border-white/20' : ''}`}
+                className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-700 transition-all duration-200 ${expanded ? 'bg-gray-50 dark:bg-neutral-800' : ''}`}
             >
                 {/* Header Area */}
                 <div className="flex items-center gap-0 list-none select-none">
@@ -95,24 +95,24 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
                         {...attributes}
                         {...listeners}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-slate-500 hover:text-slate-300 dark:text-slate-400 dark:hover:text-slate-200 cursor-grab active:cursor-grabbing p-3 -ml-1 h-full flex items-center"
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-neutral-400 cursor-grab active:cursor-grabbing p-3 -ml-1 h-full flex items-center"
                     >
-                        <GripVertical size={16} className="opacity-50 hover:opacity-100" />
+                        <GripVertical size={16} />
                     </div>
 
                     {/* Clickable Area for Expansion */}
                     <div
                         onClick={() => onExpandChange(!expanded)}
-                        className="flex-1 flex items-center gap-3 p-3 pl-0 cursor-pointer hover:bg-white/5"
+                        className="flex-1 flex items-center gap-3 p-3 pl-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-r-xl"
                     >
-                        <ChevronDown size={20} className={`text-slate-500 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown size={20} className={`text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
 
                         <div className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: slice.color }} />
 
-                        <span className="font-medium text-slate-800 dark:text-slate-100 flex-1">{slice.title || 'Untitled Slice'}</span>
+                        <span className="text-sm font-medium text-gray-800 dark:text-neutral-200 flex-1">{slice.title || 'Untitled Slice'}</span>
 
                         {slice.sliceType && (
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-x-1.5 py-1 px-2 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-white uppercase tracking-wider">
                                 {slice.sliceType}
                             </span>
                         )}
@@ -121,7 +121,7 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
 
                 {/* Content Area */}
                 {expanded && (
-                    <div className="p-4 bg-black/5 dark:bg-black/20 border-t border-white/10 animate-in slide-in-from-top-2 duration-200">
+                    <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700 rounded-b-xl animate-in slide-in-from-top-2 duration-200">
                         {children}
                     </div>
                 )}

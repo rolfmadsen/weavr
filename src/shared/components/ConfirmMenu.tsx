@@ -1,6 +1,11 @@
-import React from 'react';
 import { GlassCard } from './GlassCard';
 import { GlassButton } from './GlassButton';
+import { twMerge } from 'tailwind-merge';
+import clsx from 'clsx';
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface ConfirmMenuProps {
     anchorEl: HTMLElement | null;
@@ -25,13 +30,15 @@ const ConfirmMenu: React.FC<ConfirmMenuProps> = ({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]" onClick={(e) => {
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={(e) => {
             e.stopPropagation();
             onClose();
         }}>
             <GlassCard
                 variant="panel"
-                className="w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 border-red-500/20"
+                className={cn(
+                    "w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 border-red-500/30 ring-1 ring-red-500/20"
+                )}
                 onClick={e => e.stopPropagation()}
             >
                 <p className="text-slate-800 dark:text-slate-200 mb-6 font-medium leading-relaxed">

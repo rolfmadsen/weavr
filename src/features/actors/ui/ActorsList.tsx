@@ -53,10 +53,10 @@ const ActorsList: React.FC<ActorsListProps> = ({
                 {actors.map((actor) => (
                     <details
                         key={actor.id}
-                        className="group bg-white/5 border border-white/10 rounded-lg overflow-hidden open:bg-white/10 open:border-white/20 transition-all duration-200"
+                        className="hs-accordion group bg-white/5 border border-white/10 rounded-lg overflow-hidden open:bg-white/10 open:border-white/20 transition-all duration-200"
                     >
-                        <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-white/5 select-none">
-                            <ChevronDown className="text-slate-500 group-open:rotate-180 transition-transform duration-200" />
+                        <summary className="hs-accordion-toggle flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-white/5 select-none focus:outline-none">
+                            <ChevronDown className="hs-accordion-active:rotate-180 text-slate-500 transition-transform duration-200" />
                             <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500">
                                 <Users size={16} />
                             </div>
@@ -77,7 +77,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
                                         onChange={(e) => {
                                             onUpdateActor(actor.id, { description: e.target.value });
                                         }}
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none text-slate-800 dark:text-slate-100 placeholder-slate-500 min-h-[60px]"
+                                        className="py-2 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 focus:border-purple-500/50 focus:ring-purple-500/50 dark:focus:ring-neutral-600 disabled:opacity-50 disabled:pointer-events-none min-h-[60px]"
                                     />
                                 </div>
 
@@ -86,7 +86,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
                                     type="color"
                                     value={actor.color || '#9333ea'}
                                     onChange={(e) => onUpdateActor(actor.id, { color: e.target.value })}
-                                    className="h-10 cursor-pointer"
+                                    className="p-1 h-10 block w-full border-slate-300 dark:border-white/10 rounded-xl bg-white dark:bg-black/20 cursor-pointer focus:border-purple-500/50 focus:ring-purple-500/50 dark:focus:ring-neutral-600 disabled:opacity-50 disabled:pointer-events-none"
                                 />
 
                                 <div className="flex justify-end pt-2">

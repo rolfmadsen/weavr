@@ -12,6 +12,12 @@ import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 import { useCrossModelData } from '../../modeling';
 import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassInput } from '../../../shared/components/GlassInput';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface DataDictionaryListProps {
     definitions: DataDefinition[];
@@ -67,7 +73,10 @@ const DebouncedTextarea: React.FC<any> = ({ value, onCommit, className, ...props
     return (
         <textarea
             {...props}
-            className={className}
+            className={cn(
+                "py-2 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 focus:border-purple-500/50 focus:ring-purple-500/50 dark:focus:ring-neutral-600 disabled:opacity-50 disabled:pointer-events-none transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 min-h-[60px]",
+                className
+            )}
             value={localValue}
             onChange={(e) => setLocalValue(e.target.value)}
             onBlur={() => {
@@ -238,12 +247,12 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                 onLinkFieldToDefinition(field.name, field.type, newId);
                                             }
                                         }}
-                                        className="text-[10px] bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white px-2 py-1 rounded border border-emerald-500/20 transition-all font-bold uppercase"
+                                        className="py-1 px-2 inline-flex items-center gap-x-1 text-[10px] font-bold rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all uppercase"
                                     >
                                         To Entity
                                     </button>
                                     <div className="relative group/menu">
-                                        <button className="text-[10px] bg-purple-500/10 hover:bg-purple-500 text-purple-600 hover:text-white px-2 py-1 rounded border border-purple-500/20 transition-all font-bold uppercase">
+                                        <button className="py-1 px-2 inline-flex items-center gap-x-1 text-[10px] font-bold rounded-md bg-purple-500/10 text-purple-600 border border-purple-500/20 hover:bg-purple-500 hover:text-white transition-all uppercase">
                                             Link To...
                                         </button>
                                         <div className="absolute right-0 bottom-full mb-1 hidden group-hover/menu:block z-[110] min-w-[140px]">
@@ -288,10 +297,10 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                     return (
                         <details
                             key={def.id}
-                            className={`group bg-white/5 border border-white/10 rounded-lg overflow-hidden open:bg-white/10 open:border-white/20 transition-all duration-200 ${def.parentId ? 'ml-6' : ''}`}
+                            className={`hs-accordion group bg-white/5 border border-white/10 rounded-lg overflow-hidden open:bg-white/10 open:border-white/20 transition-all duration-200 ${def.parentId ? 'ml-6' : ''}`}
                         >
-                            <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-white/5 select-none text-sm">
-                                <ChevronDown className="text-slate-500 group-open:rotate-180 transition-transform duration-200" size={16} />
+                            <summary className="hs-accordion-toggle flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-white/5 select-none text-sm focus:outline-none">
+                                <ChevronDown className="hs-accordion-active:rotate-180 text-slate-500 transition-transform duration-200" size={16} />
                                 <div className={`w-2.5 h-2.5 rounded-full ${getTypeColor(def.type)} ${def.isRoot ? 'ring-2 ring-emerald-500/50' : ''} shadow-sm`} />
 
                                 <div className="flex flex-col flex-1">
@@ -361,13 +370,16 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                 <select
                                                     value={def.type}
                                                     onChange={(e) => onUpdateDefinition(def.id, { type: e.target.value as DefinitionType })}
-                                                    className="w-full bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
+                                                    className="py-1.5 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50 dark:bg-black/40 text-slate-800 dark:text-slate-200 focus:border-purple-500/50 focus:ring-purple-500/50 dark:focus:ring-neutral-600 disabled:opacity-50 disabled:pointer-events-none appearance-none"
                                                 >
                                                     <option value={DefinitionType.Aggregate}>Aggregate</option>
                                                     <option value={DefinitionType.Entity}>Entity</option>
                                                     <option value={DefinitionType.ValueObject}>Value Object</option>
                                                     <option value={DefinitionType.Enum}>Enum</option>
                                                 </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                                    <ChevronDown size={14} />
+                                                </div>
                                             </div>
                                         </div>
 
@@ -401,7 +413,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                                 }
                                                                 onUpdateDefinition(def.id, { isRoot: !def.isRoot });
                                                             }}
-                                                            className={`px-3 rounded-xl border text-[10px] font-bold transition-all ${def.isRoot ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-white/10 text-slate-500 hover:border-emerald-500/50'}`}
+                                                            className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold transition-all shadow-sm ${def.isRoot ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-white/10 text-slate-500 bg-white/50 dark:bg-black/20 hover:border-emerald-500/50'}`}
                                                         >
                                                             ROOT
                                                         </button>

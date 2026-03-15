@@ -69,7 +69,19 @@ function getModelIdFromUrl(): string {
   return newId;
 }
 
+
 const App: React.FC = () => {
+  // Preline initialization
+  useEffect(() => {
+    const initPreline = async () => {
+      await import('preline');
+      if (window.HSStaticMethods && typeof window.HSStaticMethods.autoInit === 'function') {
+        window.HSStaticMethods.autoInit();
+      }
+    };
+    initPreline();
+  }, [window.location.hash]); // We use hash-based routing/state
+
   const [modelId, setModelId] = React.useState<string | null>(null);
   const [pendingFitView, setPendingFitView] = React.useState(false);
 
@@ -230,12 +242,52 @@ const App: React.FC = () => {
     return slices.filter(s => !visibleSliceIds.has(s.id)).map(s => s.id);
   }, [focusModeEnabled, selectedNodeIdsArray, nodes, links, slices, focusModeSteps, hiddenSliceIds]);
 
-  const filteredNodes = useMemo(() => {
-    if (effectiveHiddenSliceIds.length === 0) return nodes;
-    return nodes.filter((node: Node) => !node.sliceId || !effectiveHiddenSliceIds.includes(node.sliceId));
-  }, [nodes, effectiveHiddenSliceIds]);
+    // 5. Filter Logic
+    // Source for navigation: Only based on manual check marks
+    const manualVisibleNodes = useMemo(() => {
+      return nodes.filter(node => !node.sliceId || !hiddenSliceIds.includes(node.sliceId));
+    }, [nodes, hiddenSliceIds]);
 
-  const filteredLinks = useMemo(() => {
+    // Source for rendering: Focus Mode aware
+    const filteredNodes = useMemo(() => {
+      if (!focusModeEnabled || selectedNodeIdsArray.length === 0) {
+        // Normal Mode: Manual filters + all orphans
+        return manualVisibleNodes;
+      }
+
+      // Focus Mode: BFS visible slices + related orphans
+      const visibleNodeIdsSet = new Set<string>();
+      
+      // 1. Gather nodes from visible slices
+      manualVisibleNodes.forEach(node => {
+        if (node.sliceId && !effectiveHiddenSliceIds.includes(node.sliceId)) {
+          visibleNodeIdsSet.add(node.id);
+        }
+      });
+
+      // 2. Add currently selected nodes (always visible)
+      selectedNodeIdsArray.forEach(id => visibleNodeIdsSet.add(id));
+
+      // 3. Add Orphans (no sliceId) only if they are linked to a node in visibleNodeIdsSet
+      // This satisfies the "User Request: If an element without a slice is related ... it should also be visible"
+      const orphans = nodes.filter(n => !n.sliceId);
+      orphans.forEach(node => {
+        if (visibleNodeIdsSet.has(node.id)) return;
+        
+        const isRelated = links.some(link => 
+          (link.source === node.id && visibleNodeIdsSet.has(link.target)) ||
+          (link.target === node.id && visibleNodeIdsSet.has(link.source))
+        );
+
+        if (isRelated) {
+          visibleNodeIdsSet.add(node.id);
+        }
+      });
+
+      return nodes.filter(n => visibleNodeIdsSet.has(n.id));
+    }, [manualVisibleNodes, nodes, links, focusModeEnabled, selectedNodeIdsArray, effectiveHiddenSliceIds]);
+
+    const filteredLinks = useMemo(() => {
     if (effectiveHiddenSliceIds.length === 0) return links;
     const nodeIds = new Set(filteredNodes.map((n: Node) => n.id));
     return links.filter((link: Link) => nodeIds.has(link.source) && nodeIds.has(link.target));
@@ -395,7 +447,12 @@ const App: React.FC = () => {
     },
     onFocusNode: (id: string | undefined) => id && handleFocusNode(id),
     onAutoLayout: handleAutoLayout,
-    onPaste: pasteNodes
+    onPaste: pasteNodes,
+    onSelectAll: () => handleMarqueeSelect(nodes.map(n => n.id)),
+    onDuplicate: () => pasteNodes(nodes.filter(n => selectedNodeIdsArray.includes(n.id))),
+    onZoomIn: () => graphRef.current?.zoomIn(),
+    onZoomOut: () => graphRef.current?.zoomOut(),
+    onResetZoom: () => graphRef.current?.resetZoom()
   });
 
   // Sync GunDB name to Local Storage (Bi-directional)
@@ -464,7 +521,8 @@ const App: React.FC = () => {
             nodes={filteredNodes}
             links={filteredLinks}
             slices={filteredSlices}
-            allNodes={nodes}
+            allSlices={slices}
+            navigationNodes={manualVisibleNodes}
             actors={actors}
             definitions={definitions}
             selectedIds={selectedIds}

@@ -16,17 +16,17 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     children,
     ...props
 }) => {
-    const baseStyles = "backdrop-blur-xl transition-all duration-300";
+    const baseStyles = "transition-all duration-300";
 
     const variants = {
-        // Standard Card (Recipe A)
-        card: "bg-white/20 dark:bg-slate-900/40 border border-white/30 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-black/20 rounded-2xl",
+        // Standard Card
+        card: "flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70",
 
-        // Sidebar / Panel (More opaque, straighter edges for layout panels)
-        sidebar: "bg-white/40 dark:bg-slate-900/60 border-r border-white/20 dark:border-white/5",
+        // Sidebar / Pannel (slightly different borders for layout)
+        sidebar: "bg-white border-r border-gray-200 dark:bg-neutral-800 dark:border-neutral-700",
 
         // High Contrast Panel (Popovers, Modals)
-        panel: "bg-white/30 dark:bg-slate-900/70 border border-white/40 dark:border-white/10 shadow-2xl rounded-xl"
+        panel: "flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70"
     };
 
     return (

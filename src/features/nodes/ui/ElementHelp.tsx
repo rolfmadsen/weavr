@@ -46,25 +46,25 @@ export const ElementHelp: React.FC<{ type: ElementType }> = ({ type }) => {
     if (!info) return null;
 
     return (
-        <div className="mt-4 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-sm">
+        <div className="mt-4 p-4 bg-purple-50 dark:bg-black/20 rounded-xl border border-purple-100 dark:border-white/10 text-sm">
             <div className="flex gap-2 items-center mb-3 text-purple-600 dark:text-purple-400">
                 <Info size={16} />
                 <span className="font-bold">{info.title}</span>
             </div>
 
             <div className="mb-3">
-                <span className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Role</span>
+                <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-1">Role</span>
                 <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{info.purpose}</p>
             </div>
 
             <div className="mb-3">
-                <span className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">The Story</span>
+                <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-1">The Story</span>
                 <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{info.story}</p>
             </div>
 
             <div>
-                <span className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Technical Meaning</span>
-                <code className="text-xs bg-slate-200 dark:bg-black/30 px-1 py-0.5 rounded text-amber-700 dark:text-amber-200 block w-full overflow-x-auto">{info.tech}</code>
+                <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-1">Technical Meaning</span>
+                <code className="text-xs bg-slate-200 dark:bg-black/40 px-1 py-0.5 rounded text-purple-700 dark:text-purple-300 block w-full overflow-x-auto">{info.tech}</code>
             </div>
         </div>
     );

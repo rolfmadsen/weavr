@@ -1,6 +1,6 @@
 ---
 name: weavr-architecture
-description: "The System Blueprint: Local Event Sourcing, SCEP loops, and P2P coordination. Use for defining system flow, handling cross-feature events, and Vibe Coding intent-action trees."
+description: "MANDATORY: You MUST read this skill file via view_file before architecting flows or routing events. The System Blueprint: Local Event Sourcing, SCEP loops, and P2P coordination."
 category: "Architecture"
 author: "Rolf Madsen"
 tags: ["scep", "eda", "event-sourcing", "cqrs", "p2p"]

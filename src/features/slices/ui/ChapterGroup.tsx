@@ -67,7 +67,7 @@ const ChapterGroup: React.FC<ChapterGroupProps> = ({
             }}
             onMouseLeave={(e) => {
                 setIsHovered(false);
-                setCanvasCursor(e, 'grab');
+                setCanvasCursor(e, '');
             }}
         >
             {/* Dashed "Stapled" Border - Chapters are the GROUPS */}

@@ -1,5 +1,4 @@
 import React from 'react';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
     Folder,
     Upload,
@@ -49,65 +48,59 @@ export const AppMenu: React.FC<AppMenuProps> = ({
     };
 
     return (
-        <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
+        <div className="hs-dropdown relative inline-flex">
+            <button id="hs-dropdown-app-menu" type="button" className="hs-dropdown-toggle">
                 {trigger}
-            </DropdownMenu.Trigger>
+            </button>
 
-            <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                    className="min-w-[240px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 slide-in-from-top-2 border border-slate-200 dark:border-slate-800"
-                    sideOffset={8}
-                    align="start"
-                >
-                    {/* Project Section */}
-                    <div className="px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Project</div>
+            <div className="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-[240px] bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-2xl p-1.5 z-50 border border-white/20 dark:border-white/10" aria-labelledby="hs-dropdown-app-menu">
+                {/* Project Section */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Project</div>
 
-                    <DropdownMenu.Item onClick={onOpenModelList} className="flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
-                        <Folder size={16} /> My Models
-                    </DropdownMenu.Item>
+                <button onClick={onOpenModelList} className="w-full flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
+                    <Folder size={16} /> My Models
+                </button>
 
-                    <DropdownMenu.Item onClick={handleOpenClick} className="flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
-                        <Upload size={16} /> Open from File...
-                    </DropdownMenu.Item>
+                <button onClick={handleOpenClick} className="w-full flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
+                    <Upload size={16} /> Open from File...
+                </button>
 
-                    <DropdownMenu.Item onClick={onExport} className="flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
-                        <Download size={16} /> Export JSON
-                    </DropdownMenu.Item>
+                <button onClick={onExport} className="w-full flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
+                    <Download size={16} /> Export JSON
+                </button>
 
-                    {onStandardExport && (
-                        <DropdownMenu.Item onClick={onStandardExport} className="flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
-                            <LogOut size={16} /> Export Standard
-                        </DropdownMenu.Item>
-                    )}
+                {onStandardExport && (
+                    <button onClick={onStandardExport} className="w-full flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
+                        <LogOut size={16} /> Export Standard
+                    </button>
+                )}
 
-                    <DropdownMenu.Item onClick={handleMergeClick} className="flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
-                        <Upload size={16} /> Import to Current
-                    </DropdownMenu.Item>
+                <button onClick={handleMergeClick} className="w-full flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
+                    <Upload size={16} /> Import to Current
+                </button>
 
-                    <DropdownMenu.Separator className="h-px bg-slate-100 dark:bg-slate-800 my-1.5" />
+                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1.5" />
 
-                    {/* View & Help Section */}
-                    <div className="px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">View & Help</div>
+                {/* View & Help Section */}
+                <div className="px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">View & Help</div>
 
-                    <DropdownMenu.Item onClick={onGenerateDocs} className="flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
-                        <FileText size={16} /> Generate Docs
-                    </DropdownMenu.Item>
+                <button onClick={onGenerateDocs} className="w-full flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
+                    <FileText size={16} /> Generate Docs
+                </button>
 
-                    <DropdownMenu.Item onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} className="flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
-                        {resolvedTheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                        {resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                    </DropdownMenu.Item>
+                <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} className="w-full flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
+                    {resolvedTheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                    <span className="ml-0">{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                </button>
 
-                    <DropdownMenu.Item onClick={onOpenHelp} className="flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
-                        <CircleHelp size={16} /> Help Guide
-                    </DropdownMenu.Item>
+                <button onClick={onOpenHelp} className="w-full flex items-center gap-2 px-2 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer outline-none transition-colors">
+                    <CircleHelp size={16} /> Help Guide
+                </button>
 
-                </DropdownMenu.Content>
-            </DropdownMenu.Portal>
+            </div>
 
             {/* Hidden File Input for Open/Merge */}
             <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-        </DropdownMenu.Root>
+        </div>
     );
 };

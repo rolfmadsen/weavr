@@ -7,8 +7,13 @@ import {
   PinOff
 } from 'lucide-react';
 import clsx from 'clsx';
-import * as Tooltip from '@radix-ui/react-tooltip';
+import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 import { AppMenu } from './AppMenu';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface HeaderProps {
   onOpen: (file: File) => void;
@@ -27,29 +32,19 @@ interface HeaderProps {
 }
 
 const IconButton = ({ onClick, disabled, children, title, color = 'neutral' }: any) => (
-  <Tooltip.Provider>
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>
-        <button
-          onClick={onClick}
-          disabled={disabled}
-          className={clsx(
-            "p-2 rounded-full transition-all duration-200",
-            disabled ? "opacity-30 cursor-not-allowed" : "hover:bg-black/5 dark:hover:bg-white/10 active:scale-95",
-            color === 'error' && !disabled ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10" : "text-slate-600 dark:text-slate-300"
-          )}
-        >
-          {children}
-        </button>
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content className="z-50 px-2 py-1 text-xs font-medium text-white bg-slate-900 rounded shadow-lg animate-in fade-in zoom-in-95 duration-200" sideOffset={5}>
-          {title}
-          <Tooltip.Arrow className="fill-slate-900" />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  </Tooltip.Provider>
+  <GlassTooltip content={title}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "p-2 rounded-full transition-all duration-200 outline-none",
+        disabled ? "opacity-30 cursor-not-allowed" : "hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95",
+        color === 'error' && !disabled ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10" : "text-slate-600 dark:text-slate-300"
+      )}
+    >
+      {children}
+    </button>
+  </GlassTooltip>
 );
 
 const Header: React.FC<HeaderProps> = ({
@@ -111,7 +106,7 @@ const Header: React.FC<HeaderProps> = ({
             onBlur={handleNameSubmit}
             onKeyDown={(e) => e.key === 'Enter' && handleNameSubmit()}
             autoFocus
-            className="bg-transparent border-b-2 border-purple-500 outline-none text-lg font-bold w-[200px] sm:w-[300px] px-1 py-0.5"
+            className="bg-transparent border-b-2 border-purple-500/50 focus:border-purple-500 outline-none text-lg font-bold w-[200px] sm:w-[300px] px-1 py-0.5 transition-colors"
           />
         ) : (
           <div
@@ -150,11 +145,11 @@ const Header: React.FC<HeaderProps> = ({
           {/* Share */}
           <button
             onClick={handleShareClick}
-            className={clsx(
-              "flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all shadow-sm border",
+            className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold transition-all shadow-lg active:scale-95 border",
               copied
-                ? "bg-green-500/10 text-green-600 border-green-500/20"
-                : "bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 border-white/20 dark:border-white/10"
+                ? "bg-emerald-500 text-white border-emerald-500 shadow-emerald-500/20"
+                : "bg-purple-600 text-white border-purple-600 hover:bg-purple-500 shadow-purple-500/20"
             )}
           >
             {copied ? 'Copied!' : <><Share2 size={16} /> Share</>}

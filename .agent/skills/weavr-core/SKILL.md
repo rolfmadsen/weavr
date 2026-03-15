@@ -1,9 +1,9 @@
 ---
 name: weavr-core
-description: "The Operator's Manual for Weavr: Project structure, React 19 standards, and the Tailwind Glassmorphism design system. Use for all UI development and build-related tasks."
+description: "MANDATORY: You MUST read this skill file via view_file before writing or styling any UI React components. The Operator's Manual for Weavr: Project structure, React 19 standards, and the Preline UI design system."
 category: "Core / UI"
 author: "Rolf Madsen"
-tags: ["react", "typescript", "tailwind", "vite", "glassmorphism"]
+tags: ["react", "typescript", "tailwind", "vite", "preline"]
 metadata:
   model: Gemini 3 Pro (High)
 ---
@@ -17,7 +17,7 @@ You are the master of the Weavr technical foundation. This skill covers the proj
 
 ## Use this skill when
 - Implementing or refactoring **React components**.
-- Styling interfaces using the **Tailwind Glassmorphism** design system.
+- Styling interfaces using the **Preline UI** design system.
 - Managing project **structure**, dependencies, or build configurations.
 - Handling **Vite**, TypeScript, or general Web API integrations.
 
@@ -41,18 +41,17 @@ Follow the **Vertical Slice** architecture. Logic should be decomposed into feat
 
 ---
 
-## 🎨 2. UI & Aesthetic Standards (Glassmorphism)
-Weavr uses a high-fidelity **Glassmorphism** aesthetic. 
+## 🎨 2. UI & Aesthetic Standards (Preline UI)
+Weavr uses the official **Preline UI** design system to ensure a unified, accessible, and highly rigorous interface.
 
 ### THE MUI BAN
 > [!IMPORTANT]
-> **Strictly NO MUI (`@mui/*`)**. Existing MUI components are being phased out. Always implement new UI using Tailwind v4.
+> **Strictly NO MUI (`@mui/*`)**. Existing MUI components are being phased out. Always implement new UI using Tailwind v4 base classes.
 
-### The Glass Playbook
-- **Translucency**: `bg-white/10` or `bg-black/20` with `backdrop-blur-md`.
-- **Borders**: 1px subtle edges (`border-white/20`).
-- **Depth**: Subtle shadows and vibrancy from background gradients.
-- **Shared Components**: Always check `src/shared/components/` for `GlassButton`, `GlassInput`, etc.
+### The Preline Playbook
+- **Standardization**: Use official [Preline UI](https://preline.co/) HTML DOM structures and standard Tailwind utility classes for all UI elements.
+- **Solid Foundations**: Rely on solid colors (`bg-white`, `bg-gray-50`), structured borders (`border-gray-200`), and distinct shadows instead of translucent effects.
+- **Shared Components**: Always check `src/shared/components/` to verify if a standard Preline component (like Button, Input, or Card) has already been wrapped.
 
 ---
 

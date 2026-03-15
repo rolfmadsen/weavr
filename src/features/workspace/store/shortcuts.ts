@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Node, ElementType } from '../../modeling';
 import { GRID_SIZE } from '../../../shared/constants';
 
@@ -45,11 +45,42 @@ export function useKeyboardShortcuts({
     onMoveNodes,
     onFocusNode,
     onAutoLayout,
-    onPaste
-}: UseKeyboardShortcutsProps) {
+    onPaste,
+    onSelectAll,
+    onDuplicate,
+    onZoomIn,
+    onZoomOut,
+    onResetZoom
+}: UseKeyboardShortcutsProps & {
+    onSelectAll?: () => void;
+    onDuplicate?: () => void;
+    onZoomIn?: () => void;
+    onZoomOut?: () => void;
+    onResetZoom?: () => void;
+}) {
+
+    // Throttle for arrow key holding
+    const lastArrowMoveRef = useRef<number>(0);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
+            // Ignore events from input fields, textareas, and contenteditable elements
+            if (
+                event.target instanceof HTMLInputElement ||
+                event.target instanceof HTMLTextAreaElement ||
+                (event.target instanceof HTMLElement && event.target.isContentEditable)
+            ) {
+                // Allow Alt+Key shortcuts to work even in inputs
+                // Also allow Escape to work in inputs (unless prevented by the input itself)
+                if (event.key === 'Escape') {
+                    // If the input handled it (e.g. cleared text), it should have prevented default.
+                    // If not, we let it bubble to our handler below.
+                    if (event.defaultPrevented) return;
+                } else if (!event.altKey) {
+                    return;
+                }
+            }
+
             if (event.key === 'Escape') {
                 // Allow inputs to handle Escape themselves (e.g. ElementFilter)
                 if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
@@ -82,99 +113,160 @@ export function useKeyboardShortcuts({
 
             let shouldPreventDefault = false;
 
-            switch (event.key) {
-                case 'Enter':
-                    // Don't trigger if the user is focused on an interactive element
-                    if (event.target instanceof HTMLElement && event.target.matches('button, a, summary, [role="button"], [role="link"], [role="tab"], input, textarea, select')) {
+            // Handle Key Combinations (Ctrl/Cmd)
+            if (event.metaKey || event.ctrlKey) {
+                // Prevent these shortcuts if user is typing in input
+                if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+                    return;
+                }
+
+                switch (event.key.toLowerCase()) {
+                    case 'a':
+                        onSelectAll?.();
+                        shouldPreventDefault = true;
                         break;
-                    }
-
-                    if (selectedNodeIds.length === 1 || selectedLinkId) {
-                        onOpenPropertiesPanel();
-                        // Only prevent default if we actually handled it (i.e., we are not on an interactive element)
+                    case 'd':
+                        onDuplicate?.();
                         shouldPreventDefault = true;
-                    }
-                    break;
-
-                // Tab navigation is now handled in GraphCanvas.tsx with slice-aware logic
-
-
-                case 'Delete':
-                case 'Backspace':
-                    if (selectedNodeIds.length > 0 || selectedLinkId) {
-                        onDeleteSelection();
+                        break;
+                    case 'c':
+                        if (selectedNodeIds.length > 0) {
+                            const nodesToCopy = nodes.filter(n => selectedNodeIds.includes(n.id));
+                            const clipboardData = {
+                                weavr_type: 'nodes',
+                                data: nodesToCopy
+                            };
+                            navigator.clipboard.writeText(JSON.stringify(clipboardData));
+                            shouldPreventDefault = true;
+                        }
+                        break;
+                    case 'v':
+                        navigator.clipboard.readText().then(text => {
+                            try {
+                                const parsed = JSON.parse(text);
+                                if (parsed && parsed.weavr_type === 'nodes' && Array.isArray(parsed.data)) {
+                                    onPaste(parsed.data);
+                                }
+                            } catch (e) {
+                                // Not valid JSON or not our format
+                            }
+                        });
                         shouldPreventDefault = true;
-                    }
-                    break;
+                        break;
+                    case '+':
+                    case '=':
+                        onZoomIn?.();
+                        shouldPreventDefault = true;
+                        break;
+                    case '-':
+                    case '_':
+                        onZoomOut?.();
+                        shouldPreventDefault = true;
+                        break;
+                    case '0':
+                        onResetZoom?.();
+                        shouldPreventDefault = true;
+                        break;
+                }
+            } else {
+                // Single keystrokes without Ctrl/Cmd
+                switch (event.key) {
+                    case 'Enter':
+                        // Don't trigger if the user is focused on an interactive element
+                        if (event.target instanceof HTMLElement && event.target.matches('button, a, summary, [role="button"], [role="link"], [role="tab"], input, textarea, select')) {
+                            break;
+                        }
 
-                case 'a': case 'A': case 'n': case 'N':
-                    if (!(event.metaKey || event.ctrlKey)) {
+                        if (selectedNodeIds.length === 1 || selectedLinkId) {
+                            onOpenPropertiesPanel();
+                            // Only prevent default if we actually handled it (i.e., we are not on an interactive element)
+                            shouldPreventDefault = true;
+                        }
+                        break;
+
+                    case 'Delete':
+                    case 'Backspace':
+                        if (selectedNodeIds.length > 0 || selectedLinkId) {
+                            onDeleteSelection();
+                            shouldPreventDefault = true;
+                        }
+                        break;
+
+                    case 'a': case 'A': case 'n': case 'N':
                         if (isReady) onToggleToolbar();
                         shouldPreventDefault = true;
-                    }
-                    break;
+                        break;
 
-                case 'f': case 'F':
-                    if (!(event.metaKey || event.ctrlKey)) {
+                    case 'f': case 'F':
                         if (selectedNodeIds.length > 0) {
                             onFocusNode(selectedNodeIds[0]);
                             shouldPreventDefault = true;
                         }
-                    }
-                    break;
+                        break;
 
-                case 'l': case 'L':
-                    if (!(event.metaKey || event.ctrlKey)) {
+                    case 'l': case 'L':
                         onAutoLayout();
                         shouldPreventDefault = true;
-                    }
-                    break;
+                        break;
 
-                case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
-                    if (selectedNodeIds.length > 0 && !showSlices) {
-                        const updates = new Map<string, { fx: number, fy: number }>();
+                    case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
+                        if (selectedNodeIds.length > 0 && !showSlices) {
+                            const now = Date.now();
+                            if (event.repeat && now - lastArrowMoveRef.current < 50) {
+                                // Throttle to roughly 20 moves per second while holding
+                                shouldPreventDefault = true;
+                                break;
+                            }
+                            lastArrowMoveRef.current = now;
 
-                        let dx = 0, dy = 0;
-                        if (event.key === 'ArrowUp') dy = -GRID_SIZE;
-                        if (event.key === 'ArrowDown') dy = GRID_SIZE;
-                        if (event.key === 'ArrowLeft') dx = -GRID_SIZE;
-                        if (event.key === 'ArrowRight') dx = GRID_SIZE;
+                            const updates = new Map<string, { fx: number, fy: number }>();
 
-                        if (dx !== 0 || dy !== 0) {
-                            nodes.forEach(node => {
-                                if (selectedNodeIds.includes(node.id)) {
-                                    const currentX = node.fx ?? node.x ?? 0;
-                                    const currentY = node.fy ?? node.y ?? 0;
-                                    const newPos = { fx: currentX + dx, fy: currentY + dy };
-                                    updates.set(node.id, newPos);
-                                }
-                            });
-                            onMoveNodes(updates);
+                            let dx = 0, dy = 0;
+                            if (event.key === 'ArrowUp') dy = -GRID_SIZE;
+                            if (event.key === 'ArrowDown') dy = GRID_SIZE;
+                            if (event.key === 'ArrowLeft') dx = -GRID_SIZE;
+                            if (event.key === 'ArrowRight') dx = GRID_SIZE;
+
+                            if (dx !== 0 || dy !== 0) {
+                                nodes.forEach(node => {
+                                    if (selectedNodeIds.includes(node.id)) {
+                                        const currentX = node.fx ?? node.x ?? 0;
+                                        const currentY = node.fy ?? node.y ?? 0;
+                                        // Snap to grid
+                                        const newPos = {
+                                            fx: Math.round((currentX + dx) / GRID_SIZE) * GRID_SIZE,
+                                            fy: Math.round((currentY + dy) / GRID_SIZE) * GRID_SIZE
+                                        };
+                                        updates.set(node.id, newPos);
+                                    }
+                                });
+                                onMoveNodes(updates);
+                                shouldPreventDefault = true;
+                            }
+                        }
+                        break;
+
+                    case 's': case 'S':
+                        if (event.altKey) {
+                            onOpenSlices?.();
                             shouldPreventDefault = true;
                         }
-                    }
-                    break;
+                        break;
 
-                case 's': case 'S':
-                    if (event.altKey) {
-                        onOpenSlices?.();
-                        shouldPreventDefault = true;
-                    }
-                    break;
+                    case 'd': case 'D':
+                        if (event.altKey) {
+                            onOpenDictionary?.();
+                            shouldPreventDefault = true;
+                        }
+                        break;
 
-                case 'd': case 'D':
-                    if (event.altKey) {
-                        onOpenDictionary?.();
-                        shouldPreventDefault = true;
-                    }
-                    break;
-
-                case 'p': case 'P':
-                    if (event.altKey) {
-                        onOpenPropertiesPanel();
-                        shouldPreventDefault = true;
-                    }
-                    break;
+                    case 'p': case 'P':
+                        if (event.altKey) {
+                            onOpenPropertiesPanel();
+                            shouldPreventDefault = true;
+                        }
+                        break;
+                }
             }
 
 
@@ -187,43 +279,6 @@ export function useKeyboardShortcuts({
                 }
             }
 
-            if ((event.metaKey || event.ctrlKey) && (event.key === 'c' || event.key === 'C')) {
-                // Prevent copy if user is typing in input
-                if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-                    return;
-                }
-
-                if (selectedNodeIds.length > 0) {
-                    const nodesToCopy = nodes.filter(n => selectedNodeIds.includes(n.id));
-                    const clipboardData = {
-                        weavr_type: 'nodes',
-                        data: nodesToCopy
-                    };
-                    navigator.clipboard.writeText(JSON.stringify(clipboardData));
-                    event.preventDefault();
-                    shouldPreventDefault = true;
-                }
-            }
-
-            if ((event.metaKey || event.ctrlKey) && (event.key === 'v' || event.key === 'V')) {
-                // Prevent paste if user is typing in input
-                if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-                    return;
-                }
-
-                navigator.clipboard.readText().then(text => {
-                    try {
-                        const parsed = JSON.parse(text);
-                        if (parsed && parsed.weavr_type === 'nodes' && Array.isArray(parsed.data)) {
-                            onPaste(parsed.data);
-                        }
-                    } catch (e) {
-                        // Not valid JSON or not our format
-                    }
-                });
-                event.preventDefault(); // Prevent browser default paste
-                shouldPreventDefault = true;
-            }
 
             if (shouldPreventDefault) {
                 event.preventDefault();
@@ -237,6 +292,6 @@ export function useKeyboardShortcuts({
         nodes, selectedNodeIds, selectedLinkId, isPanelOpen, isToolbarOpen, isReady,
         showSlices, swimlanePositions, onDeleteSelection, onClosePanel, onToggleToolbar,
         onOpenPropertiesPanel, onOpenSlices, onOpenDictionary, onSelectNode, onAddNode, onMoveNodes, onFocusNode,
-        onAutoLayout, onPaste
+        onAutoLayout, onPaste, onSelectAll, onDuplicate, onZoomIn, onZoomOut, onResetZoom
     ]);
 }

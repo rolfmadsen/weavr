@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { GlassInput } from './GlassInput';
 import { ChevronDown, Plus } from 'lucide-react';
-import { GlassCard } from './GlassCard';
 
 interface Option {
     id: string;
@@ -35,39 +33,9 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
 }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
-    const [focusedIndex, setFocusedIndex] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
-
-    // Sync internal input value with selected external value ID when not open/typing
-    useEffect(() => {
-        if (!isOpen) {
-            const selected = options.find(o => o.id === value);
-            if (selected) {
-                setInputValue(selected.label);
-            } else if (allowCustomValue && value) {
-                setInputValue(value);
-            } else {
-                setInputValue('');
-            }
-        }
-    }, [value, isOpen, options, allowCustomValue]);
-
-    // Handle outside click to close
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-                // Reset input to current value on blur
-                const selected = options.find(o => o.id === value);
-                if (selected) setInputValue(selected.label);
-                else if (allowCustomValue && value) setInputValue(value);
-                else setInputValue('');
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [value, options, allowCustomValue]);
+    const lastValueRef = useRef(value);
 
     const filteredOptions = useMemo(() => {
         if (!inputValue.trim()) return options;
@@ -86,10 +54,11 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
         return filtered;
     }, [options, inputValue, value]);
 
-    // Reset focused index when filtering changes
-    useEffect(() => {
-        setFocusedIndex(0);
-    }, [filteredOptions.length]);
+    const showCreateOption = useMemo(() => {
+        return inputValue.trim() &&
+            !filteredOptions.some(o => o.label.toLowerCase() === inputValue.toLowerCase().trim()) &&
+            (onCreate || allowCustomValue);
+    }, [inputValue, filteredOptions, onCreate, allowCustomValue]);
 
     const groupedOptions = useMemo(() => {
         const groups: Record<string, Option[]> = {};
@@ -100,11 +69,6 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
         });
         return groups;
     }, [filteredOptions]);
-
-    // Flatten options for easy index-based navigation
-    const flatOptions = useMemo(() => {
-        return Object.values(groupedOptions).flat();
-    }, [groupedOptions]);
 
     const handleSelect = (option: Option) => {
         onChange(option.id, option);
@@ -125,132 +89,160 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
         setIsOpen(false);
     };
 
-    // Auto-scroll to focused item
-    useEffect(() => {
-        if (isOpen && listRef.current) {
-            const list = listRef.current;
-            // Find the element with data-index=focusedIndex
-            const element = list.querySelector(`[data-index="${focusedIndex}"]`) as HTMLElement;
-            if (element) {
-                const listTop = list.scrollTop;
-                const listBottom = listTop + list.clientHeight;
-                const elTop = element.offsetTop;
-                const elBottom = elTop + element.clientHeight;
-
-                if (elTop < listTop) {
-                    list.scrollTop = elTop;
-                } else if (elBottom > listBottom) {
-                    list.scrollTop = elBottom - list.clientHeight;
-                }
-            }
-        }
-    }, [focusedIndex, isOpen]);
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setFocusedIndex(prev => (prev + 1) % flatOptions.length);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setFocusedIndex(prev => (prev - 1 + flatOptions.length) % flatOptions.length);
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            // If we have filtered options and valid index, select it
-            if (flatOptions.length > 0 && focusedIndex >= 0 && focusedIndex < flatOptions.length) {
-                handleSelect(flatOptions[focusedIndex]);
-            } else {
-                // Determine if we should create
-                const exactMatch = filteredOptions.find(o => o.label.toLowerCase() === inputValue.toLowerCase());
-                if (exactMatch) {
-                    handleSelect(exactMatch);
-                } else {
-                    handleCreate();
-                }
+        if (e.key === 'Enter') {
+            const trimmedInput = inputValue.trim();
+            const highlightedOption = filteredOptions.find(o => o.label.toLowerCase() === trimmedInput.toLowerCase());
+            if (highlightedOption) {
+                handleSelect(highlightedOption);
+            } else if (showCreateOption) {
+                handleCreate();
+            } else if (!trimmedInput) {
+                // Clear on Enter if empty
+                const noneOption = options.find(o => o.id === '__none__');
+                if (noneOption) handleSelect(noneOption);
+                else onChange('', undefined);
             }
         } else if (e.key === 'Escape') {
             setIsOpen(false);
-            if (ref && 'current' in ref && ref.current) {
-                ref.current.blur();
-            }
         }
     };
 
-    const showCreateOption = inputValue.trim() &&
-        !filteredOptions.some(o => o.label.toLowerCase() === inputValue.toLowerCase().trim()) &&
-        (onCreate || allowCustomValue);
+    // Sync internal input value with selected external value ID
+    useEffect(() => {
+        // We only sync if the value prop has actually changed 
+        // OR if the menu is NOT open and the input doesn't match the expected label
+        const selected = options.find(o => o.id === value);
+        const expectedLabel = selected?.label || (allowCustomValue && value ? value : '');
+        
+        const hasValueChanged = value !== lastValueRef.current;
+        
+        if (hasValueChanged || (!isOpen && inputValue !== expectedLabel)) {
+            if (selected) {
+                setInputValue(selected.label);
+            } else if (allowCustomValue && value) {
+                setInputValue(value);
+            } else if (!value || value === '__none__') {
+                setInputValue('');
+            }
+            lastValueRef.current = value;
+        }
+    }, [value, isOpen, options, allowCustomValue, inputValue]);
+
+    // Handle outside click to close
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                const trimmedInput = inputValue.trim();
+                const shouldCommit = trimmedInput && 
+                    (filteredOptions.some(o => o.label.toLowerCase() === trimmedInput.toLowerCase()) || showCreateOption);
+                
+                // If input is explicitly cleared by the user, we should deselect
+                const isCleared = !trimmedInput && value !== '__none__' && value !== '';
+
+                if (isOpen) {
+                    if (shouldCommit) {
+                        const exactMatch = filteredOptions.find(o => o.label.toLowerCase() === trimmedInput.toLowerCase());
+                        if (exactMatch) handleSelect(exactMatch);
+                        else if (showCreateOption) handleCreate();
+                    } else if (isCleared) {
+                        // Support both __none__ and empty string as "nothing"
+                        const noneOption = options.find(o => o.id === '__none__');
+                        if (noneOption) {
+                            handleSelect(noneOption);
+                        } else {
+                            onChange('', undefined);
+                        }
+                    }
+                }
+
+                setIsOpen(false);
+                // Reset input to current value on blur ONLY if we didn't commit/clear
+                if (!shouldCommit && !isCleared) {
+                    const selected = options.find(o => o.id === value);
+                    if (selected) setInputValue(selected.label);
+                    else if (allowCustomValue && value) setInputValue(value);
+                    else if (value === '__none__') setInputValue('');
+                    else setInputValue('');
+                }
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [value, options, allowCustomValue, inputValue, isOpen, filteredOptions, showCreateOption]);
+
 
     return (
         <div className="relative w-full" ref={containerRef}>
-            <GlassInput
-                ref={ref}
-                value={inputValue}
-                onChange={(e) => {
-                    setInputValue(e.target.value);
-                    setIsOpen(true);
-                    onSearchChange?.(e.target.value);
-                }}
-                onFocus={() => setIsOpen(true)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                autoFocus={autoFocus}
-                autoComplete="off"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-                <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            <div className="relative">
+                <input
+                    ref={ref}
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => {
+                        setInputValue(e.target.value);
+                        onSearchChange?.(e.target.value);
+                    }}
+                    onFocus={() => setIsOpen(true)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholder}
+                    autoFocus={autoFocus}
+                    autoComplete="off"
+                    className="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                />
+                <button 
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="absolute inset-y-0 end-0 flex items-center z-20 px-3 cursor-pointer text-gray-400 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:text-neutral-500 dark:hover:text-blue-500 dark:focus:text-blue-500"
+                >
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
             </div>
 
             {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-[100] perspective-[1000px]">
-                    <GlassCard variant="panel" className="p-1 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 origin-top">
-                        <div ref={listRef} className="max-h-60 overflow-y-auto custom-scrollbar">
-                            {Object.entries(groupedOptions).map(([group, opts]) => (
-                                <div key={group}>
-                                    {Object.keys(groupedOptions).length > 1 && (
-                                        <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{group}</div>
-                                    )}
-                                    {opts.map(opt => {
-                                        // Calculate global index for highlighting
-                                        const globalIndex = flatOptions.indexOf(opt);
-                                        const isFocused = globalIndex === focusedIndex;
-
-                                        return (
-                                            <button
-                                                key={opt.id}
-                                                data-index={globalIndex}
-                                                onClick={() => handleSelect(opt)}
-                                                className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex flex-col group ${isFocused
-                                                    ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300'
-                                                    : 'hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-300'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-purple-700 dark:group-hover:text-purple-300">{opt.label}</span>
-                                                    {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
-                                                </div>
-                                                {opt.subLabel && <span className="text-xs text-slate-500">{opt.subLabel}</span>}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-
-                            {showCreateOption && (
-                                <div className="pt-1 mt-1 border-t border-slate-100 dark:border-white/10">
+                <div className="absolute top-full left-0 right-0 mt-1 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="bg-white border border-gray-200 shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70 p-1 origin-top">
+                        <div ref={listRef} className="max-h-60 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
+                        {Object.entries(groupedOptions).map(([group, opts]) => (
+                            <div key={group}>
+                                {Object.keys(groupedOptions).length > 1 && (
+                                    <div className="px-3 py-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-neutral-400">{group}</div>
+                                )}
+                                {opts.map(opt => (
                                     <button
-                                        onClick={handleCreate}
-                                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-500/10 text-green-600 font-medium flex items-center gap-2"
+                                        key={opt.id}
+                                        type="button"
+                                        onClick={() => handleSelect(opt)}
+                                        className="w-full text-left py-2 px-3 rounded-lg flex flex-col group hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800 transition-colors"
                                     >
-                                        <Plus size={16} /> Add "{inputValue}"
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-800 dark:text-neutral-200">{opt.label}</span>
+                                            {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
+                                        </div>
+                                        {opt.subLabel && <span className="text-xs text-gray-500 dark:text-neutral-500">{opt.subLabel}</span>}
                                     </button>
-                                </div>
-                            )}
+                                ))}
+                            </div>
+                        ))}
 
-                            {!showCreateOption && filteredOptions.length === 0 && (
-                                <div className="p-3 text-center text-xs text-slate-400 italic">No options found.</div>
-                            )}
-                        </div>
-                    </GlassCard>
+                        {showCreateOption && (
+                            <div className="pt-1 mt-1 border-t border-gray-200 dark:border-neutral-700">
+                                <button
+                                    type="button"
+                                    onClick={handleCreate}
+                                    className="w-full text-left py-2 px-4 rounded-lg flex items-center gap-2 text-sm text-blue-600 font-medium hover:bg-blue-50 focus:outline-none focus:bg-blue-50 dark:text-blue-500 dark:hover:bg-blue-800/30 dark:focus:bg-blue-800/30 transition-colors"
+                                >
+                                    <Plus size={16} /> Add "{inputValue}"
+                                </button>
+                            </div>
+                        )}
+
+                        {!showCreateOption && filteredOptions.length === 0 && (
+                            <div className="p-3 text-center text-sm text-gray-500 italic dark:text-neutral-500">No options found.</div>
+                        )}
+                    </div>
                 </div>
+            </div>
             )}
         </div>
     );

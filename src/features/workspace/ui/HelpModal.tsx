@@ -16,6 +16,12 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '../../../shared/components/GlassCard';
 import { GlassButton } from '../../../shared/components/GlassButton';
+import { twMerge } from 'tailwind-merge';
+import clsx from 'clsx';
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -38,16 +44,16 @@ const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> 
 
 const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadExample }) => (
   <div className="space-y-6">
-    <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-500/10 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100/50 dark:border-purple-500/10 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div>
-        <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-300">New to Event Modeling?</h3>
-        <p className="text-indigo-700 dark:text-indigo-400 text-sm mt-1">
+        <h3 className="text-lg font-bold text-purple-900 dark:text-purple-300">New to Event Modeling?</h3>
+        <p className="text-purple-700 dark:text-purple-400 text-sm mt-1">
           Load a complete example project to see how Weavr models itself.
         </p>
       </div>
       <button
         onClick={onLoadExample}
-        className="shrink-0 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+        className="shrink-0 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-purple-500/20"
       >
         <Upload className="w-5 h-5" />
         Load Example Project
@@ -55,7 +61,7 @@ const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadEx
     </div>
 
     <p className="text-base text-gray-700 dark:text-gray-300">
-      <strong className="font-semibold text-indigo-600 dark:text-indigo-400">Event Modeling</strong> is a visual way to design systems by focusing on how information changes over time. You build a complete "story" of your system with each chapter being a slice or building block told from left to right.
+      <strong className="font-semibold text-purple-600 dark:text-purple-400">Event Modeling</strong> is a visual way to design systems by focusing on how information changes over time. You build a complete "story" of your system with each chapter being a slice or building block told from left to right.
     </p>
 
     <div>
@@ -214,19 +220,19 @@ const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadEx
 
 const SemanticsContent = () => (
   <div className="space-y-8 pb-4">
-    <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-500/10 rounded-xl p-5">
-      <h3 className="text-indigo-900 dark:text-indigo-300 font-bold mb-2 flex items-center gap-2">
+    <div className="bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100/50 dark:border-purple-500/10 rounded-xl p-5">
+      <h3 className="text-purple-900 dark:text-purple-300 font-bold mb-2 flex items-center gap-2">
         <Monitor className="w-5 h-5" />
         Beyond Just Drawing
       </h3>
-      <p className="text-indigo-700/80 dark:text-indigo-400/80 text-sm leading-relaxed">
+      <p className="text-purple-700/80 dark:text-purple-400/80 text-sm leading-relaxed">
         Weavr isn't just for sketching—it's a system specification engine. It helps you ensure that your design is logically complete and ready for implementation.
       </p>
     </div>
 
     <div className="grid grid-cols-1 gap-6">
       {/* 1. Properties */}
-      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-indigo-500/30">
+      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
             <Settings className="w-6 h-6" />
@@ -244,7 +250,7 @@ const SemanticsContent = () => (
       </div>
 
       {/* 1.5 Data Dictionary */}
-      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-indigo-500/30">
+      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <BookOpen className="w-6 h-6" />
@@ -268,7 +274,7 @@ const SemanticsContent = () => (
       </div>
 
       {/* 2. Aggregates */}
-      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-indigo-500/30">
+      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
             <Globe className="w-6 h-6" />
@@ -278,7 +284,7 @@ const SemanticsContent = () => (
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               Aggregates are logical boundaries (like "Inventory" or "User"). They help organize your events into horizontal tracks.
             </p>
-            <div className="flex items-center gap-1.5 text-xs text-indigo-500 font-medium">
+            <div className="flex items-center gap-1.5 text-xs text-purple-500 font-medium">
               <span>Automatic Layout</span>
               <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
               <span>Visual Boundaries</span>
@@ -288,7 +294,7 @@ const SemanticsContent = () => (
       </div>
 
       {/* 3. OIC */}
-      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-indigo-500/30">
+      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
             <SquareActivity className="w-6 h-6" />
@@ -300,17 +306,17 @@ const SemanticsContent = () => (
             </p>
 
             <div className="space-y-2 max-w-xs">
-              <div className="flex items-center justify-between p-2 rounded bg-indigo-50/30 dark:bg-indigo-900/10 border border-indigo-100/30 dark:border-indigo-500/10">
+              <div className="flex items-center justify-between p-2 rounded bg-purple-50/30 dark:bg-purple-900/10 border border-purple-100/30 dark:border-purple-500/10">
                 <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Screen</span>
                 <span className="text-[10px] text-gray-400">← Sources from</span>
                 <span className="text-xs font-semibold text-green-600 dark:text-green-400">Read Model</span>
               </div>
-              <div className="flex items-center justify-between p-2 rounded bg-indigo-50/30 dark:bg-indigo-900/10 border border-indigo-100/30 dark:border-indigo-500/10">
+              <div className="flex items-center justify-between p-2 rounded bg-purple-50/30 dark:bg-purple-900/10 border border-purple-100/30 dark:border-purple-500/10">
                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Command</span>
                 <span className="text-[10px] text-gray-400">← Sources from</span>
                 <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Screen</span>
               </div>
-              <div className="flex items-center justify-between p-2 rounded bg-indigo-50/30 dark:bg-indigo-900/10 border border-indigo-100/30 dark:border-indigo-500/10">
+              <div className="flex items-center justify-between p-2 rounded bg-purple-50/30 dark:bg-purple-900/10 border border-purple-100/30 dark:border-purple-500/10">
                 <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">Event</span>
                 <span className="text-[10px] text-gray-400">← Sources from</span>
                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Command</span>
@@ -335,8 +341,9 @@ const ControlsContent = () => (
     <div>
       <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Canvas Basics</h3>
       <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-        <li><strong>Pan:</strong> Click and drag the empty canvas background.</li>
-        <li><strong>Zoom:</strong> Use your mouse wheel or trackpad scroll.</li>
+        <li><strong>Pan:</strong> Scroll anywhere, or hold <Kbd>Space</Kbd> + Drag (Hand tool).</li>
+        <li><strong>Horizontal Pan:</strong> Hold <Kbd>Shift</Kbd> + Scroll.</li>
+        <li><strong>Zoom:</strong> <Kbd>Ctrl/Cmd</Kbd> + Scroll, or use <Kbd>Ctrl/Cmd</Kbd> + <Kbd>+</Kbd>/<Kbd>-</Kbd>/<Kbd>0</Kbd>.</li>
         <li><strong>Deselect All:</strong> Click once on the empty canvas background.</li>
       </ul>
     </div>
@@ -346,6 +353,7 @@ const ControlsContent = () => (
       <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
         <li><strong>Add Element:</strong> Click the <span className="inline-flex items-center justify-center w-6 h-6 bg-orange-500 text-white rounded-full font-bold">+</span> button or press <Kbd>A</Kbd> / <Kbd>N</Kbd>.</li>
         <li><strong>Quick Add:</strong> With toolbar open, press <Kbd>1</Kbd>-<Kbd>6</Kbd> to add specific elements.</li>
+        <li><strong>Select All:</strong> Press <Kbd>Ctrl/Cmd</Kbd> + <Kbd>A</Kbd> to select all elements.</li>
         <li><strong>Single Select:</strong> Click any element to select it.</li>
         <li><strong>Multi-Select:</strong> Hold <Kbd>Shift</Kbd> and drag a box around elements.</li>
         <li><strong>Move Single Element:</strong> Click and drag a single element.</li>
@@ -353,7 +361,8 @@ const ControlsContent = () => (
         <li><strong>Delete:</strong> Select one or more elements and press <Kbd>Delete</Kbd> or <Kbd>Backspace</Kbd>.</li>
         <li><strong>Navigate:</strong> Use <Kbd>Tab</Kbd> and <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> to cycle through elements.</li>
         <li><strong>Focus Node:</strong> Press <Kbd>F</Kbd> to center the view on the selected element.</li>
-        <li><strong>Copy/Paste:</strong> Press <Kbd>Ctrl</Kbd>+<Kbd>C</Kbd> to Copy, <Kbd>Ctrl</Kbd>+<Kbd>V</Kbd> to Paste.</li>
+        <li><strong>Duplicate:</strong> Select elements and press <Kbd>Ctrl/Cmd</Kbd> + <Kbd>D</Kbd>.</li>
+        <li><strong>Copy/Paste:</strong> Press <Kbd>Ctrl/Cmd</Kbd> + <Kbd>C</Kbd> to Copy, <Kbd>Ctrl/Cmd</Kbd> + <Kbd>V</Kbd> to Paste.</li>
       </ul>
     </div>
 
@@ -393,10 +402,12 @@ const TabButton: React.FC<{
 }> = ({ isActive, onClick, children }) => (
   <button
     onClick={onClick}
-    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${isActive
-      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
-      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-slate-800'
-      }`}
+    className={cn(
+      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+      isActive
+        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-slate-800'
+    )}
   >
     {children}
   </button>
@@ -481,7 +492,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
         <div className="p-6 mt-auto border-t border-gray-200/50 dark:border-white/10 bg-white/10 dark:bg-black/10 rounded-b-xl text-right">
           <button
             onClick={onClose}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-indigo-500/30"
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors shadow-lg hover:shadow-purple-500/30"
           >
             Got it!
           </button>

@@ -9,6 +9,13 @@ import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 import { ElementHelp } from './ElementHelp';
 import validationService from '../../modeling/domain/validation';
 import { SchemaBuilder } from './SchemaBuilder';
+import { useDebouncedInput } from '../../../shared/hooks/useDebouncedInput';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface NodePropertiesProps {
     node: Node;
@@ -43,6 +50,21 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
     allNodes,
     allLinks
 }) => {
+
+    const nameInputGroup = useDebouncedInput(
+        node.name || '',
+        (val) => onUpdateNode(node.id, 'name', val)
+    );
+
+    const descriptionInputGroup = useDebouncedInput(
+        node.description || '',
+        (val) => onUpdateNode(node.id, 'description', val)
+    );
+
+    const serviceInputGroup = useDebouncedInput(
+        node.service || '',
+        (val) => onUpdateNode(node.id, 'service', val)
+    );
 
     // Validation Results
     const validationResult = useMemo(() => {
@@ -195,8 +217,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 <div className="space-y-4">
                     <GlassInput
                         label="Name"
-                        value={node.name || ''}
-                        onChange={(e) => onUpdateNode(node.id, 'name', e.target.value)}
+                        {...nameInputGroup}
                         ref={nameInputRef}
                         autoComplete="off"
                     />
@@ -204,9 +225,8 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                     <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Description</label>
                         <textarea
-                            className="w-full bg-slate-50 dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-500 backdrop-blur-md focus:ring-2 focus:ring-purple-500/50 min-h-[80px]"
-                            value={node.description || ''}
-                            onChange={(e) => onUpdateNode(node.id, 'description', e.target.value)}
+                            className="py-2.5 px-4 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500/50 focus:ring-purple-500/50 dark:focus:ring-neutral-600 disabled:opacity-50 disabled:pointer-events-none min-h-[80px]"
+                            {...descriptionInputGroup}
                         />
                     </div>
 
@@ -215,7 +235,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                         <select
                             disabled
                             value={node.type}
-                            className="w-full bg-slate-100/50 dark:bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-slate-500 appearance-none cursor-not-allowed"
+                            className="py-2.5 px-4 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-100/50 dark:bg-black/40 text-slate-500 appearance-none cursor-not-allowed opacity-70"
                         >
                             <option value="COMMAND">Command</option>
                             <option value="DOMAIN_EVENT">Domain Event</option>
@@ -244,7 +264,10 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                             value={node.type === ElementType.IntegrationEvent ? (node.context || 'INTERNAL') : 'INTERNAL'}
                             onChange={(e) => onUpdateNode(node.id, 'context', e.target.value as any)}
                             disabled={node.type !== ElementType.IntegrationEvent}
-                            className={`w-full bg-slate-50 dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none text-slate-800 dark:text-slate-100 ${node.type !== ElementType.IntegrationEvent ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={cn(
+                                "py-2.5 px-4 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 focus:border-purple-500/50 focus:ring-purple-500/50 dark:focus:ring-neutral-600 disabled:opacity-50 disabled:pointer-events-none",
+                                node.type !== ElementType.IntegrationEvent && "opacity-70 cursor-not-allowed"
+                            )}
                         >
                             <option value="INTERNAL">Internal</option>
                             <option value="EXTERNAL">External</option>
@@ -252,10 +275,10 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                     </div>
 
                     <GlassInput
-                        label={node.context === 'EXTERNAL' ? "External Provider Name" : "Service / Microservice"}
-                        value={node.service || ''}
-                        onChange={(e) => onUpdateNode(node.id, 'service', e.target.value)}
+                        label={node.context === 'EXTERNAL' ? "External Provider Name" : "Component / Service"}
+                        {...serviceInputGroup}
                         placeholder={node.context === 'EXTERNAL' ? "e.g. Stripe, Auth0" : "e.g. Sales-Service"}
+                        autoComplete="off"
                     />
 
                     {(node.type === 'SCREEN' || node.type === 'AUTOMATION') && (

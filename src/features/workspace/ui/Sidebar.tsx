@@ -106,23 +106,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* Header */}
                 <header className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50 h-16 shrink-0">
                     {tabs && tabs.length > 0 ? (
-                        <div className="flex gap-1 overflow-x-auto no-scrollbar mask-gradient-r">
+                        <nav className="flex space-x-1 overflow-x-auto no-scrollbar" aria-label="Tabs" role="tablist">
                             {tabs.map(tab => (
                                 <button
                                     key={tab.id}
+                                    type="button"
                                     onClick={() => onTabChange?.(tab.id)}
-                                    title={tab.title}
                                     className={cn(
-                                        "px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap",
-                                        activeTab === tab.id
-                                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-300 ring-1 ring-purple-500/20"
-                                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                        "hs-tab-active:bg-white hs-tab-active:text-purple-600 hs-tab-active:shadow-sm dark:hs-tab-active:bg-slate-800 dark:hs-tab-active:text-purple-300",
+                                        "py-2 px-4 inline-flex items-center gap-x-2 bg-transparent text-sm font-medium text-slate-500 hover:text-purple-600 rounded-lg disabled:opacity-50 disabled:pointer-events-none dark:text-slate-400 dark:hover:text-purple-300",
+                                        activeTab === tab.id && "active bg-white text-purple-600 shadow-sm dark:bg-slate-800 dark:text-purple-300"
                                     )}
+                                    id={`sidebar-tab-${tab.id}`}
+                                    aria-selected={activeTab === tab.id}
+                                    role="tab"
                                 >
                                     {tab.label}
                                 </button>
                             ))}
-                        </div>
+                        </nav>
                     ) : (
                         <h2 className="text-lg font-semibold text-slate-800 dark:text-white truncate">
                             {title}

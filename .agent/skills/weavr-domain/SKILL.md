@@ -1,6 +1,6 @@
 ---
 name: weavr-domain
-description: "The Expert Guide: Alphabet, Connections, Aggregates, and Information Completeness. Use for validating modeling logic and defining dictionary schemas."
+description: "MANDATORY: You MUST read this skill file via view_file before modifying Aggregates or validation logic. The Expert Guide: Alphabet, Connections, Aggregates, and Information Completeness."
 category: "Domain / Logic"
 author: "Rolf Madsen"
 tags: ["ddd", "event-modeling", "aggregates", "schema"]

@@ -1,6 +1,6 @@
 import Konva from 'konva';
 
-export type CursorType = 'default' | 'grab' | 'grabbing' | 'crosshair' | 'pointer' | 'text' | 'not-allowed';
+export type CursorType = 'default' | 'grab' | 'grabbing' | 'crosshair' | 'pointer' | 'text' | 'not-allowed' | '';
 
 /**
  * Centralized function to set the cursor style for the Konva stage container.

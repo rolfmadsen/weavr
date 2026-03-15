@@ -1,6 +1,6 @@
 ---
 name: weavr-modeling
-description: "The Architect's Handbook: Generating high-fidelity Weavr models. Use for designing systems from scratch, ensuring SCEP compliance, and mapping complex domain logic to the Weavr schema."
+description: "MANDATORY: You MUST read this skill file via view_file before defining JSON model files. The Architect's Handbook: Generating high-fidelity Weavr models."
 category: "Modeling / AEC"
 author: "Rolf Madsen"
 tags: ["scep", "event-modeling", "schema", "generation"]

@@ -199,7 +199,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                 <div className="bg-slate-50 dark:bg-white/5 p-3 rounded-lg border border-slate-200 dark:border-white/10 mb-2">
                     <h4 className="text-xs font-bold mb-2">Import from Definition</h4>
                     <select
-                        className="w-full bg-white dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded px-2 py-1 text-sm mb-2 outline-none focus:ring-1 focus:ring-purple-500/50"
+                        className="py-1.5 px-2 block w-full border-slate-300 dark:border-white/10 rounded text-sm bg-white dark:bg-black/20 text-slate-800 dark:text-slate-200 outline-none focus:border-purple-500/50 focus:ring-purple-500/50 mb-2"
                         value={selectedDefinitionId}
                         onChange={(e) => handleDefinitionChange(e.target.value)}
                     >
@@ -238,7 +238,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                                 <button
                                     onClick={() => handleImportAttributes(Array.from(selectedAttributes))}
                                     disabled={selectedAttributes.size === 0}
-                                    className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-[11px] font-bold py-1.5 rounded transition-colors shadow-lg shadow-purple-500/20"
+                                    className="flex-1 py-1.5 px-3 inline-flex items-center justify-center gap-x-2 text-[11px] font-bold rounded bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:pointer-events-none transition-colors shadow-lg shadow-purple-500/20"
                                 >
                                     Import {selectedAttributes.size} Field{selectedAttributes.size !== 1 ? 's' : ''}
                                 </button>

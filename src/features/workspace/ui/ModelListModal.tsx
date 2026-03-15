@@ -7,6 +7,13 @@ import { GlassCard } from '../../../shared/components/GlassCard';
 import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassInput } from '../../../shared/components/GlassInput';
 
+import { twMerge } from 'tailwind-merge';
+import clsx from 'clsx';
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+    return twMerge(clsx(inputs));
+}
+
 interface ModelListModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -178,10 +185,12 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                                 <div
                                     key={model.id}
                                     onClick={() => handleSwitch(model.id)}
-                                    className={`group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${model.id === currentModelId
-                                        ? 'bg-purple-500/10 border-purple-500/30 ring-1 ring-purple-500/30'
-                                        : 'bg-white/40 dark:bg-slate-800/40 border-slate-200/50 dark:border-white/10 hover:bg-white/60 dark:hover:bg-slate-700/50 hover:border-purple-500/30 shadow-sm'
-                                        }`}
+                                    className={cn(
+                                        "group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer shadow-sm outline-none",
+                                        model.id === currentModelId
+                                            ? 'bg-purple-500/10 border-purple-500/30'
+                                            : 'bg-white/40 dark:bg-slate-800/40 border-slate-200/50 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 hover:border-purple-500/30'
+                                    )}
                                 >
                                     <div className="flex-1 min-w-0 mr-4">
                                         {editingId === model.id ? (

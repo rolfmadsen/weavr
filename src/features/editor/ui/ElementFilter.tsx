@@ -8,7 +8,7 @@ import {
 import { ELEMENT_STYLE } from '../../../shared/constants';
 import { GlassInput } from '../../../shared/components/GlassInput';
 import { GlassCard } from '../../../shared/components/GlassCard';
-import * as Tooltip from '@radix-ui/react-tooltip';
+import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 
 interface ElementFilterProps {
     nodes: Node[];
@@ -84,24 +84,14 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
 
     if (isCollapsed) {
         return (
-            <Tooltip.Provider>
-                <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
-                        <button
-                            onClick={() => setIsCollapsed(false)}
-                            className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:scale-110 hover:border-indigo-400 hover:text-indigo-600 transition-all mb-4 text-slate-500 dark:text-slate-400"
-                        >
-                            <Search size={20} />
-                        </button>
-                    </Tooltip.Trigger>
-                    <Tooltip.Portal>
-                        <Tooltip.Content className="px-2 py-1 text-xs bg-black text-white rounded mb-2 z-[100]">
-                            Find Element
-                            <Tooltip.Arrow className="fill-black" />
-                        </Tooltip.Content>
-                    </Tooltip.Portal>
-                </Tooltip.Root>
-            </Tooltip.Provider>
+            <GlassTooltip content="Find Element">
+                <button
+                    onClick={() => setIsCollapsed(false)}
+                    className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:border-purple-400 hover:text-purple-600 transition-all mb-4 text-slate-500 dark:text-slate-400 active:scale-95"
+                >
+                    <Search size={20} />
+                </button>
+            </GlassTooltip>
         );
     }
 
@@ -143,7 +133,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
                                 onClick={() => onNodeClick(node)}
                                 className={`
                                     flex items-center px-3 py-2 cursor-pointer transition-colors
-                                    ${isHighlighted ? 'bg-indigo-50/50 dark:bg-indigo-500/20 border-l-4 border-indigo-500 pl-2' : 'hover:bg-slate-50/30 dark:hover:bg-white/5 border-l-4 border-transparent pl-2'}
+                                    ${isHighlighted ? 'bg-purple-500/10 dark:bg-purple-500/20 border-l-4 border-purple-500 pl-2' : 'hover:bg-slate-50/50 dark:hover:bg-white/5 border-l-4 border-transparent pl-2'}
                                 `}
                             >
                                 <div
@@ -154,7 +144,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
                                 </div>
 
                                 <div className="flex-1 overflow-hidden">
-                                    <div className={`text-sm truncate ${isHighlighted ? 'font-semibold text-indigo-900 dark:text-indigo-200' : 'font-medium text-slate-700 dark:text-slate-200'}`}>
+                                    <div className={`text-sm truncate ${isHighlighted ? 'font-semibold text-purple-700 dark:text-purple-200' : 'font-medium text-slate-700 dark:text-slate-200'}`}>
                                         {node.name || 'Untitled'}
                                     </div>
                                     <div className="text-[10px] text-slate-400 uppercase tracking-wider">
@@ -162,7 +152,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
                                     </div>
                                 </div>
 
-                                <Target size={16} className={isHighlighted ? "text-indigo-600 dark:text-indigo-400" : "text-slate-200 dark:text-slate-700"} />
+                                <Target size={16} className={isHighlighted ? "text-purple-600 dark:text-purple-400" : "text-slate-200 dark:text-slate-700"} />
                             </div>
                         );
                     })

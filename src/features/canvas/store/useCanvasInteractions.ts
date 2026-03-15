@@ -77,32 +77,58 @@ export function useCanvasInteractions({
         const stage = stageRef.current;
         if (!stage) return;
 
-        const oldScale = stage.scaleX();
-        const pointer = stage.getPointerPosition();
-        if (!pointer) return;
+        // CTRL/Meta + Scroll = Zoom
+        if (e.evt.ctrlKey || e.evt.metaKey) {
+            const oldScale = stage.scaleX();
+            const pointer = stage.getPointerPosition();
+            if (!pointer) return;
 
-        const mousePointTo = {
-            x: (pointer.x - stage.x()) / oldScale,
-            y: (pointer.y - stage.y()) / oldScale,
-        };
+            const mousePointTo = {
+                x: (pointer.x - stage.x()) / oldScale,
+                y: (pointer.y - stage.y()) / oldScale,
+            };
 
-        const targetScale = e.evt.deltaY > 0 ? oldScale - ZOOM_STEP : oldScale + ZOOM_STEP;
-        const newScale = limitScale(Math.round(targetScale * 10) / 10);
-        if (newScale === oldScale) return;
+            const targetScale = e.evt.deltaY > 0 ? oldScale - ZOOM_STEP : oldScale + ZOOM_STEP;
+            const newScale = limitScale(Math.round(targetScale * 10) / 10);
+            if (newScale === oldScale) return;
 
-        stage.scale({ x: newScale, y: newScale });
+            stage.scale({ x: newScale, y: newScale });
 
-        const newPos = {
-            x: pointer.x - mousePointTo.x * newScale,
-            y: pointer.y - mousePointTo.y * newScale,
-        };
+            const newPos = {
+                x: pointer.x - mousePointTo.x * newScale,
+                y: pointer.y - mousePointTo.y * newScale,
+            };
 
-        stage.position(newPos);
-        setStageScale(newScale);
-        setStagePos(newPos);
-        updateVisibleNodes();
+            stage.position(newPos);
+            setStageScale(newScale);
+            setStagePos(newPos);
+            updateVisibleNodes();
 
-        onViewChange?.({ ...newPos, scale: newScale, width: stage.width(), height: stage.height() });
+            onViewChange?.({ ...newPos, scale: newScale, width: stage.width(), height: stage.height() });
+        } else {
+            // Normal Scroll = Pan
+            const panSpeed = 1.0;
+            // Handle native trackpad horizontal scroll (deltaX). 
+            // Fallback: map deltaY to X if shiftKey is pressed but no deltaX is emitted.
+            let dx = e.evt.deltaX;
+            let dy = e.evt.deltaY;
+
+            if (e.evt.shiftKey && dx === 0) {
+                dx = dy;
+                dy = 0;
+            }
+
+            const newPos = {
+                x: stage.x() - dx * panSpeed,
+                y: stage.y() - dy * panSpeed,
+            };
+
+            stage.position(newPos);
+            setStagePos(newPos);
+            updateVisibleNodes();
+
+            onViewChange?.({ ...newPos, scale: stage.scaleX(), width: stage.width(), height: stage.height() });
+        }
     }, [stageRef, updateVisibleNodes, onViewChange]);
 
     const zoomIn = useCallback(() => {

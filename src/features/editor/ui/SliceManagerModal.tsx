@@ -13,6 +13,12 @@ import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 import { GlassCard } from '../../../shared/components/GlassCard';
 import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassInput } from '../../../shared/components/GlassInput';
+import { twMerge } from 'tailwind-merge';
+import clsx from 'clsx';
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface SliceManagerModalProps {
     isOpen: boolean;
@@ -141,7 +147,9 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
             <GlassCard
                 variant="panel"
-                className="w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden shadow-2xl"
+                className={cn(
+                    "w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden shadow-2xl"
+                )}
                 onClick={e => e.stopPropagation()}
             >
 
@@ -167,7 +175,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                 {/* Content */}
                 <div className="flex-grow overflow-y-auto p-5 space-y-3 custom-scrollbar">
                     {viewingSpecsId ? (
-                        <div className="p-8 text-center text-slate-500 italic bg-white/5 rounded-xl border border-dotted border-white/20">
+                        <div className="p-8 text-center text-slate-500 italic bg-purple-500/5 rounded-xl border border-dashed border-purple-500/20">
                             Specifications are now edited in the bottom panel.
                         </div>
                     ) : (
@@ -176,7 +184,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                 <p className="text-center text-slate-500 py-8 italic">No slices created yet.</p>
                             ) : (
                                 sortedSlices.map((slice) => (
-                                    <div key={slice.id} className="flex items-center justify-between bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-white/20 dark:border-white/5 group hover:bg-white/60 dark:hover:bg-white/5 transition-colors">
+                                    <div key={slice.id} className="flex items-center justify-between bg-white dark:bg-black/20 p-3 rounded-xl border border-slate-200 dark:border-white/5 group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                         {editingId === slice.id ? (
                                             <div className="flex-grow flex flex-col gap-3">
                                                 <GlassInput
@@ -189,7 +197,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                     <select
                                                         value={editType}
                                                         onChange={(e) => setEditType(e.target.value as SliceType)}
-                                                        className="px-3 py-2 text-xs border border-white/20 rounded-lg bg-white/50 dark:bg-black/50 text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-purple-500"
+                                                        className="py-2.5 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500/50 focus:ring-purple-500/50"
                                                     >
                                                         <option value="">Type...</option>
                                                         <option value={SliceType.StateChange}>Command</option>
@@ -200,7 +208,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                         type="text"
                                                         value={editContext}
                                                         onChange={(e) => setEditContext(e.target.value)}
-                                                        className="flex-grow px-3 py-2 text-xs border border-white/20 rounded-lg bg-white/50 dark:bg-black/50 text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-purple-500"
+                                                        className="py-2.5 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500/50 focus:ring-purple-500/50"
                                                         placeholder="Bounded Context"
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') saveEdit();
@@ -320,7 +328,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                 <select
                                     value={newSliceType}
                                     onChange={(e) => setNewSliceType(e.target.value as SliceType)}
-                                    className="px-3 py-2.5 border border-white/20 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-purple-500/50 bg-white/40 dark:bg-black/20 backdrop-blur-md text-sm text-slate-700 dark:text-slate-200"
+                                    className="py-2.5 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500/50 focus:ring-purple-500/50"
                                 >
                                     <option value="">Type...</option>
                                     <option value={SliceType.StateChange}>Command</option>
@@ -332,7 +340,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                     value={newSliceContext}
                                     onChange={(e) => setNewSliceContext(e.target.value)}
                                     placeholder="Bounded Context (Optional)..."
-                                    className="flex-grow px-3 py-2.5 border border-white/20 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-purple-500/50 bg-white/40 dark:bg-black/20 backdrop-blur-md text-sm text-slate-700 dark:text-slate-200"
+                                    className="py-2.5 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500/50 focus:ring-purple-500/50"
                                 />
                             </div>
                         </form>

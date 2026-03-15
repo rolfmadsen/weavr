@@ -1,6 +1,6 @@
 ---
 name: weavr-sync
-description: "The Sync Engine Specialist: GunDB, Radix Patch, and P2P Resilience. Use for all data persistence and peer-to-peer synchronization logic."
+description: "MANDATORY: You MUST read this skill file via view_file before touching GunDB or state logic. The Sync Engine Specialist: GunDB, Radix Patch, and P2P Resilience."
 category: "Persistence / P2P"
 author: "Rolf Madsen"
 tags: ["gundb", "local-first", "p2p", "indexeddb", "sync"]

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { GlassInput } from '../../../shared/components/GlassInput';
 import { GlassCard } from '../../../shared/components/GlassCard';
-import * as Tooltip from '@radix-ui/react-tooltip';
+import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 
 interface SliceFilterProps {
     slices: Slice[];
@@ -127,31 +127,21 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
 
     if (isCollapsed) {
         return (
-            <Tooltip.Provider>
-                <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
-                        <button
-                            onClick={() => setIsCollapsed(false)}
-                            className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:scale-110 hover:border-indigo-400 hover:text-indigo-600 transition-all mb-4 text-slate-500 dark:text-slate-400 relative"
-                        >
-                            {focusModeEnabled ? (
-                                <Crosshair size={20} className="text-amber-500 animate-pulse" />
-                            ) : (
-                                <Filter size={20} className={activeHiddenIds.length > 0 ? "text-indigo-600" : "text-slate-500"} />
-                            )}
-                            {(activeHiddenIds.length > 0 || focusModeEnabled) && (
-                                <span className={`absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${focusModeEnabled ? 'bg-amber-500' : 'bg-red-500'}`} />
-                            )}
-                        </button>
-                    </Tooltip.Trigger>
-                    <Tooltip.Portal>
-                        <Tooltip.Content className="px-2 py-1 text-xs bg-black text-white rounded mb-2 z-[100]">
-                            {focusModeEnabled ? 'Focus Mode Active' : 'Filter Slices'}
-                            <Tooltip.Arrow className="fill-black" />
-                        </Tooltip.Content>
-                    </Tooltip.Portal>
-                </Tooltip.Root>
-            </Tooltip.Provider>
+            <GlassTooltip content={focusModeEnabled ? 'Focus Mode Active' : 'Filter Slices'}>
+                <button
+                    onClick={() => setIsCollapsed(false)}
+                    className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:border-purple-400 hover:text-purple-600 transition-all mb-4 text-slate-500 dark:text-slate-400 relative active:scale-95"
+                >
+                    {focusModeEnabled ? (
+                        <Crosshair size={20} className="text-amber-500 animate-pulse" />
+                    ) : (
+                        <Filter size={20} className={activeHiddenIds.length > 0 ? "text-purple-600" : "text-slate-500"} />
+                    )}
+                    {(activeHiddenIds.length > 0 || focusModeEnabled) && (
+                        <span className={`absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${focusModeEnabled ? 'bg-amber-500' : 'bg-red-500'}`} />
+                    )}
+                </button>
+            </GlassTooltip>
         );
     }
 
@@ -188,28 +178,18 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                         ? 'border-amber-300/50 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-900/20'
                         : 'border-gray-200/30 dark:border-white/5 bg-black/3 dark:bg-white/3'
                 }`}>
-                    <Tooltip.Provider>
-                        <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                                <button
-                                    onClick={() => onFocusModeChange(!focusModeEnabled)}
-                                    className={`p-1.5 rounded-lg transition-all ${
-                                        focusModeEnabled
-                                            ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 scale-105'
-                                            : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30'
-                                    }`}
-                                >
-                                    <Crosshair size={16} />
-                                </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                                <Tooltip.Content className="px-2 py-1 text-xs bg-black text-white rounded z-[100]">
-                                    {focusModeEnabled ? 'Disable Focus Mode' : 'Enable Focus Mode'}
-                                    <Tooltip.Arrow className="fill-black" />
-                                </Tooltip.Content>
-                            </Tooltip.Portal>
-                        </Tooltip.Root>
-                    </Tooltip.Provider>
+                    <GlassTooltip content={focusModeEnabled ? 'Disable Focus Mode' : 'Enable Focus Mode'}>
+                        <button
+                            onClick={() => onFocusModeChange(!focusModeEnabled)}
+                            className={`p-1.5 rounded-lg transition-all ${
+                                focusModeEnabled
+                                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 scale-105'
+                                    : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                            }`}
+                        >
+                            <Crosshair size={16} />
+                        </button>
+                    </GlassTooltip>
 
                     <span className={`text-[10px] font-semibold uppercase tracking-wider flex-1 ${
                         focusModeEnabled ? 'text-amber-700 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
@@ -256,7 +236,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                         className={`p-1 rounded-md transition-colors ${
                             focusModeEnabled
                                 ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
-                                : 'text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400 hover:bg-black/5 dark:hover:bg-white/10'
+                                : 'text-slate-400 hover:text-purple-600 dark:text-slate-500 dark:hover:text-purple-400 hover:bg-black/5 dark:hover:bg-white/10'
                         }`}
                         title="Show All Visible"
                     >
@@ -268,7 +248,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                         className={`p-1 rounded-md transition-colors ${
                             focusModeEnabled
                                 ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
-                                : 'text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400 hover:bg-black/5 dark:hover:bg-white/10'
+                                : 'text-slate-400 hover:text-purple-600 dark:text-slate-500 dark:hover:text-purple-400 hover:bg-black/5 dark:hover:bg-white/10'
                         }`}
                         title="Hide All Visible"
                     >
@@ -295,13 +275,13 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                                 className={`
                                     flex items-center px-3 py-2 transition-colors border-l-4
                                     ${focusModeEnabled ? 'cursor-default' : 'cursor-pointer'}
-                                    ${isHighlighted ? 'bg-indigo-50/50 dark:bg-indigo-500/20' : focusModeEnabled ? '' : 'hover:bg-slate-50/50 dark:hover:bg-white/5'}
-                                    ${isVisible ? 'border-indigo-500' : 'border-transparent text-slate-400 dark:text-slate-500'}
+                                    ${isHighlighted ? 'bg-purple-500/10 dark:bg-purple-500/20' : focusModeEnabled ? '' : 'hover:bg-slate-50/50 dark:hover:bg-white/5'}
+                                    ${isVisible ? 'border-purple-500 font-medium' : 'border-transparent text-slate-400 dark:text-slate-500'}
                                 `}
                             >
                                 <div className={`
                                     w-4 h-4 rounded border flex items-center justify-center mr-3 transition-colors
-                                    ${isVisible ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/50'}
+                                    ${isVisible ? 'bg-purple-500 border-purple-500' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/50'}
                                     ${focusModeEnabled ? 'opacity-50' : ''}
                                 `}>
                                     {isVisible && <Check size={10} className="text-white" />}

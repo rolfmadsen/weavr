@@ -20,7 +20,7 @@ Weavr is a serverless, peer-to-peer Event Modeling tool. Unlike traditional clou
 - **Build Tool**: Vite
 - **State & Sync**: GunDB (P2P Graph Database)
 - **Canvas Rendering**: Konva & React-Konva
-- **Styling**: Tailwind CSS v4 (Glassmorphism)
+- **Styling**: Tailwind CSS v4 (Preline UI)
 - **Graph Layout**: ELKjs (Calculated in a Web Worker)
 - **Spatial Indexing**: RBush (Crucial for performance)
 - **Testing**: Vitest
@@ -36,7 +36,7 @@ Weavr follows the **Screen, Command, Event, Projection** pattern.
 - **Projections**: State is projected into the `ModelingStore` (Zustand) and GunDB.
 
 ### THE MUI BAN
-Weavr has a **strict ban on Material UI (`@mui/*`)**. All new components must use Tailwind v4 and follow the Glassmorphism tokens.
+Weavr has a **strict ban on Material UI (`@mui/*`)**. All new components must use Tailwind v4 and follow the official Preline UI standards.
 
 ## Getting Started
 1. `npm install`

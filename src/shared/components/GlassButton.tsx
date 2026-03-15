@@ -18,19 +18,19 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
     children,
     ...props
 }) => {
-    const baseStyles = "rounded-full transition-all duration-300 font-medium flex items-center justify-center backdrop-blur-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100";
-
+    const baseStyles = "py-3 px-4 inline-flex items-center gap-x-2 font-medium focus:outline-none disabled:opacity-50 disabled:pointer-events-none transition-all duration-300";
+    
     const variants = {
-        primary: "bg-gradient-to-r from-purple-500/80 to-blue-500/80 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/30 border border-white/20",
-        secondary: "bg-white/10 hover:bg-white/20 text-slate-800 dark:text-slate-100 border border-white/10 dark:border-white/5",
-        ghost: "bg-transparent hover:bg-white/10 text-slate-600 dark:text-slate-300",
-        danger: "bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20"
+        primary: "text-sm rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700",
+        secondary: "text-sm rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:bg-gray-50 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700",
+        ghost: "text-sm rounded-lg border border-transparent text-gray-800 hover:bg-gray-100 focus:bg-gray-100 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800",
+        danger: "text-sm rounded-lg border border-transparent bg-red-500 text-white hover:bg-red-600 focus:bg-red-600"
     };
 
     const sizes = {
-        sm: "px-3 py-1.5 text-xs text-sm",
-        md: "px-6 py-2 text-sm",
-        lg: "px-8 py-3 text-base"
+        sm: "py-2 px-3 text-xs",
+        md: "py-3 px-4 text-sm",
+        lg: "py-4 px-5 text-base"
     };
 
     return (

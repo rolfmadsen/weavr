@@ -45,7 +45,8 @@ interface GraphCanvasKonvaProps {
     nodes: Node[];
     links: Link[];
     slices?: Slice[];
-    allNodes?: Node[]; // All nodes (unfiltered) for Tab navigation across hidden slices
+    allSlices?: Slice[]; // Unfiltered slices for stable sort rank
+    navigationNodes?: Node[]; // Nodes to cycle through with Tab (manual filter based)
     actors?: Actor[]; // New Prop
     definitions?: DataDefinition[]; // New Prop to resolve aggregate names
     selectedIds: string[];
@@ -82,8 +83,9 @@ import { resolveLinkPoints, getLogicalSide } from '../domain/routing';
 const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(({
     nodes,
     links,
-    slices = [], // Default to empty array
-    allNodes, // All nodes for Tab navigation
+    slices = [], // Individual slice visuals
+    allSlices = [], // Unfiltered slices for stable sort rank
+    navigationNodes = [], // Stable navigation source
     actors = [], // Default to empty array
     definitions = [], // Default to empty array
     selectedIds,
@@ -194,7 +196,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         // 1. Find global min/max Y to ensure uniform slice & chapter heights
         let globalMinY = Infinity;
         let globalMaxY = -Infinity;
-        slices.forEach(s => {
+        slices.forEach((s: Slice) => {
             const b = unifiedSliceBounds.get(s.id);
             if (b) {
                 if (b.minY < globalMinY) globalMinY = b.minY;
@@ -205,7 +207,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         if (globalMaxY === -Infinity) globalMaxY = 100;
 
         // Ensure ALL slices are accounted for, even if empty/no layout yet
-        slices.forEach(s => {
+        slices.forEach((s: Slice) => {
             const b = unifiedSliceBounds.get(s.id);
 
             // X is based on individual slice tightness
@@ -232,7 +234,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     // NEW: Calculate Chapter Groups for Visuals
     const chapterGroups = useMemo(() => {
         const groups = new Map<string, Slice[]>();
-        slices.forEach(s => {
+        slices.forEach((s: Slice) => {
             const c = s.chapter || 'General';
             if (!groups.has(c)) groups.set(c, []);
             groups.get(c)!.push(s);
@@ -712,28 +714,16 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         updateVisibleNodes(true);
     }, [nodes.length, updateVisibleNodes]);
 
-    // NEW: Predictable Navigation Order (Slice Order -> Vertical Y)
-    // Uses allNodes (unfiltered) so Tab can navigate to nodes in hidden slices
-    const navigationNodes = useMemo(() => {
-        const base = allNodes || safeNodes;
-        // Apply same safety as safeNodes
-        const safe = base.map(n => ({
-            ...n,
-            x: safeNum(n.x),
-            y: safeNum(n.y),
-            computedHeight: n.computedHeight || calculateNodeHeight(n.name || '')
-        }));
-        return safe;
-    }, [allNodes, safeNodes]);
-
+    // Predictable Navigation Order (Slice Order -> Vertical Y)
+    // USABILITY: Navigation cycle should reflect manual check marks, not dynamic focus visibility.
     const sortedNavigationNodes = useMemo(() => {
-        if (!slices || slices.length === 0) {
-            // Fallback: Sort all nodes by Y if no slices
+        const sourceSlices = (allSlices.length > 0 ? allSlices : slices);
+        if (!sourceSlices || sourceSlices.length === 0) {
             return [...navigationNodes].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
         }
 
-        // 1. Sort Slices by Order
-        const sortedSlices = [...slices].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        // 1. Sort Slices by Order (STABLE)
+        const sortedSlices = [...sourceSlices].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         // 2. Build Robust Lookup Maps
         const sliceOrderMap = new Map<string, number>();
@@ -742,7 +732,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         sortedSlices.forEach((slice, index) => {
             sliceOrderMap.set(slice.id, index);
             if (slice.nodeIds) {
-                slice.nodeIds.forEach(nodeId => {
+                slice.nodeIds.forEach((nodeId: string) => {
                     nodeToSliceOrderMap.set(nodeId, index);
                 });
             }
@@ -750,12 +740,10 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
 
         // Helper: Get robust rank for a node
         const getRank = (n: Node) => {
-            // Priority 1: Direct Slice ID match
             if (n.sliceId) {
                 const rank = sliceOrderMap.get(n.sliceId);
                 if (rank !== undefined) return rank;
             }
-            // Priority 2: Reverse lookup from Slice's node list
             const reverseRank = nodeToSliceOrderMap.get(n.id);
             return reverseRank !== undefined ? reverseRank : Infinity;
         };
@@ -764,16 +752,10 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         return [...navigationNodes].sort((a, b) => {
             const rankA = getRank(a);
             const rankB = getRank(b);
-
-            if (rankA !== rankB) {
-                // Different Slices: Sort by Slice Order
-                return rankA - rankB;
-            }
-
-            // Same Slice: Sort by Vertical Position (Y)
+            if (rankA !== rankB) return rankA - rankB;
             return (a.y ?? 0) - (b.y ?? 0);
         });
-    }, [navigationNodes, slices]);
+    }, [navigationNodes, slices, allSlices]);
 
     // NEW: Actor Map (Color and Name)
     const actorInfo = useMemo(() => {
@@ -840,10 +822,55 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         return () => window.removeEventListener('keydown', handleWindowKeyDown);
     }, [sortedNavigationNodes, selectedIds, onNodeClick, panToNodeInternal, slices]);
 
+    const [isSpacePressed, setIsSpacePressed] = useState(false);
+    const [isShiftPressed, setIsShiftPressed] = useState(false);
+
+    // Global Spacebar/Shift listener for Hand Tool and Marquee Select Cursor
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Shift') {
+                setIsShiftPressed(true);
+            }
+            if (e.code === 'Space' && !e.repeat && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+                setIsSpacePressed(true);
+                e.preventDefault();
+            }
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Shift') {
+                setIsShiftPressed(false);
+            }
+            if (e.code === 'Space') {
+                setIsSpacePressed(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
+
+    // Provide the Spacebar/Shift state to CSS for cursor
+    useEffect(() => {
+        const stageContainer = stageRef.current?.container();
+        if (isShiftPressed) {
+            if (containerRef.current) containerRef.current.style.cursor = 'default';
+            if (stageContainer) stageContainer.style.cursor = 'default';
+        } else if (isSpacePressed) {
+            if (containerRef.current) containerRef.current.style.cursor = 'grab';
+            if (stageContainer) stageContainer.style.cursor = 'grab';
+        } else {
+            if (containerRef.current) containerRef.current.style.cursor = 'default';
+            if (stageContainer) stageContainer.style.cursor = 'default';
+        }
+    }, [isSpacePressed, isShiftPressed]);
+
     return (
         <div
             ref={containerRef}
-            className="w-full flex-1 bg-gray-50 dark:bg-slate-950 overflow-hidden relative outline-none cursor-grab active:cursor-grabbing"
+            className={`w-full flex-1 bg-gray-50 dark:bg-slate-950 overflow-hidden relative outline-none ${isSpacePressed && !isShiftPressed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
             tabIndex={-1} // Required to receive focus (and blur sidebar inputs)
             // onKeyDown={handleKeyDown} // Removed, using global listener
             onContextMenu={(e) => e.preventDefault()}
@@ -852,7 +879,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 ref={stageRef}
                 width={dimensions.width}
                 height={dimensions.height}
-                draggable
+                draggable={!isShiftPressed}
                 onWheel={handleWheel}
                 onDragStart={(e) => {
                     // Prevent Stage dragging if Shift is pressed (Marquee Select)
@@ -860,7 +887,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         e.target.stopDrag();
                         return;
                     }
-                    if (e.target === e.target.getStage()) {
+                    if (e.target === e.target.getStage() || isSpacePressed) {
                         setCanvasCursor(e, 'grabbing');
                         const stage = e.target.getStage();
                         if (stage) stage.container().style.cursor = 'grabbing';
@@ -872,9 +899,10 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 }}
                 onDragEnd={(e) => {
                     if (e.target === e.target.getStage()) {
-                        setCanvasCursor(e, 'grab');
+                        setCanvasCursor(e, isShiftPressed ? 'default' : 'default'); // Always default instead of grab to let hover logic take over, but fallback to default
                         const stage = e.target.getStage();
                         if (stage) {
+                            stage.container().style.cursor = isShiftPressed ? 'default' : 'default';
                             const newPos = { x: stage.x(), y: stage.y() };
                             setStagePos(newPos);
                             updateVisibleNodes(); // Update once at end
@@ -890,8 +918,8 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseEnter={(e) => {
-                    // Ensure cursor is grab when entering the stage area
-                    setCanvasCursor(e, 'grab');
+                    // Ensure cursor is grab/default appropriately when entering the stage area
+                    setCanvasCursor(e, isShiftPressed ? 'default' : isSpacePressed ? 'grab' : 'default');
                 }}
             >
                 <Layer>
@@ -921,7 +949,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     ))}
 
                     {/* 2. Slice Visuals */}
-                    {slices.map(slice => (
+                    {slices.map((slice: Slice) => (
                         <SliceGroup
                             key={slice.id}
                             slice={slice}

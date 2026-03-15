@@ -1,6 +1,6 @@
 ---
 name: weavr-qa
-description: "The Verification Master: Vitest, Build Checks, and Accessibility. Use for all testing, validation, and quality assurance workflows."
+description: "MANDATORY: You MUST read this skill file via view_file before running tests or finalizing a task. The Verification Master: Vitest, Build Checks, and Accessibility."
 category: "QA / Testing"
 author: "Rolf Madsen"
 tags: ["testing", "vitest", "wcag", "accessibility", "qa"]
@@ -38,7 +38,7 @@ You are the master of **Quality Assurance** and **Verification**. This skill ens
 Weavr must be inclusive. 
 - **Keyboard Navigation**: Ensure the Canvas and sidebar are navigable without a mouse.
 - **Focus Indicators**: Maintain high visibility for focused elements.
-- **ARIA**: Use semantic HTML and appropriate ARIA roles for custom "Glass" components.
+- **ARIA**: Use semantic HTML and appropriate ARIA roles for custom Preline-styled components.
 
 ---
 

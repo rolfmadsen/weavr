@@ -37,7 +37,7 @@ const SliceGroup: React.FC<SliceGroupProps> = ({ slice, onSliceClick, finalBound
                     setCanvasCursor(e, 'pointer');
                 }}
                 onMouseLeave={(e) => {
-                    setCanvasCursor(e, 'grab');
+                    setCanvasCursor(e, '');
                 }}
             >
                 <Text

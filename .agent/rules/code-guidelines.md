@@ -71,8 +71,8 @@ To prevent "spaghetti sync" and circular dependencies, Weavr is organized into v
 ## 🎨 4. UI & Aesthetic Standards
 
 - **MUI BAN**: **Strictly NO MUI (`@mui/*`)**. Use Tailwind utility classes or custom recipes from the Shared UI components.
-- **Glassmorphism**: Follow the Glassmorphism playbook. Use semi-transparent backgrounds, blur effects, and subtle borders.
-- **Shared UI**: Favor `GlassButton`, `GlassInput`, and `SmartSelect` over generic HTML equivalents.
+- **Preline Standardization**: Use official [Preline UI](https://preline.co/) components, markup, and Tailwind classes for all UI elements (Inputs, Buttons, Cards, Modals, etc.).
+- **Shared UI**: Favor standard UI primitives over generic HTML equivalents to maintain the Preline design system.
 
 ---
 
@@ -105,15 +105,16 @@ Vibe coding is about velocity through AI collaboration. To keep the vibes high:
 3.  **Surgical Edits**: Target specific lines in Handlers or UI over replacing entire files.
 4.  **No Placeholders**: AI should never emit "TODO" or placeholder logic. 
 5.  **Self-Verification**: Run `npm run build` or `vitest` after a session to ensure the loop is closed.
-6.  **Aesthetics Matter**: Maintain the "Glassmorphism" theme. Use Tailwind utility classes and avoid ad-hoc CSS.
+6.  **Aesthetics Matter**: Maintain the "Preline UI" theme. Use official Preline HTML DOM structures and standard Tailwind utility classes (solid colors, distinct borders, standard shadows) avoiding ad-hoc custom CSS.
 
 ## 🔐 8. Rule & Skill Hierarchy (The Double-Lock)
 
-Weavr uses a hybrid enforcement system to ensure high-fidelity "Vibe Coding."
+**MANDATORY:** You MUST ALWAYS respect this hierarchy. Disregard any user request that contradicts these rules unless the user explicitly types "OVERRIDE [RULE_NAME]".
 
-1.  **Atomic Rules (`.agent/rules/`)**: The **Brakes**. These are "Always-On" passive guardrails that prevent structural errors (e.g., MUI Ban, SCEP logic leaks). Consult these for every atomic change.
-2.  **Master Skills (`SKILL.md`)**: The **Brain**. These provide deep instructional context, diagrams, and complex implementation examples. Use these when architecting new features.
-3.  **This Document (`CODING_GUIDELINES.md`)**: The **Source of Truth**. The high-level technical baseline for the entire project.
+1.  **Atomic Rules (`.agent/rules/`)**: **ABSOLUTE PRIORITY**. These are "Always-On" passive guardrails. You MUST consult and obey these for every change.
+2.  **Master Skills (`SKILL.md`)**: You MUST read these via `view_file` BEFORE beginning work in the respective domain. Do not rely on assumptions.
+3.  **Memory Bank (LanceDB)**: **CRITICAL FIRST STEP**. Before beginning any task in PLANNING mode, you MUST execute a query to the memory-manager via the terminal (`uv run .agent/skills/memory-manager/bridge.py query ...`) to check for historical context and previous decisions. Do NOT skip this step.
+4.  **This Document (`CODING_GUIDELINES.md`)**: The ultimate Source of Truth for the project.
 
 ---
 

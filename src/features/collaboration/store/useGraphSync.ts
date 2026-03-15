@@ -140,7 +140,16 @@ export function useGraphSync(modelId: string | null) {
                 // Echo Cancellation: Ignore updates if we modified this node locally recently (2s)
                 const lastLocal = lastLocalUpdateRef.current.get(nodeId);
                 if (lastLocal && Date.now() - lastLocal < 2000) {
-                    return;
+                    // Check if the data is actually different from what we have in tempNodesRef
+                    // to avoid losing legitimate remote updates if we happened to touch it.
+                    const existing = tempNodesRef.current.get(nodeId);
+                    if (existing && nodeData && nodeData.name === existing.name && 
+                        nodeData.description === existing.description &&
+                        nodeData.aggregate === (existing.aggregate || null) &&
+                        nodeData.service === (existing.service || null) &&
+                        nodeData.sliceId === (existing.sliceId || null)) {
+                        return;
+                    }
                 }
 
                 if (nodeData === null) {
@@ -443,5 +452,20 @@ export function useGraphSync(modelId: string | null) {
         sliceBoundsMap,
         edgeRoutesMap,
         modelName,
+        markLocalUpdate: useCallback((nodeId: string, changes?: Partial<Node>) => {
+            lastLocalUpdateRef.current.set(nodeId, Date.now());
+            if (changes) {
+                const existing = tempNodesRef.current.get(nodeId) || nodesRef.current.find(n => n.id === nodeId);
+                if (existing) {
+                    const updated = { ...existing, ...changes };
+                    tempNodesRef.current.set(nodeId, updated);
+                    
+                    // Trigger state update immediately for local responsiveness
+                    const allNodes = Array.from(tempNodesRef.current.values());
+                    setNodes(allNodes);
+                    useModelingData.getState().setNodes(allNodes);
+                }
+            }
+        }, []),
     };
 }

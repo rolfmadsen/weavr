@@ -48,7 +48,8 @@ export const useModelManager = ({
         updateEdgeRoutes,
         updateSliceBounds,
         modelName,
-        actors
+        actors,
+        markLocalUpdate
     } = useGraphSync(modelId || '');
 
     // Derived: Slices with nodes
@@ -97,9 +98,10 @@ export const useModelManager = ({
     const handleAddNode = useCallback((type: ElementType) => {
         if (!modelId) return;
         const id = uuidv4();
+        const GRID_SIZE = 20;
         const viewportCenter = {
-            x: (-viewState.x + window.innerWidth / 2) / viewState.scale,
-            y: (-viewState.y + window.innerHeight / 2) / viewState.scale
+            x: Math.round(((-viewState.x + window.innerWidth / 2) / viewState.scale) / GRID_SIZE) * GRID_SIZE,
+            y: Math.round(((-viewState.y + window.innerHeight / 2) / viewState.scale) / GRID_SIZE) * GRID_SIZE
         };
 
         // EDA: Dispatch Command
@@ -147,9 +149,15 @@ export const useModelManager = ({
     const handleUpdateNode = useCallback(<K extends keyof Node>(nodeId: string, key: K, value: Node[K]) => {
         const node = nodes.find(n => n.id === nodeId);
         if (!node) return;
+
+        // Mark as local update to suppress echo and update local state immediately
         const updates: Partial<Node> = { [key]: value };
         if (key === 'name') {
             updates.computedHeight = calculateNodeHeight(value as string);
+        }
+
+        if (markLocalUpdate) {
+            markLocalUpdate(nodeId, updates);
         }
 
         // EDA: Dispatch Command
@@ -159,16 +167,22 @@ export const useModelManager = ({
         if (key === 'name' || key === 'sliceId' || key === 'pinned') {
             onRequestAutoLayout?.();
         }
-    }, [nodes, onRequestAutoLayout]);
+    }, [nodes, onRequestAutoLayout, markLocalUpdate]);
 
     const handleUpdateLink = useCallback(<K extends keyof Link>(linkId: string, key: K, value: Link[K]) => {
         const link = links.find(l => l.id === linkId);
         if (!link) return;
+
+        // Mark as local update to suppress echo
+        if (markLocalUpdate) {
+            markLocalUpdate(linkId);
+        }
+
         const updates: Partial<Link> = { [key]: value };
 
         // EDA: Dispatch Command
         bus.emit('command:updateLink', { id: linkId, changes: updates });
-    }, [links]);
+    }, [links, markLocalUpdate]);
 
     const handleAddLink = useCallback((sourceId: string, targetId: string) => {
         if (!modelId || sourceId === targetId) return;
