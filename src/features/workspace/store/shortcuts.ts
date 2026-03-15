@@ -70,13 +70,13 @@ export function useKeyboardShortcuts({
                 event.target instanceof HTMLTextAreaElement ||
                 (event.target instanceof HTMLElement && event.target.isContentEditable)
             ) {
-                // Allow Alt+Key shortcuts to work even in inputs
+                // Allow Alt+Key and Ctrl/Cmd shortcuts to work even in inputs
                 // Also allow Escape to work in inputs (unless prevented by the input itself)
                 if (event.key === 'Escape') {
                     // If the input handled it (e.g. cleared text), it should have prevented default.
                     // If not, we let it bubble to our handler below.
                     if (event.defaultPrevented) return;
-                } else if (!event.altKey) {
+                } else if (!event.altKey && !event.ctrlKey && !event.metaKey) {
                     return;
                 }
             }
@@ -99,26 +99,10 @@ export function useKeyboardShortcuts({
                 return;
             }
 
-            // Allow Alt+Key shortcuts to work even in inputs
-            // Also allow Escape to work in inputs (unless prevented by the input itself)
-            if ((event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)) {
-                if (event.key === 'Escape') {
-                    // If the input handled it (e.g. cleared text), it should have prevented default.
-                    // If not, we let it bubble to our handler below.
-                    if (event.defaultPrevented) return;
-                } else if (!event.altKey) {
-                    return;
-                }
-            }
-
             let shouldPreventDefault = false;
 
             // Handle Key Combinations (Ctrl/Cmd)
             if (event.metaKey || event.ctrlKey) {
-                // Prevent these shortcuts if user is typing in input
-                if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-                    return;
-                }
 
                 switch (event.key.toLowerCase()) {
                     case 'a':

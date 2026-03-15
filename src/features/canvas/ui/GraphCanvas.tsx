@@ -862,15 +862,16 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             if (containerRef.current) containerRef.current.style.cursor = 'grab';
             if (stageContainer) stageContainer.style.cursor = 'grab';
         } else {
-            if (containerRef.current) containerRef.current.style.cursor = 'default';
-            if (stageContainer) stageContainer.style.cursor = 'default';
+            // Default canvas cursor is grab (pannable canvas, like Miro/Figma)
+            if (containerRef.current) containerRef.current.style.cursor = 'grab';
+            if (stageContainer) stageContainer.style.cursor = 'grab';
         }
     }, [isSpacePressed, isShiftPressed]);
 
     return (
         <div
             ref={containerRef}
-            className={`w-full flex-1 bg-gray-50 dark:bg-slate-950 overflow-hidden relative outline-none ${isSpacePressed && !isShiftPressed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+            className={`w-full flex-1 bg-gray-50 dark:bg-slate-950 overflow-hidden relative outline-none ${isShiftPressed ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
             tabIndex={-1} // Required to receive focus (and blur sidebar inputs)
             // onKeyDown={handleKeyDown} // Removed, using global listener
             onContextMenu={(e) => e.preventDefault()}
@@ -899,10 +900,11 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 }}
                 onDragEnd={(e) => {
                     if (e.target === e.target.getStage()) {
-                        setCanvasCursor(e, isShiftPressed ? 'default' : 'default'); // Always default instead of grab to let hover logic take over, but fallback to default
+                        const cursorAfterDrag = isShiftPressed ? 'default' : 'grab';
+                        setCanvasCursor(e, cursorAfterDrag);
                         const stage = e.target.getStage();
                         if (stage) {
-                            stage.container().style.cursor = isShiftPressed ? 'default' : 'default';
+                            stage.container().style.cursor = cursorAfterDrag;
                             const newPos = { x: stage.x(), y: stage.y() };
                             setStagePos(newPos);
                             updateVisibleNodes(); // Update once at end
@@ -918,8 +920,9 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseEnter={(e) => {
-                    // Ensure cursor is grab/default appropriately when entering the stage area
-                    setCanvasCursor(e, isShiftPressed ? 'default' : isSpacePressed ? 'grab' : 'default');
+                    // Set cursor appropriately when entering the stage area
+                    const cursor = isShiftPressed ? 'default' : 'grab';
+                    setCanvasCursor(e, cursor);
                 }}
             >
                 <Layer>

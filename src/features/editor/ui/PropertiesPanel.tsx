@@ -45,7 +45,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   }, [store]);
 
   useEffect(() => {
-    if (focusOnRender && nameInputRef.current) {
+    // Only auto-focus for single-item selection (user clicked to edit).
+    // Skip for multi-node (Batch Actions) to keep keyboard focus on the canvas.
+    if (focusOnRender && nameInputRef.current && selectedItem?.type !== 'multi-node') {
       nameInputRef.current.focus();
       nameInputRef.current.select();
       onFocusHandled?.();
