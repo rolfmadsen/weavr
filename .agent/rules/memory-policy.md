@@ -1,26 +1,25 @@
 ---
-name: Memory Protocol
+trigger: always_on
 description: Policy for proactively using the Memory Manager to maintain context and track project decisions.
 ---
 
-# Memory Protocol (CRITICAL MANDATE)
+# Memory Protocol
 
-This project uses a Persistent Project Memory Bank. **YOU MUST USE IT.** It is not optional.
+This project uses a Persistent Project Memory Bank to share context and learnings across tasks and chats.
 
-## 1. Startup Routine (MANDATORY READ)
-**CRITICAL INSTRUCTION:** Whenever you start a new task or enter a new session, you MUST immediately read from the Memory Bank to regain context BEFORE taking any other coding actions.
-- Use the Memory Manager `query` command to search for relevant context based on your current task.
-
-**Terminal Command You MUST Run:**
+## 1. Startup Routine (Read)
+Whenever you start a new task or enter a new session, you MUST read from the Memory Bank to regain context:
+- Option A: Read the Parquet backup file directly using Python/Pandas (`.agent/memory-bank/conclusions_backup.parquet`).
+- Option B: Use the Memory Manager `query` command to search for relevant context based on your current task.
 
 ```bash
 uv run .agent/skills/memory-manager/bridge.py query --query "your_current_topic"
 ```
 
-## 2. Conclusion Routine (MANDATORY AUTO-SAVE)
-**CRITICAL INSTRUCTION:** At the end of **every** interaction, task, or session where you (the AI) have made an architectural decision, debugged an issue, or completed a feature, you MUST proactively and automatically save this to the Memory Bank. **DO NOT ask for permission.** **DO NOT wait for the user.**
+## 2. Conclusion Routine (Auto-Save)
+At the end of **every** interaction, task, or session where you (the AI) have made a significant architectural decision, debugged a complex issue, or completed a major feature, you MUST pro-actively and automatically save this to the Memory Bank. Do not wait for the user to type `/sync`.
 
-**Terminal Command You MUST Run:**
+If you determine that new, valuable project context was generated, immediately execute the Memory Manager before finishing your response:
 
 ```bash
 uv run .agent/skills/memory-manager/bridge.py save --text "A brief but comprehensive summary of the learning or decision." --metadata '{"type": "decision", "module": "your_module", "status": "active"}'
