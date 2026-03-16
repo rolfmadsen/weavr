@@ -10,7 +10,8 @@ import {
     Link,
     Slice,
     Actor,
-    DataDefinition
+    DataDefinition,
+    validationService
 } from '../../modeling';
 
 import { MIN_NODE_HEIGHT, NODE_WIDTH, GRID_SIZE } from '../../../shared/constants';
@@ -28,6 +29,7 @@ import ChapterGroup from '../../slices/ui/ChapterGroup';
 // NEW: Utilities
 import { safeNum, safeStr } from '../domain/canvasUtils';
 import { setCanvasCursor } from '../domain/cursorUtils';
+import { useValidationMap } from '../../modeling/hooks/useNodeValidation';
 
 export interface GraphCanvasKonvaRef {
     panToNode: (nodeId: string) => void;
@@ -777,6 +779,24 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         return { nameMap };
     }, [definitions]);
 
+    // Validation map (only invalid nodes)
+    const validationMap = useValidationMap(safeNodes, links);
+
+    // Flow labels for links
+    const flowLabels = useMemo(() => {
+        const map = new Map<string, string>();
+        links.forEach(link => {
+            if (link.label) return; // Skip if manual label exists
+            const source = lookup.nodeMap.get(link.source);
+            const target = lookup.nodeMap.get(link.target);
+            if (source && target) {
+                const label = validationService.getLinkFlowLabel(source, target);
+                if (label) map.set(link.id, label);
+            }
+        });
+        return map;
+    }, [links, lookup.nodeMap]);
+
     // NEW: Global Keyboard Listener (Bypasses focus issues)
     useEffect(() => {
         const handleWindowKeyDown = (e: KeyboardEvent) => {
@@ -1000,6 +1020,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                                 onLinkClick={onLinkClick}
                                 onLinkDoubleClick={onLinkDoubleClick}
                                 customPoints={points} // Pass calculated points
+                                flowLabel={flowLabels.get(link.id)}
                             />
                         );
                     })}
@@ -1028,6 +1049,8 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                                 node={node}
                                 isSelected={isSelected}
                                 isValidTarget={isValidTarget}
+                                isInvalid={validationMap.has(node.id)}
+                                validationMessage={validationMap.get(node.id)?.message}
                                 actorColor={node.actor ? actorInfo.colorMap.get(node.actor) : undefined}
                                 actorName={node.actor ? actorInfo.nameMap.get(node.actor) : undefined}
                                 aggregateName={node.aggregate ? aggregateInfo.nameMap.get(node.aggregate) : undefined}

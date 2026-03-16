@@ -11,9 +11,11 @@ interface NodeGroupProps {
     node: Node;
     isSelected: boolean;
     isValidTarget: boolean;
+    isInvalid?: boolean;
+    validationMessage?: string;
     actorColor?: string;
-    actorName?: string; // New Prop
-    aggregateName?: string; // New Prop
+    actorName?: string;
+    aggregateName?: string;
     onNodeClick: (node: Node, event?: any) => void;
     onNodeDoubleClick: (node: Node) => void;
     onDragMove: (nodeId: string, x: number, y: number) => void;
@@ -25,10 +27,16 @@ interface NodeGroupProps {
     isDraggable: boolean;
 }
 
+// ─── Warning Badge SVG Path (Triangle with !) ────────────────────────
+// Simplified 24x24 alert-triangle path
+const ALERT_PATH = 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z';
+
 const NodeGroup = React.memo(({
     node,
     isSelected,
     isValidTarget,
+    isInvalid,
+    validationMessage,
     actorColor,
     actorName,
     aggregateName,
@@ -42,10 +50,7 @@ const NodeGroup = React.memo(({
     stageScale,
     isDraggable
 }: NodeGroupProps) => {
-    // ... (rest of logic follows)
     const defaultStyle = { color: 'gray', shape: 'rect', textColor: 'black' };
-
-    // ... (abridged for locator)
     const style = ELEMENT_STYLE[node.type as keyof typeof ELEMENT_STYLE] || defaultStyle;
 
     const rawHeight = node.computedHeight || calculateNodeHeight(node.name);
@@ -56,16 +61,17 @@ const NodeGroup = React.memo(({
 
     const [showHandles, setShowHandles] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [showTooltip, setShowTooltip] = useState(false);
 
     const groupRef = useRef<Konva.Group>(null);
-
-    // PERFORMANCE: Caching disabled to support perfect vector sharpness on zoom
-    // optimization only needed for extremely large graphs (1000+ nodes)
 
     const contentOffsetX = 0;
     const contentOffsetY = 0;
 
     const shadowEnabled = !isDragging;
+
+    // Amber border for invalid nodes (subtle but noticeable)
+    const invalidStroke = isInvalid && !isSelected && !isValidTarget;
 
     const shapeProps = {
         width,
@@ -73,8 +79,8 @@ const NodeGroup = React.memo(({
         x: contentOffsetX,
         y: contentOffsetY,
         fill: style.color,
-        stroke: isValidTarget ? '#22c55e' : (isSelected ? '#4f46e5' : undefined),
-        strokeWidth: isValidTarget ? 4 : (isSelected ? 3 : 0),
+        stroke: isValidTarget ? '#22c55e' : (isSelected ? '#4f46e5' : (invalidStroke ? '#f59e0b' : undefined)),
+        strokeWidth: isValidTarget ? 4 : (isSelected ? 3 : (invalidStroke ? 2 : 0)),
         shadowColor: shadowEnabled ? (isValidTarget ? '#22c55e' : 'black') : undefined,
         shadowBlur: shadowEnabled ? (isValidTarget ? 15 : (isSelected ? 8 : 4)) : 0,
         shadowOpacity: shadowEnabled ? (isValidTarget ? 0.6 : 0.2) : 0,
@@ -99,6 +105,12 @@ const NodeGroup = React.memo(({
         { x: 0, y: height / 2 }          // Left
     ];
 
+    // ─── Tooltip dimensions ──────────────────────────────────────────
+    const tooltipText = validationMessage || 'Information Incomplete';
+    const messageLines = tooltipText.split('\n');
+    const tooltipWidth = Math.min(280, Math.max(...messageLines.map(line => line.length * 6 + 24), 120));
+    const tooltipHeight = 16 + (messageLines.length * 15);
+
     return (
         <Portal selector=".top-layer" enabled={isDragging}>
             <Group
@@ -110,12 +122,10 @@ const NodeGroup = React.memo(({
                 onMouseDown={(e) => {
                     if (e.evt.altKey) {
                         e.cancelBubble = true;
-                        // Use the Stage's relative pointer pos to find where we clicked
                         const stage = e.target.getStage();
                         if (stage) {
                             const pointer = (stage as any).getRelativePointerPosition();
                             if (pointer) {
-                                // Logic for alt-drag link finding
                                 const localX = pointer.x - x;
                                 const localY = pointer.y - y;
                                 let minDist = Infinity;
@@ -215,6 +225,85 @@ const NodeGroup = React.memo(({
                         />
                     </Group>
                 )}
+
+                {/* ─── Validation Warning Badge ──────────────────────── */}
+                {isInvalid && (
+                    <Group
+                        x={width - 15}
+                        y={height - 15}
+                        onMouseEnter={(e) => {
+                            setCanvasCursor(e, 'pointer');
+                            setShowTooltip(true);
+                        }}
+                        onMouseLeave={(e) => {
+                            setCanvasCursor(e, '');
+                            setShowTooltip(false);
+                        }}
+                    >
+                        {/* Pulsing glow behind the badge */}
+                        <Circle
+                            radius={16}
+                            fill="#f59e0b"
+                            opacity={0.3}
+                            listening={false}
+                            onUpdate={(node: Konva.Node) => {
+                                // Simple pulsing animation
+                                const scale = 1 + Math.sin(Date.now() / 300) * 0.2;
+                                node.scale({ x: scale, y: scale });
+                            }}
+                        />
+                        {/* Badge circle */}
+                        <Circle
+                            radius={12}
+                            fill="#f59e0b"
+                            stroke="white"
+                            strokeWidth={2}
+                            shadowBlur={4}
+                            shadowColor="#f59e0b"
+                            shadowOpacity={0.5}
+                        />
+                        {/* Alert triangle icon */}
+                        <Path
+                            data={ALERT_PATH}
+                            fill="white"
+                            scale={{ x: 0.7, y: 0.7 }}
+                            offset={{ x: 12, y: 13 }}
+                            listening={false}
+                        />
+                    </Group>
+                )}
+
+                {/* ─── Validation Tooltip (Konva-native) ─────────────── */}
+                {/* TOOLTIP REPOSITIONED TO BOTTOM */}
+                {isInvalid && showTooltip && (
+                    <Group
+                        x={width / 2 - tooltipWidth / 2}
+                        y={height + 10}
+                    >
+                        <Rect
+                            width={tooltipWidth}
+                            height={tooltipHeight}
+                            fill="#451a03"
+                            cornerRadius={6}
+                            shadowBlur={8}
+                            shadowColor="black"
+                            shadowOpacity={0.3}
+                            listening={false}
+                        />
+                        <Text
+                            x={8}
+                            y={8}
+                            width={tooltipWidth - 16}
+                            text={tooltipText}
+                            fontSize={10}
+                            fontFamily={FONT_FAMILY}
+                            fill="#fbbf24"
+                            wrap="word"
+                            listening={false}
+                        />
+                    </Group>
+                )}
+
                 {/* Actor Label */}
                 {actorName && (
                     <Group x={12} y={-22}>

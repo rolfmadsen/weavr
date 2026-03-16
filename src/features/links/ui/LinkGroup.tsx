@@ -13,6 +13,7 @@ interface LinkGroupProps {
     onLinkClick: (link: Link) => void;
     onLinkDoubleClick: (link: Link) => void;
     customPoints: number[];
+    flowLabel?: string;
 }
 
 const LinkGroup = React.memo(({
@@ -23,7 +24,8 @@ const LinkGroup = React.memo(({
     isHighlighted,
     onLinkClick,
     onLinkDoubleClick,
-    customPoints
+    customPoints,
+    flowLabel
 }: LinkGroupProps) => {
     const { resolvedTheme } = useTheme();
     const points = customPoints || [0, 0, 0, 0];
@@ -38,6 +40,7 @@ const LinkGroup = React.memo(({
 
     const labelStroke = resolvedTheme === 'dark' ? '#0f172a' : '#f9fafb';
     const labelFill = active ? '#dc2626' : (resolvedTheme === 'dark' ? '#e2e8f0' : '#4b5563');
+    const flowLabelFill = resolvedTheme === 'dark' ? '#64748b' : '#94a3b8'; // Subtle gray
 
     return (
         <Group
@@ -52,11 +55,13 @@ const LinkGroup = React.memo(({
                 stroke={color}
                 strokeWidth={width}
                 fill={color}
-                pointerLength={10} // Increased from 6
-                pointerWidth={10}  // Increased from 6
+                pointerLength={10}
+                pointerWidth={10}
                 listening={false}
                 perfectDrawEnabled={false}
             />
+            
+            {/* Manual Label */}
             {label && (
                 <Group id={`link-label-group-${linkId}`} x={midX || 0} y={midY || 0}>
                     <Text
@@ -65,9 +70,9 @@ const LinkGroup = React.memo(({
                         fill={labelFill}
                         align="center"
                         verticalAlign="middle"
-                        offsetX={50}
-                        offsetY={15}
-                        width={100}
+                        offsetX={60}
+                        offsetY={flowLabel ? 25 : 15}
+                        width={120}
                         height={30}
                         stroke={labelStroke}
                         strokeWidth={3}
@@ -77,12 +82,45 @@ const LinkGroup = React.memo(({
                         text={label}
                         fontSize={12}
                         fill={labelFill}
-                        fontStyle="normal"
                         align="center"
                         verticalAlign="middle"
-                        offsetX={50}
-                        offsetY={15}
-                        width={100}
+                        offsetX={60}
+                        offsetY={flowLabel ? 25 : 15}
+                        width={120}
+                        height={30}
+                        listening={false}
+                    />
+                </Group>
+            )}
+
+            {/* Flow Label (Secondary/Small) */}
+            {flowLabel && (
+                <Group id={`link-flow-group-${linkId}`} x={midX || 0} y={midY || 0}>
+                    <Text
+                        text={flowLabel}
+                        fontSize={9}
+                        fontStyle="italic"
+                        fill={flowLabelFill}
+                        align="center"
+                        verticalAlign="middle"
+                        offsetX={100}
+                        offsetY={label ? 0 : 15}
+                        width={200}
+                        height={30}
+                        stroke={labelStroke}
+                        strokeWidth={2}
+                        listening={false}
+                    />
+                    <Text
+                        text={flowLabel}
+                        fontSize={9}
+                        fontStyle="italic"
+                        fill={flowLabelFill}
+                        align="center"
+                        verticalAlign="middle"
+                        offsetX={100}
+                        offsetY={label ? 0 : 15}
+                        width={200}
                         height={30}
                         listening={false}
                     />
@@ -97,6 +135,7 @@ const LinkGroup = React.memo(({
         prev.targetNode === next.targetNode &&
         prev.isSelected === next.isSelected &&
         prev.isHighlighted === next.isHighlighted &&
+        prev.flowLabel === next.flowLabel &&
         pointsAreEqual(prev.customPoints, next.customPoints)
     );
 });

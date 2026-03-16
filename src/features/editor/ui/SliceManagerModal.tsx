@@ -193,29 +193,29 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                     placeholder="Slice Name"
                                                     autoFocus
                                                 />
-                                                <div className="flex gap-2">
-                                                    <select
-                                                        value={editType}
-                                                        onChange={(e) => setEditType(e.target.value as SliceType)}
-                                                        className="py-2.5 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500/50 focus:ring-purple-500/50"
-                                                    >
-                                                        <option value="">Type...</option>
-                                                        <option value={SliceType.StateChange}>Command</option>
-                                                        <option value={SliceType.StateView}>View</option>
-                                                        <option value={SliceType.Automation}>Automation</option>
-                                                    </select>
-                                                    <input
-                                                        type="text"
-                                                        value={editContext}
-                                                        onChange={(e) => setEditContext(e.target.value)}
-                                                        className="py-2.5 px-3 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500/50 focus:ring-purple-500/50"
-                                                        placeholder="Bounded Context"
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') saveEdit();
-                                                            if (e.key === 'Escape') cancelEdit();
-                                                        }}
-                                                    />
-                                                </div>
+                                                 <div className="flex gap-2">
+                                                     <select
+                                                         value={editType}
+                                                         onChange={(e) => setEditType(e.target.value as SliceType)}
+                                                         className="py-2.5 px-3 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                                                     >
+                                                         <option value="" className="bg-white dark:bg-neutral-900">Type...</option>
+                                                         <option value={SliceType.StateChange} className="bg-white dark:bg-neutral-900">Command</option>
+                                                         <option value={SliceType.StateView} className="bg-white dark:bg-neutral-900">View</option>
+                                                         <option value={SliceType.Automation} className="bg-white dark:bg-neutral-900">Automation</option>
+                                                     </select>
+                                                     <input
+                                                         type="text"
+                                                         value={editContext}
+                                                         onChange={(e) => setEditContext(e.target.value)}
+                                                         className="py-2.5 px-3 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                                                         placeholder="Bounded Context"
+                                                         onKeyDown={(e) => {
+                                                             if (e.key === 'Enter') saveEdit();
+                                                             if (e.key === 'Escape') cancelEdit();
+                                                         }}
+                                                     />
+                                                 </div>
                                                 <div className="flex gap-2 justify-end">
                                                     <GlassButton size="sm" onClick={saveEdit}>Save</GlassButton>
                                                     <GlassButton size="sm" variant="ghost" onClick={cancelEdit}>Cancel</GlassButton>

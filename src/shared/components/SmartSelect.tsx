@@ -201,7 +201,7 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
 
             {isOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70 p-1 origin-top">
+                    <div className="bg-white border border-gray-200 shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70 p-1 origin-top">
                         <div ref={listRef} className="max-h-60 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
                         {Object.entries(groupedOptions).map(([group, opts]) => (
                             <div key={group}>

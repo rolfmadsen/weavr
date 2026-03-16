@@ -7,7 +7,7 @@ import { GlassInput } from '../../../shared/components/GlassInput';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 import { ElementHelp } from './ElementHelp';
-import validationService from '../../modeling/domain/validation';
+import { useNodeValidation } from '../../modeling/hooks/useNodeValidation';
 import { SchemaBuilder } from './SchemaBuilder';
 import { useDebouncedInput } from '../../../shared/hooks/useDebouncedInput';
 import clsx from 'clsx';
@@ -67,10 +67,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
     );
 
     // Validation Results
-    const validationResult = useMemo(() => {
-        const incomingLinks = allLinks.filter(l => l.target === node.id);
-        return validationService.validateCompleteness(node, incomingLinks, allNodes);
-    }, [node, allNodes, allLinks]);
+    const validationResult = useNodeValidation(node, allNodes, allLinks);
 
     // Aggregate Options
     const aggregateOptions = useMemo(() => {
@@ -203,7 +200,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             {/* General Section */}
             <section>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">General</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">General</h3>
                     <GlassButton
                         size="sm"
                         variant="ghost"
@@ -223,19 +220,19 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                     />
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Description</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">Description</label>
                         <textarea
-                            className="py-2.5 px-4 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-purple-500/50 focus:ring-purple-500/50 dark:focus:ring-neutral-600 disabled:opacity-50 disabled:pointer-events-none min-h-[80px]"
+                            className="py-2.5 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-200 placeholder-gray-400 dark:placeholder-neutral-500 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none min-h-[80px]"
                             {...descriptionInputGroup}
                         />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Type</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">Type</label>
                         <select
                             disabled
                             value={node.type}
-                            className="py-2.5 px-4 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-100/50 dark:bg-black/40 text-slate-500 appearance-none cursor-not-allowed opacity-70"
+                            className="py-2.5 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-gray-100/50 dark:bg-black/40 text-gray-500 appearance-none cursor-not-allowed opacity-70"
                         >
                             <option value="COMMAND">Command</option>
                             <option value="DOMAIN_EVENT">Domain Event</option>
@@ -247,7 +244,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1 flex items-center gap-1">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1 flex items-center gap-1">
                             Context
                             <GlassTooltip content={
                                 <div>
@@ -265,7 +262,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                             onChange={(e) => onUpdateNode(node.id, 'context', e.target.value as any)}
                             disabled={node.type !== ElementType.IntegrationEvent}
                             className={cn(
-                                "py-2.5 px-4 block w-full border-slate-300 dark:border-white/10 rounded-xl text-sm bg-slate-50/50 dark:bg-black/20 backdrop-blur-md transition-all duration-200 text-slate-800 dark:text-slate-100 focus:border-purple-500/50 focus:ring-purple-500/50 dark:focus:ring-neutral-600 disabled:opacity-50 disabled:pointer-events-none",
+                                "py-2.5 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none",
                                 node.type !== ElementType.IntegrationEvent && "opacity-70 cursor-not-allowed"
                             )}
                         >
@@ -283,7 +280,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
                     {(node.type === 'SCREEN' || node.type === 'AUTOMATION') && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Actor</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Actor</label>
                             <SmartSelect
                                 options={actorOptions}
                                 value={node.actor || '__none__'}
@@ -297,7 +294,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
                     {node.type === 'DOMAIN_EVENT' && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Aggregate</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Aggregate</label>
                             <SmartSelect
                                 options={aggregateOptions}
                                 value={node.aggregate || '__none__'}
@@ -324,7 +321,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
                     {node.type === 'COMMAND' && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Aggregate</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Aggregate</label>
                             <SmartSelect
                                 options={aggregateOptions}
                                 value={node.aggregate || '__none__'}
@@ -351,14 +348,14 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 </div>
             </section>
 
-            <div className="h-px bg-slate-200 dark:bg-white/10"></div>
+            <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
 
             {/* Organization Section */}
             <section>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Organization</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-4">Organization</h3>
 
                 <div className="mb-4">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Slice</label>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 block">Slice</label>
                     <SmartSelect
                         options={sliceOptions}
                         value={node.sliceId ? node.sliceId.toString() : ''}
@@ -370,7 +367,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 </div>
             </section>
 
-            <div className="h-px bg-slate-200 dark:bg-white/10"></div>
+            <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
 
             {/* Schema Section */}
             <section>
@@ -383,11 +380,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 />
             </section>
 
-            <div className="h-px bg-slate-200 dark:bg-white/10"></div>
+            <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
 
             {/* Actions Section */}
             <section>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Actions</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-4">Actions</h3>
                 <GlassButton
                     variant="danger"
                     size="sm"

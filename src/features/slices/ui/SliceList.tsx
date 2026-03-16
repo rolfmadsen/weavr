@@ -85,47 +85,47 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
 
     return (
         <div ref={setNodeRef} style={style} className={`transition-opacity ${isDragging ? 'opacity-50' : 'opacity-100'} ${disabled ? 'pointer-events-none' : ''}`}>
-            <div
-                className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-700 transition-all duration-200 ${expanded ? 'bg-gray-50 dark:bg-neutral-800' : ''}`}
-            >
-                {/* Header Area */}
-                <div className="flex items-center gap-0 list-none select-none">
-                    {/* Drag Handle - Stays outside the clickable area for expansion */}
-                    <div
-                        {...attributes}
-                        {...listeners}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-neutral-400 cursor-grab active:cursor-grabbing p-3 -ml-1 h-full flex items-center"
-                    >
-                        <GripVertical size={16} />
-                    </div>
-
-                    {/* Clickable Area for Expansion */}
-                    <div
-                        onClick={() => onExpandChange(!expanded)}
-                        className="flex-1 flex items-center gap-3 p-3 pl-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-r-xl"
-                    >
-                        <ChevronDown size={20} className={`text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
-
-                        <div className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: slice.color }} />
-
-                        <span className="text-sm font-medium text-gray-800 dark:text-neutral-200 flex-1">{slice.title || 'Untitled Slice'}</span>
-
-                        {slice.sliceType && (
-                            <span className="inline-flex items-center gap-x-1.5 py-1 px-2 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-white uppercase tracking-wider">
-                                {slice.sliceType}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Content Area */}
-                {expanded && (
-                    <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700 rounded-b-xl animate-in slide-in-from-top-2 duration-200">
-                        {children}
-                    </div>
-                )}
-            </div>
+             <div
+                 className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 transition-all duration-200 ${expanded ? 'bg-gray-50 dark:bg-neutral-800' : ''}`}
+             >
+                 {/* Header Area */}
+                 <div className="flex items-center gap-0 list-none select-none">
+                     {/* Drag Handle - Stays outside the clickable area for expansion */}
+                     <div
+                         {...attributes}
+                         {...listeners}
+                         onClick={(e) => e.stopPropagation()}
+                         className="text-gray-400 hover:text-gray-600 dark:hover:text-neutral-400 cursor-grab active:cursor-grabbing p-3 -ml-1 h-full flex items-center"
+                     >
+                         <GripVertical size={16} />
+                     </div>
+ 
+                     {/* Clickable Area for Expansion */}
+                     <div
+                         onClick={() => onExpandChange(!expanded)}
+                         className="flex-1 flex items-center gap-3 p-3 pl-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-r-lg"
+                     >
+                         <ChevronDown size={20} className={`text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+ 
+                         <div className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: slice.color }} />
+ 
+                         <span className="text-sm font-medium text-gray-800 dark:text-neutral-200 flex-1">{slice.title || 'Untitled Slice'}</span>
+ 
+                         {slice.sliceType && (
+                             <span className="inline-flex items-center gap-x-1.5 py-1 px-2 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-neutral-700 dark:text-white uppercase tracking-wider">
+                                 {slice.sliceType}
+                             </span>
+                         )}
+                     </div>
+                 </div>
+ 
+                 {/* Content Area */}
+                 {expanded && (
+                     <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700 rounded-b-lg animate-in slide-in-from-top-2 duration-200">
+                         {children}
+                     </div>
+                 )}
+             </div>
         </div>
     );
 };
@@ -214,25 +214,25 @@ const SpecificationItem: React.FC<{
     };
 
     return (
-        <details className="group border border-white/10 rounded-lg overflow-hidden bg-white/5 open:bg-white/10 mb-2 transition-all">
-            <summary className="flex items-center justify-between px-3 py-2 cursor-pointer select-none list-none marker:hidden hover:bg-white/5">
-                <div className="flex items-center gap-2 flex-1">
-                    <span className="transform transition-transform group-open:rotate-90 text-slate-400 text-xs">▶</span>
-                    <input
-                        type="text"
-                        value={spec.title}
-                        onChange={(e) => onUpdate(spec.id, { title: e.target.value })}
-                        onClick={(e) => e.stopPropagation()}
-                        className="bg-transparent border-none text-sm font-medium text-slate-800 dark:text-slate-100 focus:ring-0 p-0 w-full outline-none"
-                        placeholder="Specification Title"
-                    />
-                </div>
+        <details className="group border border-neutral-700 rounded-lg overflow-hidden bg-neutral-800 open:bg-neutral-700 mb-2 transition-all">
+             <summary className="flex items-center justify-between px-3 py-2 cursor-pointer select-none list-none marker:hidden hover:bg-neutral-800">
+                 <div className="flex items-center gap-2 flex-1">
+                     <span className="transform transition-transform group-open:rotate-90 text-gray-400 text-xs">▶</span>
+                     <input
+                         type="text"
+                         value={spec.title}
+                         onChange={(e) => onUpdate(spec.id, { title: e.target.value })}
+                         onClick={(e) => e.stopPropagation()}
+                         className="bg-transparent border-none text-sm font-medium text-gray-800 dark:text-neutral-100 focus:ring-0 p-0 w-full outline-none"
+                         placeholder="Specification Title"
+                     />
+                 </div>
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
                         setDeleteAnchorEl(e.currentTarget);
                     }}
-                    className="text-slate-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Delete Specification"
                 >
                     <Trash2 size={16} />
@@ -246,7 +246,7 @@ const SpecificationItem: React.FC<{
                 />
             </summary>
 
-            <div className="p-3 bg-black/5 dark:bg-black/20 border-t border-white/10 space-y-4">
+            <div className="p-3 bg-black/5 dark:bg-neutral-800 border-t border-neutral-700 space-y-4">
                 {(['given', 'when', 'then'] as const).map(section => {
                     const hasSteps = spec[section].length > 0;
 
@@ -255,7 +255,7 @@ const SpecificationItem: React.FC<{
                             <div key={section} className="flex justify-start">
                                 <button
                                     onClick={() => handleAddStep(section)}
-                                    className="text-[10px] text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 px-2 py-1 rounded border border-dashed border-white/20 hover:border-purple-400/30 transition-all"
+                                    className="text-[10px] text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 px-2 py-1 rounded border border-dashed border-neutral-600 hover:border-purple-400/30 transition-all"
                                 >
                                     + Add {section}
                                 </button>
@@ -274,13 +274,13 @@ const SpecificationItem: React.FC<{
                                 <div className="flex items-center gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => handleAddStep(section)}
-                                        className="text-slate-400 hover:text-purple-500 p-0.5 rounded hover:bg-purple-500/10"
+                                        className="text-gray-400 hover:text-purple-500 p-0.5 rounded hover:bg-purple-500/10"
                                     >
                                         <Plus size={14} />
                                     </button>
                                     <button
                                         onClick={() => onUpdate(spec.id, { [section]: [] })}
-                                        className="text-slate-500 hover:text-red-500 p-0.5 rounded hover:bg-red-500/10"
+                                        className="text-gray-500 hover:text-red-500 p-0.5 rounded hover:bg-red-500/10"
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -291,7 +291,7 @@ const SpecificationItem: React.FC<{
                                 {spec[section].map((step) => (
                                     <li key={step.id} className="flex items-start gap-1 group/step">
                                         <div className="w-[20px] flex justify-end mt-1 flex-shrink-0">
-                                            <span className="text-slate-500 text-[10px]">•</span>
+                                            <span className="text-gray-500 text-[10px]">•</span>
                                         </div>
 
                                         <textarea
@@ -308,7 +308,7 @@ const SpecificationItem: React.FC<{
                                                     el.style.height = `${el.scrollHeight}px`;
                                                 }
                                             }}
-                                            className="flex-1 text-xs text-slate-700 dark:text-slate-300 border border-transparent hover:border-white/20 focus:border-purple-500/50 rounded px-1.5 py-0.5 bg-transparent focus:bg-white/10 transition-all outline-none resize-none overflow-hidden"
+                                             className="flex-1 text-xs text-gray-700 dark:text-neutral-300 border border-transparent hover:border-blue-500/20 focus:border-blue-500 rounded px-1.5 py-0.5 bg-transparent focus:bg-neutral-700 transition-all outline-none resize-none overflow-hidden"
                                             placeholder={`Describe ${section}...`}
                                             rows={1}
                                             style={{ minHeight: '24px' }}
@@ -321,7 +321,7 @@ const SpecificationItem: React.FC<{
                                         />
                                         <button
                                             onClick={() => handleDeleteStep(section, step.id)}
-                                            className="text-slate-500 hover:text-red-500 opacity-0 group-hover/step:opacity-100 transition-opacity p-0.5 mt-0.5"
+                                            className="text-gray-500 hover:text-red-500 opacity-0 group-hover/step:opacity-100 transition-opacity p-0.5 mt-0.5"
                                             tabIndex={-1}
                                         >
                                             <X size={12} />
@@ -334,9 +334,9 @@ const SpecificationItem: React.FC<{
                 })}
 
                 {/* Examples Section */}
-                <div className="pt-2 border-t border-dashed border-white/20">
+                <div className="pt-2 border-t border-dashed border-neutral-600">
                     <details className="group/examples">
-                        <summary className="text-[10px] font-bold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-300 select-none list-none marker:hidden flex items-center gap-2">
+                        <summary className="text-[10px] font-bold text-gray-500 uppercase tracking-wide cursor-pointer hover:text-slate-300 select-none list-none marker:hidden flex items-center gap-2">
                             <span className="transform transition-transform group-open/examples:rotate-90">▶</span>
                             Examples / Data Table
                         </summary>
@@ -350,16 +350,16 @@ const SpecificationItem: React.FC<{
                                 </button>
                             ) : (
                                 <div className="min-w-full inline-block align-middle">
-                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-white/10 border border-slate-200 dark:border-white/10">
-                                        <thead className="bg-slate-100 dark:bg-white/5">
+                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-neutral-700 border border-gray-200 dark:border-neutral-700">
+                                        <thead className="bg-gray-100 dark:bg-neutral-800">
                                             <tr>
                                                 {(spec.examples.headers || []).map((header, i) => (
-                                                    <th key={i} scope="col" className="px-2 py-1 text-left text-xs font-medium text-slate-700 dark:text-slate-500 uppercase tracking-wider border-r border-slate-200 dark:border-white/10 last:border-r-0">
+                                                    <th key={i} scope="col" className="px-2 py-1 text-left text-xs font-medium text-gray-700 dark:text-gray-500 uppercase tracking-wider border-r border-gray-200 dark:border-neutral-700 last:border-r-0">
                                                         <input
                                                             type="text"
                                                             value={header}
                                                             onChange={(e) => updateExampleHeader(i, e.target.value)}
-                                                            className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
+                                                            className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs font-bold text-gray-700 dark:text-slate-300 outline-none"
                                                             placeholder="VAR"
                                                         />
                                                     </th>
@@ -369,16 +369,16 @@ const SpecificationItem: React.FC<{
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-transparent divide-y divide-slate-200 dark:divide-white/10">
+                                        <tbody className="bg-transparent divide-y divide-gray-200 dark:divide-neutral-700">
                                             {(spec.examples.rows || []).map((row, rowIndex) => (
                                                 <tr key={rowIndex}>
                                                     {row.map((cell, colIndex) => (
-                                                        <td key={colIndex} className="px-2 py-1 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-white/10 last:border-r-0">
+                                                        <td key={colIndex} className="px-2 py-1 whitespace-nowrap text-xs text-slate-600 dark:text-gray-400 border-r border-gray-200 dark:border-neutral-700 last:border-r-0">
                                                             <input
                                                                 type="text"
                                                                 value={cell}
                                                                 onChange={(e) => updateExampleCell(rowIndex, colIndex, e.target.value)}
-                                                                className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs text-slate-700 dark:text-slate-300 outline-none"
+                                                                className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs text-gray-700 dark:text-slate-300 outline-none"
                                                                 placeholder="..."
                                                             />
                                                         </td>
@@ -388,7 +388,7 @@ const SpecificationItem: React.FC<{
                                             ))}
                                             <tr>
                                                 <td colSpan={100} className="px-2 py-1">
-                                                    <button onClick={handleAddExampleRow} className="text-xs text-slate-500 hover:text-purple-400">+ Add Row</button>
+                                                    <button onClick={handleAddExampleRow} className="text-xs text-gray-500 hover:text-purple-400">+ Add Row</button>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -813,11 +813,11 @@ const SliceList: React.FC<SliceListProps> = ({
                                                 <div className="flex flex-col gap-1.5">
                                                     <div className="flex gap-2">
                                                         <div className="w-1/3">
-                                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Type</label>
+                                                            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 ml-1">Type</label>
                                                             <select
                                                                 value={slice.sliceType || ''}
                                                                 onChange={(e) => onUpdateSlice(slice.id, { sliceType: e.target.value as SliceType })}
-                                                                className="w-full bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none text-sm"
+                                                                className="w-full bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-neutral-700 rounded-xl px-3 py-2.5 text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none text-sm"
                                                             >
                                                                 <option value="">None</option>
                                                                 <option value={SliceType.StateChange}>Command</option>
@@ -846,11 +846,11 @@ const SliceList: React.FC<SliceListProps> = ({
                                                 </div>
                                             </div>
 
-                                            <div className="h-px bg-slate-200 dark:bg-white/10 mb-4"></div>
+                                            <div className="h-px bg-gray-200 dark:bg-neutral-700 mb-4"></div>
 
                                             <div>
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Specifications</div>
+                                                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Specifications</div>
                                                     <GlassButton variant="ghost" size="sm" onClick={() => handleAddSpecToSlice(slice)}>
                                                         <Plus size={16} className="mr-1" /> Add Spec
                                                     </GlassButton>
@@ -858,7 +858,7 @@ const SliceList: React.FC<SliceListProps> = ({
 
                                                 <div>
                                                     {(slice.specifications || []).length === 0 ? (
-                                                        <p className="text-center text-xs text-slate-400 italic py-2">No specifications yet.</p>
+                                                        <p className="text-center text-xs text-gray-400 italic py-2">No specifications yet.</p>
                                                     ) : (
                                                         (slice.specifications || []).map(spec => (
                                                             <SpecificationItem
@@ -877,7 +877,7 @@ const SliceList: React.FC<SliceListProps> = ({
                             </SortableChapter>
                         ))}
                         {slices.length === 0 && (
-                            <p className="text-center text-slate-500 pt-8 italic">No slices created yet.</p>
+                            <p className="text-center text-gray-500 pt-8 italic">No slices created yet.</p>
                         )}
                     </div>
                 </SortableContext>

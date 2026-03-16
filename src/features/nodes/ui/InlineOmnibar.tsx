@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Plus, ChevronLeft, CheckSquare, Square, ArrowRight } from 'lucide-react';
 import { DataDefinition, DefinitionType, Field } from '../../modeling/domain/types';
 import {
@@ -46,6 +47,7 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Flattened dictionary
@@ -64,10 +66,13 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
     return items;
   }, [attributes, entities, drillEntity]);
 
-  // Close on outside click
+  // Close on outside click (checks both input container AND portaled dropdown)
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inContainer = containerRef.current?.contains(target);
+      const inDropdown = dropdownRef.current?.contains(target);
+      if (!inContainer && !inDropdown) {
         closeOmnibar();
       }
     };
@@ -84,6 +89,15 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
     setSelectedAttrs(new Set());
   }, []);
 
+  // Stay open but reset query — for rapid continuous input
+  const resetForNextInput = useCallback(() => {
+    setQuery('');
+    setHighlightIndex(-1);
+    setDrillEntity(null);
+    setSelectedAttrs(new Set());
+    inputRef.current?.focus();
+  }, []);
+
   const handleSelectAttribute = useCallback((attr: SearchableAttribute) => {
     // Check if already added
     if (existingFields.some(f => f.definitionId === attr.parentEntityId && f.attributeKey === attr.attribute.name)) {
@@ -92,13 +106,13 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
     const newField: Field = {
       name: attr.attribute.name,
       type: attr.attribute.type,
-      required: false,
+      required: true,
       definitionId: attr.parentEntityId ?? undefined,
       attributeKey: attr.attribute.name,
     };
     onAddFields([newField]);
-    closeOmnibar();
-  }, [existingFields, onAddFields, closeOmnibar]);
+    resetForNextInput();
+  }, [existingFields, onAddFields, resetForNextInput]);
 
   const handleSelectEntity = useCallback((entity: SearchableEntity) => {
     // Transition to drill-down mode
@@ -120,13 +134,13 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
     const newFields: Field[] = attrs.map(attr => ({
       name: attr.name,
       type: attr.type,
-      required: false,
+      required: true,
       definitionId: drillEntity.entityId,
       attributeKey: attr.name,
     }));
     onAddFields(newFields);
-    closeOmnibar();
-  }, [drillEntity, selectedAttrs, onAddFields, closeOmnibar]);
+    resetForNextInput();
+  }, [drillEntity, selectedAttrs, onAddFields, resetForNextInput]);
 
   const handleCreateOrphan = useCallback(() => {
     const name = query.trim();
@@ -136,13 +150,13 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
     const newField: Field = {
       name,
       type: 'String',
-      required: false,
+      required: true,
       definitionId: newId,
       attributeKey: name,
     };
     onAddFields([newField]);
-    closeOmnibar();
-  }, [query, onCreateOrphan, onAddFields, closeOmnibar]);
+    resetForNextInput();
+  }, [query, onCreateOrphan, onAddFields, resetForNextInput]);
 
   const toggleAttr = useCallback((name: string) => {
     setSelectedAttrs(prev => {
@@ -195,6 +209,31 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
     items[highlightIndex]?.scrollIntoView({ block: 'nearest' });
   }, [highlightIndex]);
 
+  // ─── Portal position tracking ────────────────────────────────────
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    if (!isOpen || !inputRef.current) return;
+    const updatePosition = () => {
+      const rect = inputRef.current!.getBoundingClientRect();
+      setDropdownStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    };
+    updatePosition();
+    // Recalculate on scroll/resize (sidebar might scroll)
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
+
   // ─── Render ──────────────────────────────────────────────────────
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -218,15 +257,15 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search attributes & entities…"
+          placeholder="Search attributes & definitions…"
           autoComplete="off"
           className="py-2 ps-8 pe-3 block w-full border-gray-200 rounded-lg text-xs focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-300 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
         />
       </div>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+      {/* Portal Dropdown — rendered at document.body to escape overflow:hidden */}
+      {isOpen && createPortal(
+        <div ref={dropdownRef} style={dropdownStyle} className="animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="bg-white border border-gray-200 shadow-lg rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70 p-1 origin-top">
             <div
               ref={listRef}
@@ -289,12 +328,12 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                     </div>
                   )}
 
-                  {/* ─── Entities Section ────────────────────── */}
-                  {entities.length > 0 && (
-                    <div>
-                      <div className="px-3 py-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-neutral-400 mt-1">
-                        Entities
-                      </div>
+                   {/* ─── Definitions Section ────────────────── */}
+                   {entities.length > 0 && (
+                     <div>
+                       <div className="px-3 py-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-neutral-400 mt-1">
+                         Definitions
+                       </div>
                       {entities.map((ent, idx) => {
                         const itemIndex = attributes.length + idx;
                         const attrCount = Array.isArray(ent.definition.attributes) ? ent.definition.attributes.length : 0;
@@ -310,14 +349,19 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                                 : 'hover:bg-gray-100 dark:hover:bg-neutral-800'
                             }`}
                           >
-                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getTypeColor(ent.entityType)}`} />
-                            <span className="font-medium text-gray-800 dark:text-neutral-200 truncate">
-                              {ent.name}
-                            </span>
-                            <span className="text-[10px] text-gray-400 dark:text-neutral-500 ml-auto flex-shrink-0">
-                              {attrCount} attr{attrCount !== 1 ? 's' : ''}
-                            </span>
-                            <ArrowRight size={12} className="text-gray-300 dark:text-neutral-600 flex-shrink-0" />
+                             <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getTypeColor(ent.entityType)}`} />
+                             <span className="font-medium text-gray-800 dark:text-neutral-200 truncate">
+                               {ent.name}
+                             </span>
+                             <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+                               <span className={`text-[9px] font-bold px-1 rounded ${getTypeColor(ent.entityType)} text-white opacity-80 uppercase`}>
+                                 {ent.entityType.substring(0, 3)}
+                               </span>
+                               <span className="text-[10px] text-gray-400 dark:text-neutral-500">
+                                 {attrCount} attr{attrCount !== 1 ? 's' : ''}
+                               </span>
+                               <ArrowRight size={12} className="text-gray-300 dark:text-neutral-600" />
+                             </div>
                           </button>
                         );
                       })}
@@ -342,14 +386,15 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                   {/* ─── Empty Hint ──────────────────────────── */}
                   {!showCreateFallback && flatOptions.length === 0 && !query.trim() && (
                     <div className="p-3 text-center text-xs text-gray-400 dark:text-neutral-500 italic">
-                      Start typing to search attributes & entities…
+                      Start typing to search attributes & definitions…
                     </div>
                   )}
                 </>
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

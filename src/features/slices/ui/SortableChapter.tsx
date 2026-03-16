@@ -50,7 +50,7 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
 
     return (
         <div ref={setNodeRef} style={style} className="mb-4">
-            <div className="flex flex-col bg-white border border-gray-200 shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-700">
+            <div className="flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700">
                 <div className="flex items-center justify-between py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
                     <div className="flex items-center gap-2 flex-grow min-w-0">
                         {/* Drag Handle */}
