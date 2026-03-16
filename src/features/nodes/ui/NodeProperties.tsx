@@ -375,7 +375,8 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                     node={node}
                     onUpdateNode={onUpdateNode}
                     definitions={definitions}
-                    crossModelDefinitions={crossModelDefinitions}
+                    allNodes={allNodes}
+                    allLinks={allLinks}
                     onAddDefinition={onAddDefinition}
                 />
             </section>

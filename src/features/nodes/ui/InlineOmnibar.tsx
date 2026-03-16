@@ -15,6 +15,8 @@ interface InlineOmnibarProps {
   existingFields: Field[];
   onAddFields: (fields: Field[]) => void;
   onCreateOrphan: (name: string) => string; // returns new definition id
+  availableFields?: string[]; // ICC: Fields present in incoming Read Models
+  isScreen?: boolean;
 }
 
 // ─── Color helper ────────────────────────────────────────────────────
@@ -28,12 +30,13 @@ const getTypeColor = (type: DefinitionType) => {
   }
 };
 
-// ─── Component ───────────────────────────────────────────────────────
 export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
   definitions,
   existingFields,
   onAddFields,
   onCreateOrphan,
+  availableFields = [],
+  isScreen = false,
 }) => {
   // Search state
   const [query, setQuery] = useState('');
@@ -109,10 +112,11 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
       required: true,
       definitionId: attr.parentEntityId ?? undefined,
       attributeKey: attr.attribute.name,
+      role: isScreen ? (availableFields.includes(attr.attribute.name) ? 'display' : 'input') : undefined
     };
     onAddFields([newField]);
     resetForNextInput();
-  }, [existingFields, onAddFields, resetForNextInput]);
+  }, [existingFields, onAddFields, resetForNextInput, isScreen, availableFields]);
 
   const handleSelectEntity = useCallback((entity: SearchableEntity) => {
     // Transition to drill-down mode
@@ -137,10 +141,11 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
       required: true,
       definitionId: drillEntity.entityId,
       attributeKey: attr.name,
+      role: isScreen ? (availableFields.includes(attr.name) ? 'display' : 'input') : undefined
     }));
     onAddFields(newFields);
     resetForNextInput();
-  }, [drillEntity, selectedAttrs, onAddFields, resetForNextInput]);
+  }, [drillEntity, selectedAttrs, onAddFields, resetForNextInput, isScreen, availableFields]);
 
   const handleCreateOrphan = useCallback(() => {
     const name = query.trim();
@@ -153,10 +158,11 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
       required: true,
       definitionId: newId,
       attributeKey: name,
+      role: isScreen ? (availableFields.includes(name) ? 'display' : 'input') : undefined
     };
     onAddFields([newField]);
     resetForNextInput();
-  }, [query, onCreateOrphan, onAddFields, resetForNextInput]);
+  }, [query, onCreateOrphan, onAddFields, resetForNextInput, isScreen, availableFields]);
 
   const toggleAttr = useCallback((name: string) => {
     setSelectedAttrs(prev => {

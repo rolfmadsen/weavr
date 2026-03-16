@@ -51,25 +51,40 @@ class ValidationService {
    * Checks if required fields in the target node are present in the source nodes.
    */
   public validateCompleteness(node: Node, incomingLinks: Link[], sourceNodes: Node[]): ValidationResult {
-    const requiredFields = (node.fields || []).filter(f => f.required);
-    if (requiredFields.length === 0) return { isValid: true, missingFields: [] };
+    const allFields = node.fields || [];
+    
+    // For Genesis nodes (Screens, Integration Inputs), we only validate "display" fields 
+    // because "input" fields are captured at this node. 
+    // For all other nodes, we validate every required field.
+    const isGenesisNode = node.type === ElementType.Screen || node.type === ElementType.IntegrationEvent;
+    
+    const requiredToValidate = allFields.filter(f => {
+      if (!f.required) return false;
+      if (isGenesisNode) return f.role === 'display';
+      return true; // Commands, Events, Read Models must fulfill all required fields
+    });
 
-    // 1. Core Origins (Entry Points)
+    if (requiredToValidate.length === 0) return { isValid: true, missingFields: [] };
+
+    // 1. Screen-specific validation (Read Model -> Screen)
     if (node.type === ElementType.Screen) {
       const availableFields = new Set<string>();
+      const matchedSources: string[] = [];
       incomingLinks.forEach(link => {
         const source = sourceNodes.find(n => n.id === link.source);
         if (source?.type === ElementType.ReadModel) {
           (source.fields || []).forEach(f => availableFields.add(f.name));
+          matchedSources.push(source.name || 'Unnamed Read Model');
         }
       });
 
-      const missing = requiredFields.filter(f => !availableFields.has(f.name));
+      const missing = requiredToValidate.filter(f => !availableFields.has(f.name));
       if (missing.length > 0 && incomingLinks.length > 0) {
+        const sourceNameSummary = matchedSources.length > 0 ? matchedSources.join(', ') : 'Read Models';
         return {
           isValid: false,
           missingFields: missing.map(f => f.name),
-          message: `Screen missing data from Read Model: ${missing.map(f => f.name).join(', ')}`
+          message: `${node.name} is missing data from ${sourceNameSummary}: ${missing.map(f => f.name).join(', ')}`
         };
       }
       return { isValid: true, missingFields: [] };
@@ -83,8 +98,8 @@ class ValidationService {
     if (incomingLinks.length === 0) {
       return {
         isValid: false,
-        missingFields: requiredFields.map(f => f.name),
-        message: `Incomplete: No incoming data source for required fields.`
+        missingFields: requiredToValidate.map(f => f.name),
+        message: `${node.name} is incomplete: No incoming data source for required fields.`
       };
     }
 
@@ -97,7 +112,7 @@ class ValidationService {
       if (!source) return;
 
       const sourceFields = source.fields || [];
-      const sourceMissing = requiredFields.filter(rf => {
+      const sourceMissing = requiredToValidate.filter(rf => {
         // Strict Match (if definitionId exists)
         if (rf.definitionId) {
           return !sourceFields.some(sf => sf.name === rf.name && sf.definitionId === rf.definitionId);
@@ -121,24 +136,22 @@ class ValidationService {
       sourceDetails.forEach(d => d.missingFields.forEach(f => allMissingSet.add(f)));
       globallyMissing = Array.from(allMissingSet);
 
-      // Construct a really helpful message
-      const detailLines = sourceDetails.map(d => `<<${d.nodeType}>> ${d.nodeName} is missing: ${d.missingFields.join(', ')}`);
-      
       // If only one source, keep it simple
       if (sourceDetails.length === 1) {
         const detail = sourceDetails[0];
         return {
           isValid: false,
           missingFields: globallyMissing,
-          message: `Missing from <<${detail.nodeType}>> ${detail.nodeName}: ${detail.missingFields.join(', ')}`
+          message: `${node.name} is missing data from ${detail.nodeName}: ${detail.missingFields.join(', ')}`
         };
       }
 
       // Multi-source details
+      const detailLines = sourceDetails.map(d => `${d.nodeName} is missing: ${d.missingFields.join(', ')}`);
       return {
         isValid: false,
         missingFields: globallyMissing,
-        message: `Lineage gaps found:\n${detailLines.join('\n')}`
+        message: `${node.name} lineage gaps:\n${detailLines.join('\n')}`
       };
     }
 

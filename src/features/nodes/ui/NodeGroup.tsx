@@ -229,8 +229,8 @@ const NodeGroup = React.memo(({
                 {/* ─── Validation Warning Badge ──────────────────────── */}
                 {isInvalid && (
                     <Group
-                        x={width - 15}
-                        y={height - 15}
+                        x={width - (isSelected ? 45 : 15)}
+                        y={15}
                         onMouseEnter={(e) => {
                             setCanvasCursor(e, 'pointer');
                             setShowTooltip(true);
@@ -246,11 +246,6 @@ const NodeGroup = React.memo(({
                             fill="#f59e0b"
                             opacity={0.3}
                             listening={false}
-                            onUpdate={(node: Konva.Node) => {
-                                // Simple pulsing animation
-                                const scale = 1 + Math.sin(Date.now() / 300) * 0.2;
-                                node.scale({ x: scale, y: scale });
-                            }}
                         />
                         {/* Badge circle */}
                         <Circle

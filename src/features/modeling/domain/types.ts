@@ -17,6 +17,7 @@ export interface Field {
   attributeKey?: string; // New: Linkage to Dictionary
   description?: string;
   schema?: string; // Link to Data Definition
+  role?: 'display' | 'input'; // ICC: display (from source) vs input (captured here)
   subfields?: Field[];
 }
 
