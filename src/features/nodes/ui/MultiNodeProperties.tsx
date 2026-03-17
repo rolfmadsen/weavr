@@ -87,10 +87,14 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Batch Actions</h3>
 
                 <div className="grid grid-cols-2 gap-2 mb-6">
-                    <GlassButton variant="secondary" size="sm" onClick={onPinSelection} disabled={!onPinSelection}>
+                    <GlassButton variant="secondary" size="sm" onClick={onPinSelection} disabled={!onPinSelection}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
+                    >
                         <Pin size={16} className="mr-1" /> Pin
                     </GlassButton>
-                    <GlassButton variant="secondary" size="sm" onClick={onUnpinSelection} disabled={!onUnpinSelection}>
+                    <GlassButton variant="secondary" size="sm" onClick={onUnpinSelection} disabled={!onUnpinSelection}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
+                    >
                         <PinOff size={16} className="mr-1" /> Unpin
                     </GlassButton>
                 </div>

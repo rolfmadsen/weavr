@@ -158,6 +158,11 @@ class ValidationService {
     return { isValid: true, missingFields: [] };
   }
 
+  public getLinkVerb(sourceNode: Node, targetNode: Node): string {
+    const rule = this.getConnectionRule(sourceNode, targetNode);
+    return rule?.verb || '';
+  }
+
   /**
    * Generates a string summary of fields flowing from source to target.
    */

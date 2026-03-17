@@ -17,6 +17,7 @@ interface UseKeyboardShortcutsProps {
     onOpenPropertiesPanel: () => void;
     onOpenSlices?: () => void;
     onOpenDictionary?: () => void;
+    onOpenActors?: () => void;
     onSelectNode: (node: Node, event?: any) => void;
     onAddNode: (type: ElementType) => void;
     onMoveNodes: (updates: Map<string, { fx: number, fy: number }>) => void;
@@ -40,6 +41,7 @@ export function useKeyboardShortcuts({
     onOpenPropertiesPanel,
     onOpenSlices,
     onOpenDictionary,
+    onOpenActors,
     onSelectNode,
     onAddNode,
     onMoveNodes,
@@ -247,6 +249,31 @@ export function useKeyboardShortcuts({
                     case 'p': case 'P':
                         if (event.altKey) {
                             onOpenPropertiesPanel();
+                            shouldPreventDefault = true;
+                        }
+                        break;
+                    
+                    case '1':
+                        if (event.altKey) {
+                            onOpenPropertiesPanel();
+                            shouldPreventDefault = true;
+                        }
+                        break;
+                    case '2':
+                        if (event.altKey) {
+                            onOpenDictionary?.();
+                            shouldPreventDefault = true;
+                        }
+                        break;
+                    case '3':
+                        if (event.altKey) {
+                            onOpenSlices?.();
+                            shouldPreventDefault = true;
+                        }
+                        break;
+                    case '4':
+                        if (event.altKey) {
+                            (onOpenActors as any)?.();
                             shouldPreventDefault = true;
                         }
                         break;

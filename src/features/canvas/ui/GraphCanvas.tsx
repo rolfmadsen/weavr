@@ -3,7 +3,6 @@ import { Stage, Layer, Rect, Line } from 'react-konva';
 import Konva from 'konva';
 
 import { useTheme } from '../../../shared/providers/ThemeProvider';
-import { bus } from '../../../shared/events/eventBus';
 
 import {
     Node,
@@ -41,6 +40,7 @@ export interface GraphCanvasKonvaRef {
     zoomIn: () => void;
     zoomOut: () => void;
     resetZoom: () => void;
+    focus: () => void;
 }
 
 interface GraphCanvasKonvaProps {
@@ -57,7 +57,9 @@ interface GraphCanvasKonvaProps {
     onLinkClick: (link: Link) => void;
     onNodeDoubleClick: (node: Node) => void;
     onLinkDoubleClick: (link: Link) => void;
-    // onNodesDrag removed - handled internally via store
+    onUnpin: (id: string) => void;
+    onRelationalAuraClick?: (node: Node) => void;
+    isSidebarOpen?: boolean;
     onAddLink: (sourceId: string, targetId: string) => void;
     onCanvasClick: (event: React.MouseEvent<any> | Konva.KonvaEventObject<MouseEvent>) => void;
     onMarqueeSelect: (nodeIds: string[]) => void;
@@ -96,6 +98,9 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     onLinkClick,
     onNodeDoubleClick,
     onLinkDoubleClick,
+    onUnpin,
+    onRelationalAuraClick,
+    isSidebarOpen,
     onAddLink,
     onCanvasClick,
     onMarqueeSelect,
@@ -663,7 +668,10 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         },
         zoomIn,
         zoomOut,
-        resetZoom
+        resetZoom,
+        focus: () => {
+            containerRef.current?.focus();
+        }
     }));
 
     const [gridImage, setGridImage] = useState<HTMLImageElement | null>(null);
@@ -802,7 +810,14 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         const handleWindowKeyDown = (e: KeyboardEvent) => {
             // Ignore if typing in an input
             const target = e.target as HTMLElement;
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+            if (
+                target.tagName === 'INPUT' || 
+                target.tagName === 'TEXTAREA' || 
+                target.isContentEditable || 
+                isSidebarOpen ||
+                target.closest('#sidebar') ||
+                target.closest('.sidebar-container')
+            ) {
                 return;
             }
 
@@ -836,11 +851,20 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     panToNodeInternal(nextNode.id);
                 }
             }
+
+            if (e.key === 'c' || e.key === 'C') {
+                const selectedNode = selectedIds.length === 1 ? nodes.find(n => n.id === selectedIds[0]) : null;
+                if (selectedNode) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onRelationalAuraClick?.(selectedNode);
+                }
+            }
         };
 
         window.addEventListener('keydown', handleWindowKeyDown);
         return () => window.removeEventListener('keydown', handleWindowKeyDown);
-    }, [sortedNavigationNodes, selectedIds, onNodeClick, panToNodeInternal, slices]);
+    }, [sortedNavigationNodes, selectedIds, onNodeClick, panToNodeInternal, slices, isSidebarOpen]);
 
     const [isSpacePressed, setIsSpacePressed] = useState(false);
     const [isShiftPressed, setIsShiftPressed] = useState(false);
@@ -1029,6 +1053,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                             points={[tempLink.startPos.x, tempLink.startPos.y, tempLink.currentPos.x, tempLink.currentPos.y]}
                             stroke="#4f46e5"
                             strokeWidth={2}
+                            listening={false}
                         />
                     )}
                 </Layer>
@@ -1059,7 +1084,8 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                                 onDragMove={handleNodeDragMove}
                                 onDragEnd={handleNodeDragEnd}
                                 onLinkStart={(pos: { x: number; y: number }) => setTempLink({ sourceId: node.id, startPos: pos, currentPos: pos })}
-                                onUnpin={(id) => bus.emit('command:unpinNode', { id })}
+                                onRelationalAuraClick={onRelationalAuraClick}
+                                onUnpin={onUnpin}
                                 stagePos={stagePos}
                                 stageScale={stageScale}
                                 isDraggable={true}

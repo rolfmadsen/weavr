@@ -12,7 +12,9 @@ import {
   Upload,
   BookOpen,
   Link2,
-  Import
+  CheckSquare,
+  Keyboard,
+  BadgeAlert
 } from 'lucide-react';
 import { GlassCard } from '../../../shared/components/GlassCard';
 import { GlassButton } from '../../../shared/components/GlassButton';
@@ -238,12 +240,19 @@ const SemanticsContent = () => (
             <Settings className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">1. Properties & Fields</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">1. Fields & Payload</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Every element on your board carries information. We define this using <strong>Fields</strong> (like "Name" or "Price").
+              Define the data payload for any element in the <strong>Schema (Payload)</strong> section.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-slate-100 dark:bg-slate-800 text-slate-500">Schema Control</span>
+            <div className="space-y-2 mb-3">
+              <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
+                <div className="w-6 h-6 flex items-center justify-center bg-amber-500/10 border border-amber-500/30 rounded text-amber-600"><CheckSquare size={12} /></div>
+                <span><strong>Required:</strong> Mark fields as mandatory for business logic.</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
+                <div className="w-6 h-6 flex items-center justify-center bg-blue-500/10 border border-blue-500/30 rounded text-blue-500"><Eye size={12} /> / <Keyboard size={12} /></div>
+                <span><strong>Roles (Screens):</strong> Choose if a field is <em>Display-only</em> or <em>Input</em>.</span>
+              </div>
             </div>
           </div>
         </div>
@@ -256,18 +265,18 @@ const SemanticsContent = () => (
             <BookOpen className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">2. The Data Dictionary</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">2. Unified Dictionary</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Instead of typing fields manually, you can link them to the <strong>Data Dictionary</strong>. This ensures that "Order ID" is named exactly the same everywhere.
+              Synchronize fields across your model by linking them to the <strong>Data Dictionary</strong>.
             </p>
             <div className="space-y-2 mb-3">
               <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 p-2 rounded border border-emerald-500/10">
                 <Link2 className="w-3.5 h-3.5" />
-                <span>Linked fields stay synchronized and read-only.</span>
+                <span><strong>Quick-Link:</strong> Click the link icon to search and bind attributes in-place.</span>
               </div>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-              Use the <Import className="inline-block w-3 h-3 mx-1" /> icon in the Properties Panel to import from your Entities and Aggregates.
+              Linked fields are read-only to ensure names and types stay consistent everywhere.
             </p>
           </div>
         </div>
@@ -276,19 +285,14 @@ const SemanticsContent = () => (
       {/* 2. Aggregates */}
       <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+          <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <Globe className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">3. Aggregates (Swimlanes)</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">3. Aggregates & Boundaries</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Aggregates are logical boundaries (like "Inventory" or "User"). They help organize your events into horizontal tracks.
+              Aggregates define the "State" boundary. Commands and Events are grouped into swimlanes based on their assigned Aggregate.
             </p>
-            <div className="flex items-center gap-1.5 text-xs text-purple-500 font-medium">
-              <span>Automatic Layout</span>
-              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-              <span>Visual Boundaries</span>
-            </div>
           </div>
         </div>
       </div>
@@ -296,40 +300,31 @@ const SemanticsContent = () => (
       {/* 3. OIC */}
       <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
-            <SquareActivity className="w-6 h-6" />
+          <div className="p-3 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <Monitor size={24} />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">3. The Quality Check (OIC)</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">4. Information Completeness (OIC)</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              <strong>Information Completeness</strong> ensures that pieces of information never "just appear." <strong>All element types</strong> participate in this check.
+              Weavr automatically flags <strong>Linage Gaps</strong> if a required field has no incoming source.
             </p>
 
-            <div className="space-y-2 max-w-xs">
-              <div className="flex items-center justify-between p-2 rounded bg-purple-50/30 dark:bg-purple-900/10 border border-purple-100/30 dark:border-purple-500/10">
-                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Screen</span>
-                <span className="text-[10px] text-gray-400">← Sources from</span>
-                <span className="text-xs font-semibold text-green-600 dark:text-green-400">Read Model</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded bg-purple-50/30 dark:bg-purple-900/10 border border-purple-100/30 dark:border-purple-500/10">
-                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Command</span>
-                <span className="text-[10px] text-gray-400">← Sources from</span>
-                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Screen</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded bg-purple-50/30 dark:bg-purple-900/10 border border-purple-100/30 dark:border-purple-500/10">
-                <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">Event</span>
-                <span className="text-[10px] text-gray-400">← Sources from</span>
-                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Command</span>
-              </div>
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 mb-4">
+               <div className="flex items-center gap-2 mb-2">
+                 <BadgeAlert size={14} className="text-amber-500" />
+                 <span className="text-[10px] font-bold text-amber-600 uppercase">Information Incomplete</span>
+               </div>
+               <p className="text-[10px] text-amber-700/70 dark:text-amber-400/70">
+                 "Screen is missing data from Read Model: OrderID"
+               </p>
             </div>
 
-            <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              Every node with required fields is validated. If Weavr finds a gap, it flags an <strong>"Information Incomplete"</strong> warning in the Properties Panel.
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              This ensures that your technical designs are mathematically sound before a single line of code is written.
             </p>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 );
@@ -355,7 +350,7 @@ const ControlsContent = () => (
         <li><strong>Quick Add:</strong> With toolbar open, press <Kbd>1</Kbd>-<Kbd>6</Kbd> to add specific elements.</li>
         <li><strong>Select All:</strong> Press <Kbd>Ctrl/Cmd</Kbd> + <Kbd>A</Kbd> to select all elements.</li>
         <li><strong>Single Select:</strong> Click any element to select it.</li>
-        <li><strong>Multi-Select:</strong> Hold <Kbd>Shift</Kbd> and drag a box around elements.</li>
+        <li><strong>Multi-Select:</strong> Hold <Kbd>Shift</Kbd> + Drag (Marquee) or <Kbd>Shift</Kbd> + Click.</li>
         <li><strong>Move Single Element:</strong> Click and drag a single element.</li>
         <li><strong>Move Multiple Elements:</strong> Select multiple elements, then drag them with the cursor or use the <Kbd>Arrow Keys</Kbd>.</li>
         <li><strong>Delete:</strong> Select one or more elements and press <Kbd>Delete</Kbd> or <Kbd>Backspace</Kbd>.</li>
@@ -371,24 +366,26 @@ const ControlsContent = () => (
       <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
         <li><strong>Open Panel:</strong> Double-click an element, or select one and press <Kbd>Enter</Kbd>.</li>
         <li><strong>Close Panel:</strong> Press <Kbd>Esc</Kbd> or click the 'X' button.</li>
-        <li><strong>Multi-Edit:</strong> Select multiple elements to assign Slices or Entities to all of them at once.</li>
+        <li><strong>Multi-Edit:</strong> Select multiple elements (Shift+Drag or Shift+Click) to assign Slices or Entities to all of them at once.</li>
       </ul>
     </div>
 
     <div>
       <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Sidebar Navigation</h3>
       <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-        <li><strong>Open Properties:</strong> Press <Kbd>Alt</Kbd> + <Kbd>P</Kbd>.</li>
-        <li><strong>Open Slices:</strong> Press <Kbd>Alt</Kbd> + <Kbd>S</Kbd>.</li>
-        <li><strong>Open Dictionary:</strong> Press <Kbd>Alt</Kbd> + <Kbd>D</Kbd>.</li>
+        <li><strong>Open Properties:</strong> Press <Kbd>Alt</Kbd> + <Kbd>1</Kbd> (or <Kbd>P</Kbd>).</li>
+        <li><strong>Open Dictionary:</strong> Press <Kbd>Alt</Kbd> + <Kbd>2</Kbd> (or <Kbd>D</Kbd>).</li>
+        <li><strong>Open Slices:</strong> Press <Kbd>Alt</Kbd> + <Kbd>3</Kbd> (or <Kbd>S</Kbd>).</li>
+        <li><strong>Open Actors:</strong> Press <Kbd>Alt</Kbd> + <Kbd>4</Kbd>.</li>
       </ul>
     </div>
 
     <div>
       <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Creating Relationships</h3>
       <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-        <li>Hover over an element to see its connection handles.</li>
-        <li>Drag a handle from a source element to a target element to create a link.</li>
+        <li><strong>Jump to Relationships:</strong> Select a node and press <Kbd>C</Kbd>, or click the <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px]">+</span> handle.</li>
+        <li><strong>Draw Connection:</strong> Drag the <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px]">+</span> handle to another node.</li>
+        <li><strong>Quick Draw:</strong> Hold <Kbd>Alt</Kbd> and drag from a node.</li>
       </ul>
     </div>
   </div>

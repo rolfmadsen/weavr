@@ -21,6 +21,7 @@ interface UseModelManagerProps {
     viewState: ViewState;
     signal: (name: string, metadata?: any) => void;
     setSidebarView: (view: 'properties' | 'slices' | 'dictionary' | 'actors' | null) => void;
+    focusOnRender: boolean;
     setFocusOnRender: (focus: boolean) => void;
     graphRef: React.RefObject<GraphCanvasKonvaRef | null>;
     setIsToolbarOpen: (open: boolean) => void;
@@ -32,6 +33,7 @@ export const useModelManager = ({
     viewState,
     signal,
     setSidebarView,
+    focusOnRender,
     setFocusOnRender,
     graphRef,
     onRequestAutoLayout
@@ -298,18 +300,49 @@ export const useModelManager = ({
     const handleAddSlice = useCallback((title: string) => {
         signal("Slice.Added", { title });
         const id = uuidv4();
-        // EDA: Dispatch
-        // But App.tsx `handleAddSliceInternal` uses the ID to highlight/open the slice manager.
-        // HACK: I will revert to calling `addSlice` (legacy) for NOW for slices to avoid breaking App.tsx flow,
-        // OR I update App.tsx. 
-        // Better: I generated ID in App.tsx! `const id = uuidv4(); updateSlice(id, ...)`
-        // Wait, App.tsx calls `handleAddSliceInternal` which calls `updateSlice`(context) 
-        // BUT `useModelManager` exposes `addSlice`? 
-        // Let's re-read App.tsx lines 365.
-        // `handleAddSliceInternal` calls `updateSlice` (from useModelManager destructure).
         bus.emit('command:createSlice', { title, order: slices.length, id });
         return id;
     }, [slices.length, signal]);
+
+    const handleSpawnAndLink = useCallback((sourceNodeId: string, targetType: ElementType, name: string) => {
+        const sourceNode = nodes.find(n => n.id === sourceNodeId);
+        if (!sourceNode) return;
+
+        const newId = uuidv4();
+        const x = (sourceNode.x || 0) + 300;
+        const y = sourceNode.y || 0;
+
+        // Create the new node
+        bus.emit('command:createNode', {
+            id: newId,
+            type: targetType,
+            x,
+            y,
+            sliceId: sourceNode.sliceId, // Inherit slice
+            pinned: !sourceNode.sliceId // Unpin if it has a slice to trigger auto-layout
+        });
+
+        // Set name immediately
+        bus.emit('command:updateNode', {
+            id: newId,
+            changes: { name }
+        });
+
+        // Link them
+        bus.emit('command:createLink', { sourceId: sourceNodeId, targetId: newId });
+
+        // Select and Focus
+        selectNode(newId);
+        setSidebarView('properties');
+        setFocusOnRender(true);
+
+        // Pan to the new node
+        setTimeout(() => {
+            graphRef.current?.panToNode?.(newId);
+        }, 50);
+
+        signal("Node.Spawned", { type: targetType, id: newId });
+    }, [nodes, selectNode, setSidebarView, setFocusOnRender, graphRef, signal]);
 
     const handlePinSelection = useCallback(() => {
         bus.emit('command:pinNodes', { ids: selectedNodeIdsArray });
@@ -451,6 +484,9 @@ export const useModelManager = ({
         actors,
         addActor,
         updateActor,
-        deleteActor
+        deleteActor,
+        handleSpawnAndLink,
+        focusOnRender,
+        setFocusOnRender
     };
-};
+}

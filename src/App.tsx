@@ -137,6 +137,7 @@ const App: React.FC = () => {
     viewState,
     signal,
     setSidebarView,
+    focusOnRender,
     setFocusOnRender,
     graphRef,
     setIsToolbarOpen,
@@ -391,6 +392,14 @@ const App: React.FC = () => {
     return selectedLinkId ? [...selectedNodeIdsArray, selectedLinkId] : selectedNodeIdsArray;
   }, [selectedNodeIdsArray, selectedLinkId]);
 
+  const handleCloseSidebar = () => {
+    setSidebarView(null);
+    // Ensure focus returns to the canvas
+    setTimeout(() => {
+      graphRef.current?.focus();
+    }, 50);
+  };
+
   // Auto-Zoom on Filter Change (works for both manual filtering and Focus Mode)
   useEffect(() => {
     if (slices.length === 0) return;
@@ -409,6 +418,26 @@ const App: React.FC = () => {
       }
     }, 100);
   }, [effectiveHiddenSliceIds, slices]);
+
+  const handleUnpinNode = useCallback((id: string) => {
+    bus.emit('command:unpinNode', { id });
+  }, [bus]);
+
+  const handleJumpToRelationship = useCallback((node?: Node) => {
+    if (node) {
+      handleNodeClick(node.id);
+    }
+    setSidebarView('properties');
+    
+    // Focus the first relationship select in the sidebar
+    // Increased delay to ensure sidebar transition and NodeProperties rendering
+    setTimeout(() => {
+      const relInput = document.querySelector('.relationship-smart-select') as HTMLInputElement;
+      if (relInput) {
+        relInput.focus();
+      }
+    }, 250);
+  }, [handleNodeClick, setSidebarView]);
 
   const handleSliceClick = useCallback((slice: Slice) => {
     setSidebarView('slices');
@@ -435,6 +464,7 @@ const App: React.FC = () => {
     },
     onOpenSlices: () => setSidebarView('slices'),
     onOpenDictionary: () => setSidebarView('dictionary'),
+    onOpenActors: () => setSidebarView('actors'),
     onSelectNode: (node: Node) => handleNodeClick(node.id),
     onAddNode: handleAddNode,
     onMoveNodes: (updates) => {
@@ -551,6 +581,9 @@ const App: React.FC = () => {
             onViewChange={setViewState}
             onSliceClick={handleSliceClick}
             onRenameChapter={handleRenameChapter}
+            onUnpin={handleUnpinNode}
+            onRelationalAuraClick={handleJumpToRelationship}
+            isSidebarOpen={!!sidebarView}
             initialViewState={viewState}
             ref={graphRef}
           />
@@ -584,7 +617,7 @@ const App: React.FC = () => {
 
           <Sidebar
             isOpen={!!sidebarView}
-            onClose={() => { setSidebarView(null); }}
+            onClose={handleCloseSidebar}
             title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : sidebarView === 'actors' ? 'Actors' : 'Data Dictionary'}
             activeTab={sidebarView || 'properties'}
             onTabChange={(tab: string) => { setSidebarView(tab as any); }}

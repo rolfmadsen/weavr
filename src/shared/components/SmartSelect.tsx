@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, Plus } from 'lucide-react';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+// Helper for conditional classes
+function cn(...inputs: (string | undefined | null | false)[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface Option {
     id: string;
@@ -10,7 +17,7 @@ interface Option {
     inputValue?: string;
 }
 
-interface SmartSelectProps {
+interface SmartSelectProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
     options: Option[];
     value: string;
     onChange: (id: string, option?: Option) => void;
@@ -18,7 +25,6 @@ interface SmartSelectProps {
     placeholder?: string;
     allowCustomValue?: boolean;
     onSearchChange?: (value: string) => void;
-    autoFocus?: boolean;
 }
 
 const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
@@ -29,10 +35,12 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
     placeholder,
     allowCustomValue = false,
     onSearchChange,
-    autoFocus
+    className,
+    ...props
 }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const containerRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const lastValueRef = useRef(value);
@@ -59,6 +67,15 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
             !filteredOptions.some(o => o.label.toLowerCase() === inputValue.toLowerCase().trim()) &&
             (onCreate || allowCustomValue);
     }, [inputValue, filteredOptions, onCreate, allowCustomValue]);
+
+    // Construct a flat list of items that are actually rendered and navigable via arrows
+    const navigableItems = useMemo(() => {
+        const items = [...filteredOptions];
+        if (showCreateOption) {
+            items.push({ id: '__create__', label: `Add "${inputValue}"` });
+        }
+        return items;
+    }, [filteredOptions, showCreateOption, inputValue]);
 
     const groupedOptions = useMemo(() => {
         const groups: Record<string, Option[]> = {};
@@ -91,27 +108,60 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            const trimmedInput = inputValue.trim();
-            const highlightedOption = filteredOptions.find(o => o.label.toLowerCase() === trimmedInput.toLowerCase());
-            if (highlightedOption) {
-                handleSelect(highlightedOption);
-            } else if (showCreateOption) {
-                handleCreate();
-            } else if (!trimmedInput) {
-                // Clear on Enter if empty
-                const noneOption = options.find(o => o.id === '__none__');
-                if (noneOption) handleSelect(noneOption);
-                else onChange('', undefined);
+            if (isOpen && highlightedIndex >= 0 && highlightedIndex < navigableItems.length) {
+                const highlighted = navigableItems[highlightedIndex];
+                if (highlighted.id === '__create__') {
+                    handleCreate();
+                } else {
+                    handleSelect(highlighted);
+                }
+                e.preventDefault();
+            } else {
+                const trimmedInput = inputValue.trim();
+                const highlightedOption = filteredOptions.find(o => o.label.toLowerCase() === trimmedInput.toLowerCase());
+                if (highlightedOption) {
+                    handleSelect(highlightedOption);
+                } else if (showCreateOption) {
+                    handleCreate();
+                } else if (!trimmedInput) {
+                    const noneOption = options.find(o => o.id === '__none__');
+                    if (noneOption) handleSelect(noneOption);
+                    else onChange('', undefined);
+                }
             }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!isOpen) setIsOpen(true);
+            setHighlightedIndex(prev => (prev < navigableItems.length - 1 ? prev + 1 : prev));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
         } else if (e.key === 'Escape') {
             setIsOpen(false);
         }
     };
 
+    // Auto-scroll highlighted item into view
+    useEffect(() => {
+        if (isOpen && highlightedIndex >= 0 && listRef.current) {
+            const list = listRef.current;
+            const buttons = list.querySelectorAll('button');
+            const highlightedButton = buttons[highlightedIndex];
+            if (highlightedButton) {
+                highlightedButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }
+    }, [highlightedIndex, isOpen]);
+
+    // Reset highlighted index when menu opens or filter changes
+    useEffect(() => {
+        if (isOpen) {
+            setHighlightedIndex(-1);
+        }
+    }, [isOpen, filteredOptions, showCreateOption]);
+
     // Sync internal input value with selected external value ID
     useEffect(() => {
-        // We only sync if the value prop has actually changed 
-        // OR if the menu is NOT open and the input doesn't match the expected label
         const selected = options.find(o => o.id === value);
         const expectedLabel = selected?.label || (allowCustomValue && value ? value : '');
         
@@ -129,51 +179,58 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
         }
     }, [value, isOpen, options, allowCustomValue, inputValue]);
 
-    // Handle outside click to close
+    const handleExit = (event?: MouseEvent | React.FocusEvent) => {
+        if (event && 'relatedTarget' in event) {
+            const nextFocus = event.relatedTarget as Node;
+            if (containerRef.current?.contains(nextFocus)) {
+                return;
+            }
+        }
+
+        const trimmedInput = inputValue.trim();
+        const shouldCommit = trimmedInput && 
+            (filteredOptions.some(o => o.label.toLowerCase() === trimmedInput.toLowerCase()) || showCreateOption);
+        
+        const isCleared = !trimmedInput && value !== '__none__' && value !== '';
+
+        if (isOpen) {
+            if (shouldCommit) {
+                const exactMatch = filteredOptions.find(o => o.label.toLowerCase() === trimmedInput.toLowerCase());
+                if (exactMatch) handleSelect(exactMatch);
+                else if (showCreateOption) handleCreate();
+            } else if (isCleared) {
+                const noneOption = options.find(o => o.id === '__none__');
+                if (noneOption) handleSelect(noneOption);
+                else onChange('', undefined);
+            }
+        }
+
+        setIsOpen(false);
+        if (!shouldCommit && !isCleared) {
+            const selected = options.find(o => o.id === value);
+            if (selected) setInputValue(selected.label);
+            else if (allowCustomValue && value) setInputValue(value);
+            else setInputValue('');
+        }
+    };
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                const trimmedInput = inputValue.trim();
-                const shouldCommit = trimmedInput && 
-                    (filteredOptions.some(o => o.label.toLowerCase() === trimmedInput.toLowerCase()) || showCreateOption);
-                
-                // If input is explicitly cleared by the user, we should deselect
-                const isCleared = !trimmedInput && value !== '__none__' && value !== '';
-
-                if (isOpen) {
-                    if (shouldCommit) {
-                        const exactMatch = filteredOptions.find(o => o.label.toLowerCase() === trimmedInput.toLowerCase());
-                        if (exactMatch) handleSelect(exactMatch);
-                        else if (showCreateOption) handleCreate();
-                    } else if (isCleared) {
-                        // Support both __none__ and empty string as "nothing"
-                        const noneOption = options.find(o => o.id === '__none__');
-                        if (noneOption) {
-                            handleSelect(noneOption);
-                        } else {
-                            onChange('', undefined);
-                        }
-                    }
-                }
-
-                setIsOpen(false);
-                // Reset input to current value on blur ONLY if we didn't commit/clear
-                if (!shouldCommit && !isCleared) {
-                    const selected = options.find(o => o.id === value);
-                    if (selected) setInputValue(selected.label);
-                    else if (allowCustomValue && value) setInputValue(value);
-                    else if (value === '__none__') setInputValue('');
-                    else setInputValue('');
-                }
+                handleExit();
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [value, options, allowCustomValue, inputValue, isOpen, filteredOptions, showCreateOption]);
+    }, [handleExit]);
 
 
     return (
-        <div className="relative w-full" ref={containerRef}>
+        <div 
+            className="relative w-full" 
+            ref={containerRef}
+            onBlur={handleExit}
+        >
             <div className="relative">
                 <input
                     ref={ref}
@@ -185,13 +242,17 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
                     }}
                     onFocus={() => setIsOpen(true)}
                     onKeyDown={handleKeyDown}
+                    {...props}
                     placeholder={placeholder}
-                    autoFocus={autoFocus}
                     autoComplete="off"
-                    className="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                    className={cn(
+                        "py-3 px-4 block w-full border-gray-200 shadow-sm rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600",
+                        className
+                    )}
                 />
                 <button 
                     type="button"
+                    tabIndex={-1}
                     onClick={() => setIsOpen(!isOpen)}
                     className="absolute inset-y-0 end-0 flex items-center z-20 px-3 cursor-pointer text-gray-400 hover:text-blue-600 focus:outline-none focus:text-blue-600 dark:text-neutral-500 dark:hover:text-blue-500 dark:focus:text-blue-500"
                 >
@@ -202,38 +263,62 @@ const SmartSelect = React.forwardRef<HTMLInputElement, SmartSelectProps>(({
             {isOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="bg-white border border-gray-200 shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70 p-1 origin-top">
-                        <div ref={listRef} className="max-h-60 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
+                        <div 
+                            ref={listRef} 
+                            tabIndex={-1}
+                            className="max-h-60 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500"
+                        >
                         {Object.entries(groupedOptions).map(([group, opts]) => (
                             <div key={group}>
                                 {Object.keys(groupedOptions).length > 1 && (
                                     <div className="px-3 py-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-neutral-400">{group}</div>
                                 )}
-                                {opts.map(opt => (
-                                    <button
-                                        key={opt.id}
-                                        type="button"
-                                        onClick={() => handleSelect(opt)}
-                                        className="w-full text-left py-2 px-3 rounded-lg flex flex-col group hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800 transition-colors"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-800 dark:text-neutral-200">{opt.label}</span>
-                                            {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
-                                        </div>
-                                        {opt.subLabel && <span className="text-xs text-gray-500 dark:text-neutral-500">{opt.subLabel}</span>}
-                                    </button>
-                                ))}
+                                {opts.map(opt => {
+                                    const index = navigableItems.findIndex(i => i.id === opt.id);
+                                    const isHighlighted = index === highlightedIndex;
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={() => handleSelect(opt)}
+                                            onMouseEnter={() => setHighlightedIndex(index)}
+                                            className={cn(
+                                                "w-full text-left py-2 px-3 rounded-lg flex flex-col focus:outline-none transition-colors",
+                                                isHighlighted ? "bg-gray-100 dark:bg-neutral-800" : "hover:bg-gray-50 dark:hover:bg-neutral-800/50"
+                                            )}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-800 dark:text-neutral-200">{opt.label}</span>
+                                                {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
+                                            </div>
+                                            {opt.subLabel && <span className="text-xs text-gray-500 dark:text-neutral-500">{opt.subLabel}</span>}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         ))}
 
                         {showCreateOption && (
                             <div className="pt-1 mt-1 border-t border-gray-200 dark:border-neutral-700">
-                                <button
-                                    type="button"
-                                    onClick={handleCreate}
-                                    className="w-full text-left py-2 px-4 rounded-lg flex items-center gap-2 text-sm text-blue-600 font-medium hover:bg-blue-50 focus:outline-none focus:bg-blue-50 dark:text-blue-500 dark:hover:bg-blue-800/30 dark:focus:bg-blue-800/30 transition-colors"
-                                >
-                                    <Plus size={16} /> Add "{inputValue}"
-                                </button>
+                                {(() => {
+                                    const index = navigableItems.length - 1;
+                                    const isHighlighted = index === highlightedIndex;
+                                    return (
+                                        <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={handleCreate}
+                                            onMouseEnter={() => setHighlightedIndex(index)}
+                                            className={cn(
+                                                "w-full text-left py-2 px-4 rounded-lg flex items-center gap-2 text-sm text-blue-600 font-medium focus:outline-none transition-colors",
+                                                isHighlighted ? "bg-blue-50 dark:bg-blue-800/20" : "hover:bg-blue-50 dark:hover:bg-blue-800/20"
+                                            )}
+                                        >
+                                            <Plus size={16} /> Add "{inputValue}"
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         )}
 

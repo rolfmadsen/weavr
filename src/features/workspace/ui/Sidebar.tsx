@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -33,16 +33,46 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const [width, setWidth] = useState(DEFAULT_WIDTH);
     const [isResizing, setIsResizing] = useState(false);
+    const sidebarRef = useRef<HTMLDivElement>(null);
 
-    // Close on ESC
+    // Close on ESC and focus trapping
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isOpen && !e.defaultPrevented) {
+            if (e.key === 'Escape') {
                 onClose();
             }
+
+            if (e.key === 'Tab') {
+                const sidebar = sidebarRef.current;
+                if (!sidebar) return;
+
+                const focusableElements = sidebar.querySelectorAll(
+                    'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                ) as NodeListOf<HTMLElement>;
+
+                if (focusableElements.length === 0) return;
+
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        lastElement.focus();
+                        e.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        firstElement.focus();
+                        e.preventDefault();
+                    }
+                }
+            }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+
+        if (isOpen) {
+            window.addEventListener('keydown', handleKeyDown, true); // Use capture phase to intercept early
+        }
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
     }, [isOpen, onClose]);
 
     const startResizing = useCallback((e: React.MouseEvent) => {
@@ -62,6 +92,46 @@ const Sidebar: React.FC<SidebarProps> = ({
             }
         }
     }, [isResizing]);
+
+    useEffect(() => {
+        if (isOpen && activeTab) {
+            // Wait for children to render
+            const timerId = setTimeout(() => {
+                const sidebar = sidebarRef.current;
+                if (!sidebar) return;
+
+                // 1. If focus is already inside the sidebar (e.g. focused by PropertiesPanel)
+                // we don't want to steal it.
+                if (sidebar.contains(document.activeElement)) {
+                    return;
+                }
+
+                // 2. If we are on the properties tab, we defer to PropertiesPanel for focus
+                if (activeTab === 'properties') {
+                    return;
+                }
+
+                // 3. Otherwise, find the first focusable element in the content area
+                const contentContainer = sidebar.querySelector('.overflow-y-auto');
+                const focusableInContent = contentContainer?.querySelectorAll(
+                    'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                ) as NodeListOf<HTMLElement>;
+
+                if (focusableInContent && focusableInContent.length > 0) {
+                    focusableInContent[0].focus();
+                } else {
+                    // Fallback to any focusable element in the sidebar (like tabs)
+                    const allFocusable = sidebar.querySelectorAll(
+                        'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                    ) as NodeListOf<HTMLElement>;
+                    if (allFocusable.length > 0) {
+                        allFocusable[0].focus();
+                    }
+                }
+            }, 150);
+            return () => clearTimeout(timerId);
+        }
+    }, [activeTab, isOpen]);
 
     useEffect(() => {
         if (isResizing) {
@@ -90,6 +160,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Sidebar Panel */}
             <aside
+                ref={sidebarRef}
+                id="sidebar"
                 className={cn(
                     "fixed top-0 bottom-0 right-0 z-50 flex flex-col transition-transform duration-300 ease-in-out shadow-2xl",
                     "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-l border-white/20 dark:border-white/10",

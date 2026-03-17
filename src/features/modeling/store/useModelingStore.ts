@@ -43,6 +43,8 @@ export const useModelingStore = (props: any) => {
         moveNodes,
         renameNode,
         addNode,
-        pasteNodes
+        pasteNodes,
+        focusOnRender: manager.focusOnRender,
+        setFocusOnRender: manager.setFocusOnRender
     };
 };

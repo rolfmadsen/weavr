@@ -7,17 +7,19 @@ import { useEffect, useRef } from 'react';
 
 // Configuration
 const DOMAIN = import.meta.env.VITE_PLAUSIBLE_DOMAIN || 'weavr.dk';
+const IS_LOCALHOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const IS_ENABLED = (import.meta.env.PROD && !IS_LOCALHOST) || import.meta.env.VITE_ENABLE_ANALYTICS === 'true';
 
 export const usePlausible = () => {
     const initialized = useRef(false);
 
     useEffect(() => {
+        if (!IS_ENABLED) return;
+
         if (!initialized.current) {
             init({
                 domain: DOMAIN,
                 hashBasedRouting: true,
-                // Enable localhost tracking for testing purposes
-                captureOnLocalhost: true,
                 // Disable auto-capture to ensure full control via manual tracking and transformation
                 autoCapturePageviews: false,
                 // Redact sensitive hash (Model ID) from URL
@@ -47,6 +49,13 @@ export const usePlausible = () => {
     }, []);
 
     const signal = (eventName: string, props?: Record<string, unknown>) => {
+        if (!IS_ENABLED) {
+            if (import.meta.env.DEV) {
+                console.log(`[Plausible Skip] ${eventName}`, props);
+            }
+            return;
+        }
+
         // Weavr's "signal" pattern often sends complex nested objects.
         // Plausible properties are flat { string: string | number | boolean }.
         // TSA: Types require string values.

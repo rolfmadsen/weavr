@@ -21,6 +21,7 @@ interface NodeGroupProps {
     onDragMove: (nodeId: string, x: number, y: number) => void;
     onDragEnd: (nodeId: string, x: number, y: number) => void;
     onLinkStart: (pos: { x: number; y: number }) => void;
+    onRelationalAuraClick?: (node: Node) => void;
     onUnpin: (id: string) => void;
     stagePos: { x: number; y: number };
     stageScale: number;
@@ -30,6 +31,8 @@ interface NodeGroupProps {
 // ─── Warning Badge SVG Path (Triangle with !) ────────────────────────
 // Simplified 24x24 alert-triangle path
 const ALERT_PATH = 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z';
+// Plus Icon Path
+const PLUS_PATH = 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z';
 
 const NodeGroup = React.memo(({
     node,
@@ -45,6 +48,7 @@ const NodeGroup = React.memo(({
     onDragMove,
     onDragEnd,
     onLinkStart,
+    onRelationalAuraClick,
     onUnpin,
     stagePos,
     stageScale,
@@ -59,7 +63,7 @@ const NodeGroup = React.memo(({
     const x = safeNum(node.x);
     const y = safeNum(node.y);
 
-    const [showHandles, setShowHandles] = useState(false);
+    const [showAura, setShowAura] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
 
@@ -98,18 +102,14 @@ const NodeGroup = React.memo(({
         }
     };
 
-    const handlePositions = [
-        { x: width / 2, y: 0 },          // Top
-        { x: width, y: height / 2 },     // Right
-        { x: width / 2, y: height },     // Bottom
-        { x: 0, y: height / 2 }          // Left
-    ];
-
     // ─── Tooltip dimensions ──────────────────────────────────────────
     const tooltipText = validationMessage || 'Information Incomplete';
     const messageLines = tooltipText.split('\n');
     const tooltipWidth = Math.min(280, Math.max(...messageLines.map(line => line.length * 6 + 24), 120));
     const tooltipHeight = 16 + (messageLines.length * 15);
+
+    // Aura dimensions (slightly larger than the node)
+    const auraPadding = 8;
 
     return (
         <Portal selector=".top-layer" enabled={isDragging}>
@@ -122,30 +122,13 @@ const NodeGroup = React.memo(({
                 onMouseDown={(e) => {
                     if (e.evt.altKey) {
                         e.cancelBubble = true;
-                        const stage = e.target.getStage();
-                        if (stage) {
-                            const pointer = (stage as any).getRelativePointerPosition();
-                            if (pointer) {
-                                const localX = pointer.x - x;
-                                const localY = pointer.y - y;
-                                let minDist = Infinity;
-                                let closest = handlePositions[0];
-                                handlePositions.forEach(pos => {
-                                    const dist = Math.pow(pos.x - localX, 2) + Math.pow(pos.y - localY, 2);
-                                    if (dist < minDist) {
-                                        minDist = dist;
-                                        closest = pos;
-                                    }
-                                });
-                                onLinkStart({ x: x + closest.x, y: y + closest.y });
-                            }
-                        }
+                        onLinkStart({ x: x + width, y: y + height / 2 });
                     }
                 }}
                 onDragStart={(e) => {
                     if (!isDraggable) return;
                     setIsDragging(true);
-                    setShowHandles(false);
+                    setShowAura(false);
                     setCanvasCursor(e, 'grabbing');
                 }}
                 onDragMove={(e) => {
@@ -160,11 +143,11 @@ const NodeGroup = React.memo(({
                 onDblClick={(e) => { e.cancelBubble = true; onNodeDoubleClick(node); }}
                 onMouseEnter={(e) => {
                     setCanvasCursor(e, 'grab');
-                    setShowHandles(true);
+                    setShowAura(true);
                 }}
                 onMouseLeave={(e) => {
                     setCanvasCursor(e, ''); // Fallback to canvas CSS
-                    setShowHandles(false);
+                    setShowAura(false);
                 }}
                 dragBoundFunc={(pos) => {
                     const gridSize = GRID_SIZE || 20;
@@ -185,6 +168,23 @@ const NodeGroup = React.memo(({
                 }}
             >
                 <Rect x={contentOffsetX} y={contentOffsetY} width={width} height={height} fill="transparent" listening={true} perfectDrawEnabled={false} />
+                
+                {/* ─── Relational Aura (Selection/Hover feedback) ─────── */}
+                {(showAura || isSelected) && (
+                    <Rect
+                        x={-auraPadding}
+                        y={-auraPadding}
+                        width={width + (auraPadding * 2)}
+                        height={height + (auraPadding * 2)}
+                        stroke={isSelected ? '#4f46e5' : '#94a3b8'}
+                        strokeWidth={2}
+                        opacity={isSelected ? 0.4 : 0.2}
+                        cornerRadius={16}
+                        listening={false}
+                        perfectDrawEnabled={false}
+                    />
+                )}
+
                 {renderShape()}
                 <Text
                     x={contentOffsetX} y={contentOffsetY + 12} width={width}
@@ -269,7 +269,6 @@ const NodeGroup = React.memo(({
                 )}
 
                 {/* ─── Validation Tooltip (Konva-native) ─────────────── */}
-                {/* TOOLTIP REPOSITIONED TO BOTTOM */}
                 {isInvalid && showTooltip && (
                     <Group
                         x={width / 2 - tooltipWidth / 2}
@@ -347,10 +346,50 @@ const NodeGroup = React.memo(({
                         />
                     </Group>
                 )}
+
+                {/* ─── Relationship Plus Handle ──────────────────────── */}
+                {(showAura || isSelected) && (
+                    <Group
+                        x={width + 5}
+                        y={height / 2}
+                        onClick={(e) => {
+                            e.cancelBubble = true;
+                            // Ensure node is selected for the jump to work
+                            onNodeClick(node);
+                            onRelationalAuraClick?.(node);
+                        }}
+                        onMouseDown={(e) => {
+                            // Only cancel bubble if we want to block the NodeGroup's own drag
+                            // But handle group is not draggable. Leaving it for now but ensuring onLinkStart
+                            e.cancelBubble = true; 
+                            onLinkStart({ x: x + width, y: y + height / 2 });
+                        }}
+                        onMouseEnter={(e) => setCanvasCursor(e, 'crosshair')}
+                        onMouseLeave={(e) => setCanvasCursor(e, '')}
+                    >
+                        <Circle
+                            radius={14}
+                            fill="#4f46e5"
+                            stroke="white"
+                            strokeWidth={2}
+                            shadowBlur={4}
+                            shadowOpacity={0.3}
+                        />
+                        <Path
+                            data={PLUS_PATH}
+                            fill="white"
+                            scale={{ x: 0.8, y: 0.8 }}
+                            offset={{ x: 12, y: 12 }}
+                            listening={false}
+                        />
+                    </Group>
+                )}
+
+                {/* ─── Edit Handle ──────────────────────────────────── */}
                 {isSelected && (
                     <Group
                         x={width - 15}
-                        y={15}
+                        y={height - 15}
                         onClick={(e) => {
                             e.cancelBubble = true;
                             onNodeDoubleClick(node);
@@ -368,26 +407,6 @@ const NodeGroup = React.memo(({
                         />
                     </Group>
                 )}
-                {showHandles && handlePositions.map((pos, i) => (
-                    <Circle
-                        key={i} x={pos.x} y={pos.y} radius={9}
-                        fill="#4f46e5" stroke="white" strokeWidth={2}
-                        onMouseDown={(e) => {
-                            e.cancelBubble = true;
-                            onLinkStart({ x: x + pos.x, y: y + pos.y });
-                        }}
-                        onMouseEnter={(e) => {
-                            setCanvasCursor(e, 'crosshair');
-                        }}
-                        onMouseMove={(e) => {
-                            e.cancelBubble = true;
-                            setCanvasCursor(e, 'crosshair');
-                        }}
-                        onMouseLeave={(e) => {
-                            setCanvasCursor(e, '');
-                        }}
-                    />
-                ))}
             </Group>
         </Portal>
     );

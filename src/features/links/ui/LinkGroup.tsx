@@ -4,6 +4,8 @@ import { Group, Line, Arrow, Text } from 'react-konva';
 import { Link, Node } from '../../modeling';
 import { safeStr, getPolylineMidpoint, pointsAreEqual } from '../../canvas/domain/canvasUtils';
 
+import validationService from '../../modeling/domain/validation';
+
 interface LinkGroupProps {
     link: Link;
     sourceNode: Node;
@@ -18,21 +20,24 @@ interface LinkGroupProps {
 
 const LinkGroup = React.memo(({
     link,
-    sourceNode: _sourceNode,
-    targetNode: _targetNode,
+    sourceNode,
+    targetNode,
     isSelected,
     isHighlighted,
     onLinkClick,
     onLinkDoubleClick,
     customPoints,
-    flowLabel
+    flowLabel: _flowLabel
 }: LinkGroupProps) => {
     const { resolvedTheme } = useTheme();
     const points = customPoints || [0, 0, 0, 0];
     const { x: midX, y: midY } = getPolylineMidpoint(points);
 
-    const label = safeStr(link.label);
     const linkId = safeStr(link.id);
+    const manualLabel = safeStr(link.label);
+    const defaultVerb = validationService.getLinkVerb(sourceNode, targetNode);
+    const flowLabel = validationService.getLinkFlowLabel(sourceNode, targetNode);
+    const displayLabel = manualLabel || defaultVerb;
 
     const active = isSelected || isHighlighted;
     const color = active ? '#dc2626' : (resolvedTheme === 'dark' ? '#94a3b8' : '#6b7280');
@@ -61,50 +66,51 @@ const LinkGroup = React.memo(({
                 perfectDrawEnabled={false}
             />
             
-            {/* Manual Label */}
-            {label && (
+            {/* Link Label (Manual or Verb) */}
+            {displayLabel && (
                 <Group id={`link-label-group-${linkId}`} x={midX || 0} y={midY || 0}>
                     <Text
-                        text={label}
+                        text={displayLabel}
                         fontSize={12}
+                        fontStyle={manualLabel ? "normal" : "italic"}
                         fill={labelFill}
                         align="center"
                         verticalAlign="middle"
-                        offsetX={60}
+                        offsetX={100}
                         offsetY={flowLabel ? 25 : 15}
-                        width={120}
+                        width={200}
                         height={30}
                         stroke={labelStroke}
                         strokeWidth={3}
                         listening={false}
                     />
                     <Text
-                        text={label}
+                        text={displayLabel}
                         fontSize={12}
+                        fontStyle={manualLabel ? "normal" : "italic"}
                         fill={labelFill}
                         align="center"
                         verticalAlign="middle"
-                        offsetX={60}
+                        offsetX={100}
                         offsetY={flowLabel ? 25 : 15}
-                        width={120}
+                        width={200}
                         height={30}
                         listening={false}
                     />
                 </Group>
             )}
 
-            {/* Flow Label (Secondary/Small) */}
+            {/* Source Fields (Data Attributes) */}
             {flowLabel && (
                 <Group id={`link-flow-group-${linkId}`} x={midX || 0} y={midY || 0}>
                     <Text
                         text={flowLabel}
-                        fontSize={9}
-                        fontStyle="italic"
+                        fontSize={10}
                         fill={flowLabelFill}
                         align="center"
                         verticalAlign="middle"
                         offsetX={100}
-                        offsetY={label ? 0 : 15}
+                        offsetY={displayLabel ? 0 : 15}
                         width={200}
                         height={30}
                         stroke={labelStroke}
@@ -113,13 +119,12 @@ const LinkGroup = React.memo(({
                     />
                     <Text
                         text={flowLabel}
-                        fontSize={9}
-                        fontStyle="italic"
+                        fontSize={10}
                         fill={flowLabelFill}
                         align="center"
                         verticalAlign="middle"
                         offsetX={100}
-                        offsetY={label ? 0 : 15}
+                        offsetY={displayLabel ? 0 : 15}
                         width={200}
                         height={30}
                         listening={false}

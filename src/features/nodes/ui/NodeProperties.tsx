@@ -7,6 +7,7 @@ import { GlassInput } from '../../../shared/components/GlassInput';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 import { ElementHelp } from './ElementHelp';
+import validationService from '../../modeling/domain/validation';
 import { useNodeValidation } from '../../modeling/hooks/useNodeValidation';
 import { SchemaBuilder } from './SchemaBuilder';
 import { useDebouncedInput } from '../../../shared/hooks/useDebouncedInput';
@@ -32,6 +33,9 @@ interface NodePropertiesProps {
     onAddActor: (actor: { name: string; description: string; color: string }) => string;
     allNodes: Node[];
     allLinks: Link[];
+    onAddLink: (sourceId: string, targetId: string) => void;
+    onDeleteLink: (linkId: string) => void;
+    onSpawnAndLink: (sourceNodeId: string, targetType: ElementType, name: string) => void;
 }
 
 const NodeProperties: React.FC<NodePropertiesProps> = ({
@@ -48,7 +52,10 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
     actors,
     onAddActor,
     allNodes,
-    allLinks
+    allLinks,
+    onAddLink,
+    onDeleteLink,
+    onSpawnAndLink
 }) => {
 
     const nameInputGroup = useDebouncedInput(
@@ -205,6 +212,15 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                         size="sm"
                         variant="ghost"
                         onClick={() => onUpdateNode(node.id, 'pinned', !node.pinned)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.stopPropagation();
+                                // We also want to prevent the default behavior if it was focused
+                                // but actually we want the click to happen if focused? 
+                                // Actually, if it's focused, Enter triggers click. 
+                                // We just want to prevent it from reaching the canvas.
+                            }
+                        }}
                         className={node.pinned ? "text-purple-500 bg-purple-500/10" : ""}
                     >
                         {node.pinned ? <><Pin size={16} className="mr-1" /> Pinned</> : <><PinOff size={16} className="mr-1" /> Pin</>}
@@ -364,6 +380,85 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                         placeholder="Select or create slice..."
                         allowCustomValue={false}
                     />
+                </div>
+            </section>
+
+            <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
+
+            {/* Relationships Section */}
+            <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-4">Relationships</h3>
+                <div className="space-y-6">
+                    {validationService.getRules()
+                        .filter(rule => rule.source === node.type)
+                        .map(rule => {
+                            const connectedNodes = allNodes.filter(n =>
+                                n.type === rule.target &&
+                                allLinks.some(l => l.source === node.id && l.target === n.id)
+                            );
+
+                            const targetOptions = allNodes
+                                .filter(n => n.type === rule.target && !connectedNodes.some(cn => cn.id === n.id))
+                                .map(n => ({
+                                    id: n.id,
+                                    label: n.name,
+                                    group: 'Existing Nodes'
+                                }));
+
+                            return (
+                                <div key={`${rule.source}-${rule.target}`} className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 block">
+                                        {rule.verb.charAt(0).toUpperCase() + rule.verb.slice(1)} ({rule.target.replace('_', ' ')})
+                                    </label>
+
+                                    {connectedNodes.length > 0 && (
+                                        <div className="space-y-1 mb-2">
+                                            {connectedNodes.map(cn => (
+                                                <div key={cn.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-neutral-800/50 group">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onUpdateNode(cn.id, 'id', cn.id)} // Dummy to trigger focus/select if needed, but better use a real focus action
+                                                        className="text-sm text-gray-700 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 truncate text-left flex-1"
+                                                    >
+                                                        {cn.name}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const link = allLinks.find(l => l.source === node.id && l.target === cn.id);
+                                                            if (link) {
+                                                                onDeleteLink(link.id);
+                                                            }
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                        title="Unlink"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <SmartSelect
+                                        options={targetOptions}
+                                        value=""
+                                        onChange={(id) => {
+                                            if (id) {
+                                                onAddLink(node.id, id);
+                                            }
+                                        }}
+                                        onCreate={(name) => {
+                                            onSpawnAndLink(node.id, rule.target, name);
+                                        }}
+                                        placeholder={`+ Add ${rule.target.replace('_', ' ')}...`}
+                                        allowCustomValue={false}
+                                        data-relationship-type={rule.target}
+                                        className="relationship-smart-select"
+                                    />
+                                </div>
+                            );
+                        })}
                 </div>
             </section>
 

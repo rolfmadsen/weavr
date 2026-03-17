@@ -89,6 +89,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         onAddActor={store.addActor}
         allNodes={store.nodes}
         allLinks={store.links}
+        onAddLink={store.handleAddLink}
+        onDeleteLink={store.handleDeleteLink}
+        onSpawnAndLink={store.handleSpawnAndLink}
       />
     );
   }
