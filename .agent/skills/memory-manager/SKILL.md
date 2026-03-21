@@ -32,3 +32,11 @@ When starting a new task or needing context, search the memory bank:
 ```bash
 uv run .agent/skills/memory-manager/bridge.py query --query "search_term"
 ```
+
+### Exporting Backups (Manual Sync)
+While the tool **automatically** updates the portable backup during changes, you can manually trigger an export at any time:
+
+```bash
+uv run .agent/skills/memory-manager/bridge.py export
+```
+*Result: Updates `.agent/memory-bank/conclusions_backup.parquet` with all current records.*

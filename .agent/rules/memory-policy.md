@@ -9,7 +9,7 @@ This project uses a Persistent Project Memory Bank to share context and learning
 
 ## 1. Startup Routine (Read)
 Whenever you start a new task or enter a new session, you MUST read from the Memory Bank to regain context:
-- Option A: Read the Parquet backup file directly using Python/Pandas (`.agent/memory-bank/conclusions_backup.parquet`).
+- Option A: Read the Parquet backup file directly using Python/Pandas (`.agent/memory-bank/conclusions_backup.parquet`). This backup is **automatically synchronized** whenever a memory is saved, updated, or deleted.
 - Option B: Use the Memory Manager `query` command to search for relevant context based on your current task.
 
 ```bash

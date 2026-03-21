@@ -79,8 +79,9 @@ def save_memory(text, metadata_json):
     
     table.add(data)
     print(f"Saved memory: {record_id}")
-    # Decoupled export, must be manually triggered now or handled via separate command
-    
+    # Always update the portable backup
+    export_to_parquet()
+        
 def update_memory(record_id, text, metadata_json):
     table = get_or_create_table()
     timestamp = datetime.now().isoformat()
@@ -97,11 +98,15 @@ def update_memory(record_id, text, metadata_json):
     
     table.add(data)
     print(f"Updated memory: {record_id}")
+    # Always update the portable backup
+    export_to_parquet()
 
 def delete_memory(record_id):
     table = get_or_create_table()
     table.delete(f"id = '{record_id}'")
     print(f"Deleted memory: {record_id}")
+    # Always update the portable backup
+    export_to_parquet()
 
 def query_memory(query_text, format_type="markdown"):
     table = get_or_create_table()
