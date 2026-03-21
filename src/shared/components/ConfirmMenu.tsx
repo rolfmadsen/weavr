@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { GlassCard } from './GlassCard';
 import { GlassButton } from './GlassButton';
 import { twMerge } from 'tailwind-merge';
@@ -21,8 +22,10 @@ const ConfirmMenu: React.FC<ConfirmMenuProps> = ({
     onClose,
     onConfirm,
     message,
-    confirmLabel = "Confirm Delete"
+    confirmLabel
 }) => {
+    const { t } = useTranslation();
+    const finalConfirmLabel = confirmLabel || t('common.confirmDelete');
     // Note: anchorEl is unused in this centered modal implementation, 
     // but kept in interface to avoid breaking call sites immediately 
     // (though we can remove it from call sites later).
@@ -51,7 +54,7 @@ const ConfirmMenu: React.FC<ConfirmMenuProps> = ({
                         e.preventDefault();
                         onClose();
                     }}>
-                        Cancel
+                        {t('common.cancel')}
                     </GlassButton>
                     <GlassButton
                         variant="danger"
@@ -63,7 +66,7 @@ const ConfirmMenu: React.FC<ConfirmMenuProps> = ({
                             onClose();
                         }}
                     >
-                        {confirmLabel}
+                        {finalConfirmLabel}
                     </GlassButton>
                 </div>
             </GlassCard>

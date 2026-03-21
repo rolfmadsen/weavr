@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataDefinition, DefinitionType } from '../../modeling';
 import { Plus, X, Lock, ChevronDown, Trash2, AlertTriangle } from 'lucide-react';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 import { useCrossModelData } from '../../modeling';
 import { GlassButton } from '../../../shared/components/GlassButton';
+import { GlassSelect } from '../../../shared/components/GlassSelect';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { PRIMITIVE_TYPES } from '../../modeling/domain/constants';
@@ -34,12 +36,15 @@ const getTypeColor = (type: DefinitionType) => {
     }
 };
 
-const DuplicateWarning: React.FC = () => (
-    <div className="ml-2 px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1">
-        <AlertTriangle size={8} />
-        DUPLICATE NAME
-    </div>
-);
+const DuplicateWarning: React.FC = () => {
+    const { t } = useTranslation();
+    return (
+        <div className="ml-2 px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+            <AlertTriangle size={8} />
+            {t('dataDictionary.duplicateName').toUpperCase()}
+        </div>
+    );
+};
 
 // Helper for optimizing updates/analytics
 const DebouncedInput: React.FC<any> = ({ value, onCommit, ...props }) => {
@@ -101,6 +106,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     orphanedFields = [],
     onLinkFieldToDefinition
 }) => {
+    const { t } = useTranslation();
     const { crossModelDefinitions } = useCrossModelData(modelId);
 
     // State for deleting definitions
@@ -126,11 +132,11 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
             .map(d => ({
                 id: d.id,
                 label: d.name,
-                group: 'Aggregates'
+                group: t('properties.aggregate')
             }));
 
         return [
-            { id: '__none__', label: 'None', group: 'System' },
+            { id: '__none__', label: t('dataDictionary.none'), group: t('common.system') },
             ...list
         ];
     }, [definitions]);
@@ -143,8 +149,8 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
             .map(d => ({
                 id: d.id,
                 label: d.label,
-                subLabel: `From ${d.modelName}`,
-                group: 'Suggestions',
+                subLabel: t('dataDictionary.fromModel', { model: d.modelName }),
+                group: t('dataDictionary.suggestions'),
                 originalData: d
             }));
     }, [crossModelDefinitions, definitions]);
@@ -227,7 +233,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                 <div className="mb-8 p-4 bg-purple-500/5 rounded-xl border border-blue-500/20">
                     <div className="flex items-center justify-between mb-3 px-1">
                         <div className="flex items-center gap-2">
-                            <h3 className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">Unassigned Attributes</h3>
+                            <h3 className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">{t('dataDictionary.unassignedAttributes')}</h3>
                             <span className="bg-purple-500/20 text-purple-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                                 {orphanedFields.length}
                             </span>
@@ -254,11 +260,11 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                         }}
                                         className="py-1 px-2 inline-flex items-center gap-x-1 text-[10px] font-bold rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all uppercase"
                                     >
-                                        To Entity
+                                        {t('dataDictionary.toEntity')}
                                     </button>
                                     <div className="relative group/menu">
                                         <button className="py-1 px-2 inline-flex items-center gap-x-1 text-[10px] font-bold rounded-md bg-purple-500/10 text-purple-600 border border-blue-500/20 hover:bg-purple-500 hover:text-white transition-all uppercase">
-                                            Link To...
+                                            {t('dataDictionary.linkTo')}
                                         </button>
                                         <div className="absolute right-0 bottom-full mb-1 hidden group-hover/menu:block z-[110] min-w-[140px]">
                                             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-xl p-1 max-h-48 overflow-y-auto custom-scrollbar">
@@ -288,7 +294,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                     value=""
                     onChange={(val, opt) => handleAdd(val, opt)}
                     onCreate={(name) => handleAdd(name)}
-                    placeholder="Add or import entity/aggregate..."
+                    placeholder={t('dataDictionary.addPlaceholder')}
                     allowCustomValue={true}
                     autoFocus={true}
                 />
@@ -312,10 +318,10 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                     <div className="flex items-center gap-2">
                                         <span className="font-medium text-gray-800 dark:text-neutral-100">{def.name}</span>
                                         {def.isRoot && (
-                                            <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold uppercase tracking-tighter">Root</span>
+                                            <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold uppercase tracking-tighter">{t('dataDictionary.root')}</span>
                                         )}
                                     </div>
-                                    {parent && <span className="text-[10px] text-gray-500 opacity-60">Part of {parent.name}</span>}
+                                    {parent && <span className="text-[10px] text-gray-500 opacity-60">{t('dataDictionary.partOf', { name: parent.name })}</span>}
                                 </div>
 
                                 <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">{def.type}</span>
@@ -325,14 +331,14 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                 {/* Aggregate Members Section (Only for Aggregates) */}
                                 {def.type === DefinitionType.Aggregate && (
                                     <div className="mb-6">
-                                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Aggregate Members</h4>
+                                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">{t('dataDictionary.aggregateMembers')}</h4>
                                         <div className="space-y-1">
                                             {definitions.filter(d => d.parentId === def.id).map(member => (
                                                 <div key={member.id} className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-neutral-800 rounded border border-gray-100 dark:border-neutral-700 text-xs text-gray-700 dark:text-neutral-200">
                                                     <div className={`w-1.5 h-1.5 rounded-full ${getTypeColor(member.type)}`} />
                                                     <span className="flex-1 font-medium">{member.name}</span>
                                                     {member.isRoot ? (
-                                                        <span className="text-[9px] text-emerald-500 font-bold">ROOT</span>
+                                                        <span className="text-[9px] text-emerald-500 font-bold">{t('dataDictionary.root').toUpperCase()}</span>
                                                     ) : (
                                                         <button
                                                             onClick={() => {
@@ -345,16 +351,16 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                             }}
                                                             className="text-[9px] text-gray-500 hover:text-emerald-500 transition-colors uppercase font-bold"
                                                         >
-                                                            Make Root
+                                                            {t('dataDictionary.makeRoot')}
                                                         </button>
                                                     )}
                                                 </div>
                                             ))}
                                              {definitions.filter(d => d.parentId === def.id).length === 0 && (
-                                                 <div className="text-[10px] text-gray-500 italic p-2 border border-dashed border-gray-200 dark:border-neutral-700 rounded-lg">
-                                                     No members linked yet. Link Entities/VOs to this aggregate to see them here.
-                                                 </div>
-                                             )}
+                                                  <div className="text-[10px] text-gray-500 italic p-2 border border-dashed border-gray-200 dark:border-neutral-700 rounded-lg">
+                                                      {t('dataDictionary.noMembers')}
+                                                  </div>
+                                              )}
                                         </div>
                                         <div className="h-px bg-gray-200 dark:bg-neutral-700 mt-6"></div>
                                     </div>
@@ -363,7 +369,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                 {/* Definition Form */}
                                 <div className="flex flex-col gap-4 mb-6">
                                     <DebouncedInput
-                                        label="Name"
+                                        label={t('dataDictionary.nameLabel')}
                                         value={def.name || ''}
                                         onCommit={(val: string) => onUpdateDefinition(def.id, { name: val })}
                                     />
@@ -378,27 +384,22 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                      </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="flex flex-col gap-1.5">
-                                            <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">Type</label>
-                                            <div className="relative">
-                                                <select
-                                                    value={def.type}
-                                                    onChange={(e) => onUpdateDefinition(def.id, { type: e.target.value as DefinitionType })}
-                                                    className="py-1.5 px-3 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 text-gray-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none appearance-none"
-                                                >
-                                                    <option value={DefinitionType.Aggregate} className="bg-white dark:bg-neutral-900">Aggregate</option>
-                                                    <option value={DefinitionType.Entity} className="bg-white dark:bg-neutral-900">Entity</option>
-                                                    <option value={DefinitionType.ValueObject} className="bg-white dark:bg-neutral-900">Value Object</option>
-                                                    <option value={DefinitionType.Enum} className="bg-white dark:bg-neutral-900">Enum</option>
-                                                </select>
-                                                <div className="absolute right-3 top-1/2 -trangray-y-1/2 text-gray-400 pointer-events-none">
-                                                    <ChevronDown size={14} />
-                                                </div>
-                                            </div>
+                                            <GlassSelect
+                                                label={t('dataDictionary.typeLabel')}
+                                                value={def.type}
+                                                options={[
+                                                    { id: DefinitionType.Aggregate, label: t('modeling.elements.aggregate'), icon: <div className="w-2 h-2 rounded-full bg-emerald-500" /> },
+                                                    { id: DefinitionType.Entity, label: t('modeling.elements.entity'), icon: <div className="w-2 h-2 rounded-full bg-blue-500" /> },
+                                                    { id: DefinitionType.ValueObject, label: t('modeling.elements.valueObject'), icon: <div className="w-2 h-2 rounded-full bg-purple-500" /> },
+                                                    { id: DefinitionType.Enum, label: t('modeling.elements.enum'), icon: <div className="w-2 h-2 rounded-full bg-amber-500" /> },
+                                                ]}
+                                                onChange={(val) => onUpdateDefinition(def.id, { type: val as DefinitionType })}
+                                            />
                                         </div>
 
                                         {def.type !== DefinitionType.Aggregate && (
                                             <div className="flex flex-col gap-1.5">
-                                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Parent Aggregate</label>
+                                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('dataDictionary.parentAggregate')}</label>
                                                 <div className="flex gap-2">
                                                     <div className="flex-1">
                                                         <SmartSelect
@@ -411,7 +412,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                                     isRoot: newParentId ? def.isRoot : false // Clear root if unlinking
                                                                 });
                                                             }}
-                                                            placeholder="None"
+                                                            placeholder={t('dataDictionary.none')}
                                                             allowCustomValue={false}
                                                         />
                                                     </div>
@@ -428,7 +429,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                              }}
                                                              className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all shadow-sm ${def.isRoot ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 dark:border-neutral-700 text-gray-500 bg-white dark:bg-neutral-800 hover:border-emerald-500/50'}`}
                                                          >
-                                                             ROOT
+                                                             {t('dataDictionary.root').toUpperCase()}
                                                          </button>
                                                     )}
                                                 </div>
@@ -436,8 +437,8 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                         )}
                                     </div>
 
-                                     <div className="flex flex-col gap-1.5">
-                                         <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">Description</label>
+                                     <div className="flex flex-col gap-1.5 mt-2">
+                                         <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">{t('dataDictionary.descriptionLabel')}</label>
                                          <DebouncedTextarea
                                              value={def.description || ''}
                                              onCommit={(val: string) => onUpdateDefinition(def.id, { description: val })}
@@ -451,7 +452,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                             size="sm"
                                             onClick={(e) => setDeleteDefInfo({ id: def.id, anchorEl: e.currentTarget })}
                                         >
-                                            <Trash2 size={16} className="mr-1" /> Delete
+                                            <Trash2 size={16} className="mr-1" /> {t('dataDictionary.deleteAction')}
                                         </GlassButton>
                                     </div>
                                 </div>
@@ -459,11 +460,11 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                  <div className="h-px bg-gray-200 dark:bg-neutral-700 mb-4"></div>
 
                                  {/* Attributes */}
-                                 <div>
+                                  <div>
                                      <div className="flex items-center justify-between mb-4">
-                                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Attributes</h4>
+                                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">{t('dataDictionary.attributesLabel')}</h4>
                                          <GlassButton variant="ghost" size="sm" onClick={() => handleAddAttribute(def)}>
-                                             <Plus size={14} className="mr-1" /> Add
+                                             <Plus size={14} className="mr-1" /> {t('dataDictionary.addAction')}
                                          </GlassButton>
                                      </div>
 
@@ -478,16 +479,16 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                                   const currentAttributes = [...(def.attributes || [])];
                                                                   if (currentAttributes[index]) {
                                                                       currentAttributes[index] = { ...currentAttributes[index], isPII: !attr.isPII };
-                                                                      onUpdateDefinition(def.id, { attributes: currentAttributes });
-                                                                  }
-                                                              }}
-                                                              className={`p-1.5 rounded-lg transition-all border ${
-                                                                  attr.isPII 
-                                                                      ? "bg-red-500/10 border-red-500/50 text-red-600 shadow-sm" 
-                                                                      : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-40 hover:opacity-100"
-                                                              }`}
-                                                              title={attr.isPII ? "Marked as PII (Sensitive)" : "Mark as PII"}
-                                                          >
+                                                                       onUpdateDefinition(def.id, { attributes: currentAttributes });
+                                                                   }
+                                                               }}
+                                                               className={`p-1.5 rounded-lg transition-all border ${
+                                                                   attr.isPII 
+                                                                       ? "bg-red-500/10 border-red-500/50 text-red-600 shadow-sm" 
+                                                                       : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-40 hover:opacity-100"
+                                                               }`}
+                                                               title={attr.isPII ? t('dataDictionary.piiSensitive') : t('dataDictionary.piiMark')}
+                                                           >
                                                               <Lock size={14} />
                                                           </button>
                                                      </div>
@@ -497,35 +498,23 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                           <input
                                                               className="h-8 px-2.5 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-neutral-950 text-gray-700 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 transition-all shadow-sm"
                                                               value={attr.name}
-                                                              placeholder="name"
+                                                              placeholder={t('dataDictionary.attributeNamePlaceholder')}
                                                               onChange={(e) => handleUpdateAttribute(def, index, 'name', e.target.value)}
                                                           />
                                                       </div>
                                                      </div>
 
                                                       <div className="relative w-1/3">
-                                                          <select
-                                                              className="h-8 px-2.5 pr-8 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs bg-white dark:bg-neutral-950 text-gray-500 hover:text-gray-700 dark:hover:text-neutral-300 focus:border-blue-500 focus:ring-blue-500 appearance-none transition-all shadow-sm"
+                                                          <GlassSelect
                                                               value={attr.type}
-                                                              onChange={(e) => handleUpdateAttribute(def, index, 'type', e.target.value)}
-                                                          >
-                                                              <optgroup label="Primitives">
-                                                                  {PRIMITIVE_TYPES.map(t => (
-                                                                      <option key={t} value={t} className="bg-white dark:bg-neutral-900">{t}</option>
-                                                                  ))}
-                                                              </optgroup>
-                                                              <optgroup label="Domain Types">
-                                                                  {typeSuggestions.filter(t => !PRIMITIVE_TYPES.includes(t)).map(t => (
-                                                                      <option key={t} value={t} className="bg-white dark:bg-neutral-900">{t}</option>
-                                                                  ))}
-                                                              </optgroup>
-                                                              {!typeSuggestions.includes(attr.type) && (
-                                                                  <option key={attr.type} value={attr.type} className="italic text-blue-500">{attr.type}</option>
-                                                              )}
-                                                          </select>
-                                                          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                                                              <ChevronDown size={12} />
-                                                          </div>
+                                                              options={[
+                                                                  ...PRIMITIVE_TYPES.map(typeName => ({ id: typeName, label: typeName, group: t('dataDictionary.primitives') })),
+                                                                  ...typeSuggestions.filter(typeName => !PRIMITIVE_TYPES.includes(typeName)).map(typeName => ({ id: typeName, label: typeName, group: t('dataDictionary.domainTypes') })),
+                                                                  ...(!typeSuggestions.includes(attr.type) ? [{ id: attr.type, label: attr.type, group: t('dataDictionary.custom') }] : [])
+                                                              ] as any}
+                                                              onChange={(val) => handleUpdateAttribute(def, index, 'type', val)}
+                                                              buttonClassName="h-8 py-0 px-2.5 text-xs font-mono font-bold"
+                                                          />
                                                       </div>
 
                                                       <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
@@ -538,9 +527,9 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                       </div>
                                                  </div>
                                              </div>
-                                         ))}
+                                          ))}
                                          {(def.attributes || []).length === 0 && (
-                                             <p className="text-center text-xs text-gray-400 italic py-2">No attributes defined.</p>
+                                             <p className="text-center text-xs text-gray-400 italic py-2">{t('dataDictionary.noAttributes')}</p>
                                          )}
                                      </div>
                                  </div>
@@ -549,9 +538,9 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                     );
                 })}
 
-                {definitions.length === 0 && (
-                    <p className="text-center text-gray-400 pt-8 italic">No definitions created yet.</p>
-                )}
+                 {definitions.length === 0 && (
+                     <p className="text-center text-gray-400 pt-8 italic">{t('dataDictionary.noDefinitions')}</p>
+                 )}
             </div>
 
             {/* Confirm Deletion Menu */}
@@ -559,12 +548,12 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                 open={Boolean(deleteDefInfo)}
                 anchorEl={deleteDefInfo?.anchorEl || null}
                 onClose={() => setDeleteDefInfo(null)}
-                onConfirm={() => {
+                 onConfirm={() => {
                     if (deleteDefInfo) {
                         onRemoveDefinition(deleteDefInfo.id);
                     }
                 }}
-                message="Delete this definition?"
+                message={t('dataDictionary.confirmDelete')}
             />
         </div>
     );

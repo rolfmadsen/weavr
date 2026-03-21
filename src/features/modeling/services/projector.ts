@@ -1,9 +1,12 @@
 import { bus } from '../../../shared/events/eventBus';
 import { useModelingData } from '../store/modelingStore';
 import { eventLog } from '../../../shared/store/eventLog';
+import { initWorkspaceProjector } from '../../workspace/services/projector';
 
 export const initProjector = () => {
     // We get the store actions *outside* React components via the vanilla API
+    // Initialize feature-specific projectors
+    initWorkspaceProjector();
     // const store = useModelingData.getState();
 
     // ------------------------------------------------------------------

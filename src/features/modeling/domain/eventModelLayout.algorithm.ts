@@ -370,7 +370,28 @@ export function computeLayout(
                 }
             });
             if (minX !== Infinity && maxX !== -Infinity) {
-                nodePositions.get(nId)!.x = snap((minX + maxX) / 2);
+                const desiredX = snap((minX + maxX) / 2);
+                const currentX = nodePositions.get(nId)?.x;
+                if (desiredX === currentX) return;
+
+                const laneKs = laneKeyStr(nodeLaneMap.get(nId)!);
+                const minGap = NODE_WIDTH + NODE_H_GAP;
+
+                // Collision check: Ensure we don't overlap with same-lane nodes
+                const isBlocked = sliceNodes.some(other => {
+                    if (other.id === nId) return false;
+                    const otherLaneKs = laneKeyStr(nodeLaneMap.get(other.id)!);
+                    if (otherLaneKs !== laneKs) return false;
+
+                    const otherX = nodePositions.get(other.id)?.x;
+                    if (otherX === undefined) return false;
+
+                    return Math.abs(desiredX - otherX) < minGap;
+                });
+
+                if (!isBlocked) {
+                    nodePositions.get(nId)!.x = desiredX;
+                }
             }
         };
 

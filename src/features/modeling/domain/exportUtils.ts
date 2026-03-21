@@ -38,6 +38,7 @@ const mapTypeToSchema = (type: ElementType): string => {
         case ElementType.Command: return 'COMMAND';
         case ElementType.Screen: return 'SCREEN';
         case ElementType.Automation: return 'AUTOMATION';
+        case ElementType.IntegrationEvent: return 'INTEGRATION';
         default: return 'COMMAND'; // Fallback
     }
 };
@@ -84,7 +85,7 @@ export const exportWeavrProject = (
         sliceMap.set(slice.id, {
             id: slice.id,
             title: slice.title || 'Untitled Slice',
-            sliceType: 'STATE_CHANGE', // Default, as we don't track this yet
+            sliceType: slice.sliceType,
             chapter: slice.chapter, // Added chapter support
             commands: [],
             events: [],
@@ -180,7 +181,7 @@ export const exportWeavrProject = (
                 sliceMap.set(unassignedId, {
                     id: unassignedId,
                     title: 'Unassigned',
-                    sliceType: 'App',
+                    sliceType: undefined,
                     commands: [],
                     events: [],
                     readmodels: [],

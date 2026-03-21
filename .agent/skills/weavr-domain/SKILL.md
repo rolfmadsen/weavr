@@ -19,7 +19,7 @@ You are the guardian of the **Event Modeling Syntax** and **DDD Logic**. This sk
 - Adding or modifying **Nodes** on the canvas.
 - Validating **connections** between elements.
 - Defining **Data Dictionary** structures (Aggregates, Entities).
-- Applying the **Information Completeness (OIC)** check.
+- Applying the **Information Completeness Check**.
 
 ## Do not use this skill when
 - Dealing with **UI styling** (use `weavr-core`).
@@ -50,7 +50,7 @@ Follow the strict connection rules to ensure a valid flow:
 
 ---
 
-## 🔍 3. Information Completeness (OIC)
+## 🔍 3. Information Completeness Check
 "No data appears out of thin air."
 - **Test**: Pick any field on a **Screen**.
 - **Trace**: Screen -> Read Model -> Event -> Command -> Screen (Input).

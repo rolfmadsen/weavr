@@ -10,6 +10,8 @@ import clsx from 'clsx';
 import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 import { AppMenu } from './AppMenu';
 import { twMerge } from 'tailwind-merge';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from './LanguageSelector';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -62,6 +64,7 @@ const Header: React.FC<HeaderProps> = ({
   onShare,
   hasPinnedNodes = false
 }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(currentModelName);
@@ -129,10 +132,10 @@ const Header: React.FC<HeaderProps> = ({
 
           {/* Layout Tools */}
           <div className="flex items-center gap-1">
-            <IconButton onClick={onAutoLayout} title="Auto Layout"><Wand2 size={16} className="text-purple-500" /></IconButton>
+            <IconButton onClick={onAutoLayout} title={t('workspace.header.autoLayout')}><Wand2 size={16} className="text-purple-500" /></IconButton>
             <IconButton
               onClick={onUnpinAll}
-              title={hasPinnedNodes ? "Unpin All" : "No nodes pinned"}
+              title={hasPinnedNodes ? t('workspace.header.unpinAll') : t('workspace.header.noNodesPinned')}
               color="error"
               disabled={!hasPinnedNodes}
             >
@@ -152,11 +155,13 @@ const Header: React.FC<HeaderProps> = ({
                 : "bg-purple-600 text-white border-purple-600 hover:bg-purple-500 shadow-purple-500/20"
             )}
           >
-            {copied ? 'Copied!' : <><Share2 size={16} /> Share</>}
+            {copied ? t('workspace.header.copied') : <><Share2 size={16} /> {t('workspace.header.share')}</>}
           </button>
 
           <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-1"></div>
         </div>
+
+        <LanguageSelector />
 
         {/* Hamburger Menu (AppMenu) */}
         <AppMenu

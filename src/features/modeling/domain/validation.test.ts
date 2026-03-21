@@ -179,7 +179,7 @@ describe('ValidationService', () => {
 
             const result = validationService.validateCompleteness(cmdNode, links, [automationNode]);
             expect(result.isValid).toBe(false);
-            expect(result.message).toContain('Required data is missing from sources');
+            expect(result.message).toContain('is missing data from');
         });
 
         it('should validate IntegrationEvent sourcing from Automation', () => {
@@ -208,7 +208,7 @@ describe('ValidationService', () => {
 
             const result = validationService.validateCompleteness(autoNode, links, [rmNode]);
             expect(result.isValid).toBe(false);
-            expect(result.message).toContain('Required data is missing from sources');
+            expect(result.message).toContain('is missing data from');
         });
 
 
@@ -232,13 +232,13 @@ describe('ValidationService', () => {
             rmNode.fields = [{ name: 'other', type: 'string' }];
 
             const screenNode = createNode(ElementType.Screen);
-            screenNode.fields = [{ name: 'title', type: 'string', required: true }];
+            screenNode.fields = [{ name: 'title', type: 'string', required: true, role: 'display' }];
 
             const links = [{ id: 'link-1', source: 'rm-1', target: screenNode.id, label: '' }];
 
             const result = validationService.validateCompleteness(screenNode, links, [rmNode]);
             expect(result.isValid).toBe(false);
-            expect(result.message).toContain('Screen missing data from Read Model');
+            expect(result.message).toContain('is missing data from');
         });
 
         it('should fail for Unlinked node with required fields', () => {
@@ -247,7 +247,7 @@ describe('ValidationService', () => {
 
             const result = validationService.validateCompleteness(cmdNode, [], []);
             expect(result.isValid).toBe(false);
-            expect(result.message).toContain('Node has required fields but no incoming data source');
+            expect(result.message).toContain('No incoming data source for required fields');
         });
 
         it('should pass for Integration Event as root source (no incoming links)', () => {

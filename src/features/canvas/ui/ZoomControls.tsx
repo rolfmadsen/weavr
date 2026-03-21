@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
@@ -19,6 +20,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
     onZoomOut,
     onResetZoom
 }) => {
+    const { t } = useTranslation();
     const zoomDisplay = Math.round((scale - 1.0) * 100);
     const formattedZoom = zoomDisplay > 0 ? `+${zoomDisplay}` : `${zoomDisplay}`;
 
@@ -29,7 +31,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
             <button
                 onClick={onZoomOut}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-all active:scale-95 outline-none focus:ring-2 focus:ring-purple-500/50"
-                title="Zoom Out"
+                title={t('canvas.zoomOut')}
             >
                 <ZoomOut size={16} />
             </button>
@@ -37,7 +39,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
             <button
                 onClick={onResetZoom}
                 className="px-3 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold text-[11px] transition-all active:scale-95 outline-none focus:ring-2 focus:ring-purple-500/50"
-                title="Reset Zoom to 0"
+                title={t('canvas.resetZoom', { zoom: formattedZoom })}
             >
                 {formattedZoom}%
             </button>
@@ -45,7 +47,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
             <button
                 onClick={onZoomIn}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-all active:scale-95 outline-none focus:ring-2 focus:ring-purple-500/50"
-                title="Zoom In"
+                title={t('canvas.zoomIn')}
             >
                 <ZoomIn size={16} />
             </button>

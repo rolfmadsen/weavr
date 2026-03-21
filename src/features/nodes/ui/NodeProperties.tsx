@@ -1,22 +1,18 @@
 import React, { useMemo } from 'react';
-import { Pin, PinOff, CircleHelp, Trash2, BadgeAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Pin, PinOff, Trash2, BadgeAlert } from 'lucide-react';
 import { Node, Slice, DataDefinition, DefinitionType, Actor, Link, ElementType } from '../../modeling';
 import { CrossModelItem } from '../../modeling/store/useCrossModelData';
 import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassInput } from '../../../shared/components/GlassInput';
 import SmartSelect from '../../../shared/components/SmartSelect';
-import { GlassTooltip } from '../../../shared/components/GlassTooltip';
+import { GlassSelect } from '../../../shared/components/GlassSelect';
 import { ElementHelp } from './ElementHelp';
 import validationService from '../../modeling/domain/validation';
 import { useNodeValidation } from '../../modeling/hooks/useNodeValidation';
 import { SchemaBuilder } from './SchemaBuilder';
 import { useDebouncedInput } from '../../../shared/hooks/useDebouncedInput';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
 
 interface NodePropertiesProps {
     node: Node;
@@ -57,6 +53,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
     onDeleteLink,
     onSpawnAndLink
 }) => {
+    const { t } = useTranslation();
 
     const nameInputGroup = useDebouncedInput(
         node.name || '',
@@ -83,7 +80,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             .map(a => ({
                 id: a.id,
                 label: a.name,
-                group: 'Local Aggregates',
+                group: t('properties.aggregate'),
                 color: '#10b981' // Emerald
             }));
 
@@ -92,13 +89,13 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             .map(d => ({
                 id: `remote:${d.id}:${d.label}`,
                 label: d.label,
-                subLabel: `From ${d.modelName}`,
-                group: 'Suggestions',
+                subLabel: t('modeling.fromModel', { modelName: d.modelName }),
+                group: t('common.suggestions'),
                 color: '#10b981'
             }));
 
         return [
-            { id: '__none__', label: 'No Aggregate', group: 'System', color: '#94a3b8' },
+            { id: '__none__', label: t('modeling.noAggregate'), group: t('common.system'), color: '#94a3b8' },
             ...localOptions,
             ...remoteOptions
         ];
@@ -120,11 +117,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
         const list = actors.map(a => ({
             id: a.id,
             label: a.name,
-            group: 'Actors',
+            group: t('properties.actors'),
             color: a.color
         }));
         return [
-            { id: '__none__', label: 'No Actor', group: 'System', color: '#94a3b8' },
+            { id: '__none__', label: t('properties.noActor'), group: t('common.system'), color: '#94a3b8' },
             ...list
         ];
     }, [actors]);
@@ -138,16 +135,16 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
     const sliceOptions = useMemo(() => {
         const localOptions = slices.map((s) => ({
             id: s.id,
-            label: s.title || 'Untitled',
+            label: s.title || t('common.untitled'),
             color: s.color,
-            group: 'Local Slices'
+            group: t('properties.slice')
         }));
 
         const remoteOptions = crossModelSlices.map((s) => ({
             id: `remote:${s.id}:${s.label}`, // Unique ID for remote
             label: s.label,
-            subLabel: `From ${s.modelName}`,
-            group: 'Suggestions',
+            subLabel: t('modeling.fromModel', { modelName: s.modelName }),
+            group: t('common.suggestions'),
             originalData: s
         }));
 
@@ -196,7 +193,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                     <BadgeAlert className="text-amber-500 shrink-0" size={20} />
                     <div className="flex flex-col gap-1">
-                        <p className="text-sm font-bold text-amber-600 dark:text-amber-400">Information Incomplete</p>
+                        <p className="text-sm font-bold text-amber-600 dark:text-amber-400">{t('properties.informationIncomplete')}</p>
                         <p className="text-xs text-amber-600/80 dark:text-amber-400/80 leading-relaxed">
                             {validationResult.message}
                         </p>
@@ -207,7 +204,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             {/* General Section */}
             <section>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">General</h3>
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{t('properties.general')}</h3>
                     <GlassButton
                         size="sm"
                         variant="ghost"
@@ -215,94 +212,80 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.stopPropagation();
-                                // We also want to prevent the default behavior if it was focused
-                                // but actually we want the click to happen if focused? 
-                                // Actually, if it's focused, Enter triggers click. 
-                                // We just want to prevent it from reaching the canvas.
                             }
                         }}
                         className={node.pinned ? "text-purple-500 bg-purple-500/10" : ""}
                     >
-                        {node.pinned ? <><Pin size={16} className="mr-1" /> Pinned</> : <><PinOff size={16} className="mr-1" /> Pin</>}
+                        {node.pinned ? <><Pin size={16} className="mr-1" /> {t('properties.pinned')}</> : <><PinOff size={16} className="mr-1" /> {t('properties.pin')}</>}
                     </GlassButton>
                 </div>
 
                 <div className="space-y-4">
                     <GlassInput
-                        label="Name"
+                        label={t('properties.name')}
                         {...nameInputGroup}
                         ref={nameInputRef}
                         autoComplete="off"
                     />
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">Description</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">{t('properties.description')}</label>
                         <textarea
-                            className="py-2.5 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-200 placeholder-gray-400 dark:placeholder-neutral-500 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none min-h-[80px]"
+                            className="py-3 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-200 placeholder-gray-400 dark:placeholder-neutral-500 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none min-h-[80px]"
                             {...descriptionInputGroup}
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">Type</label>
-                        <select
-                            disabled
-                            value={node.type}
-                            className="py-2.5 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-gray-100/50 dark:bg-black/40 text-gray-500 appearance-none cursor-not-allowed opacity-70"
-                        >
-                            <option value="COMMAND">Command</option>
-                            <option value="DOMAIN_EVENT">Domain Event</option>
-                            <option value="INTEGRATION_EVENT">Integration Event</option>
-                            <option value="READ_MODEL">Read Model</option>
-                            <option value="SCREEN">Screen</option>
-                            <option value="AUTOMATION">Automation</option>
-                        </select>
-                    </div>
+                    <GlassSelect
+                        label={t('properties.type')}
+                        disabled
+                        value={node.type}
+                        options={[
+                            { id: 'COMMAND', label: t('modeling.elements.command') },
+                            { id: 'DOMAIN_EVENT', label: t('modeling.elements.domainEvent') },
+                            { id: 'INTEGRATION_EVENT', label: t('modeling.elements.integrationEvent') },
+                            { id: 'READ_MODEL', label: t('modeling.elements.readModel') },
+                            { id: 'SCREEN', label: t('modeling.elements.screen') },
+                            { id: 'AUTOMATION', label: t('modeling.elements.automation') },
+                        ]}
+                        onChange={() => {}}
+                    />
 
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1 flex items-center gap-1">
-                            Context
-                            <GlassTooltip content={
-                                <div>
-                                    <p className="font-bold mb-1">System Boundary</p>
-                                    <p className="mb-2">Where does this happen?</p>
-                                    <p className="text-xs mb-1"><strong>Internal</strong>: Part of our system.</p>
-                                    <p className="text-xs"><strong>External</strong>: A 3rd-party tool.</p>
-                                </div>
-                            }>
-                                <CircleHelp size={14} />
-                            </GlassTooltip>
-                        </label>
-                        <select
-                            value={node.type === ElementType.IntegrationEvent ? (node.context || 'INTERNAL') : 'INTERNAL'}
-                            onChange={(e) => onUpdateNode(node.id, 'context', e.target.value as any)}
-                            disabled={node.type !== ElementType.IntegrationEvent}
-                            className={cn(
-                                "py-2.5 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none",
-                                node.type !== ElementType.IntegrationEvent && "opacity-70 cursor-not-allowed"
-                            )}
-                        >
-                            <option value="INTERNAL">Internal</option>
-                            <option value="EXTERNAL">External</option>
-                        </select>
-                    </div>
+                    <GlassSelect
+                        label={t('properties.context.label')}
+                        labelTooltip={
+                            <div>
+                                <p className="font-bold mb-1">{t('properties.context.tooltip.title')}</p>
+                                <p className="mb-2">{t('properties.context.tooltip.question')}</p>
+                                <p className="text-xs mb-1"><strong>{t('properties.context.internal')}</strong>: {t('properties.context.tooltip.internalDesc')}</p>
+                                <p className="text-xs"><strong>{t('properties.context.external')}</strong>: {t('properties.context.tooltip.externalDesc')}</p>
+                            </div>
+                        }
+                        value={node.type === ElementType.IntegrationEvent ? (node.context || 'INTERNAL') : 'INTERNAL'}
+                        onChange={(val) => onUpdateNode(node.id, 'context', val as any)}
+                        disabled={node.type !== ElementType.IntegrationEvent}
+                        options={[
+                            { id: 'INTERNAL', label: t('properties.context.internal') },
+                            { id: 'EXTERNAL', label: t('properties.context.external') },
+                        ]}
+                    />
 
                     <GlassInput
-                        label={node.context === 'EXTERNAL' ? "External Provider Name" : "Component / Service"}
+                        label={node.context === 'EXTERNAL' ? t('properties.context.providerName') : t('properties.context.componentService')}
                         {...serviceInputGroup}
-                        placeholder={node.context === 'EXTERNAL' ? "e.g. Stripe, Auth0" : "e.g. Sales-Service"}
+                        placeholder={node.context === 'EXTERNAL' ? t('properties.placeholders.externalProvider') : t('properties.placeholders.componentService')}
                         autoComplete="off"
                     />
 
                     {(node.type === 'SCREEN' || node.type === 'AUTOMATION') && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Actor</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('properties.actor')}</label>
                             <SmartSelect
                                 options={actorOptions}
                                 value={node.actor || '__none__'}
                                 onChange={(id) => onUpdateNode(node.id, 'actor', (id === '__none__' || !id) ? undefined : id)}
                                 onCreate={handleActorCreate}
-                                placeholder="Select or create actor..."
+                                placeholder={t('properties.placeholders.selectOrCreateActor')}
                                 allowCustomValue={false}
                             />
                         </div>
@@ -310,7 +293,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
                     {node.type === 'DOMAIN_EVENT' && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Aggregate</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('properties.aggregate')}</label>
                             <SmartSelect
                                 options={aggregateOptions}
                                 value={node.aggregate || '__none__'}
@@ -320,7 +303,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                         const newId = onAddDefinition({
                                             name: opt.label,
                                             type: DefinitionType.Aggregate,
-                                            description: `Imported from ${opt.subLabel}`,
+                                            description: t('modeling.importedFrom', { modelName: opt.subLabel }),
                                             attributes: []
                                         });
                                         onUpdateNode(node.id, 'aggregate', newId);
@@ -329,7 +312,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                     }
                                 }}
                                 onCreate={handleAggregateCreate}
-                                placeholder="Select or create aggregate..."
+                                placeholder={t('properties.placeholders.selectOrCreateAggregate')}
                                 allowCustomValue={false}
                             />
                         </div>
@@ -337,7 +320,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
                     {node.type === 'COMMAND' && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Aggregate</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('properties.aggregate')}</label>
                             <SmartSelect
                                 options={aggregateOptions}
                                 value={node.aggregate || '__none__'}
@@ -347,7 +330,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                         const newId = onAddDefinition({
                                             name: opt.label,
                                             type: DefinitionType.Aggregate,
-                                            description: `Imported from ${opt.subLabel}`,
+                                            description: t('modeling.importedFrom', { modelName: opt.subLabel }),
                                             attributes: []
                                         });
                                         onUpdateNode(node.id, 'aggregate', newId);
@@ -356,7 +339,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                     }
                                 }}
                                 onCreate={handleAggregateCreate}
-                                placeholder="Select or create aggregate..."
+                                placeholder={t('properties.placeholders.selectOrCreateAggregate')}
                                 allowCustomValue={false}
                             />
                         </div>
@@ -368,16 +351,16 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
             {/* Organization Section */}
             <section>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-4">Organization</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">{t('properties.organization')}</h3>
 
                 <div className="mb-4">
-                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 block">Slice</label>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 block">{t('properties.slice')}</label>
                     <SmartSelect
                         options={sliceOptions}
                         value={node.sliceId ? node.sliceId.toString() : ''}
                         onChange={handleSliceChange}
                         onCreate={handleSliceCreate}
-                        placeholder="Select or create slice..."
+                        placeholder={t('properties.placeholders.selectOrCreateSlice')}
                         allowCustomValue={false}
                     />
                 </div>
@@ -385,9 +368,9 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
             <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
 
-            {/* Relationships Section */}
+             {/* Relationships Section */}
             <section>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-4">Relationships</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">{t('properties.relationships')}</h3>
                 <div className="space-y-6">
                     {validationService.getRules()
                         .filter(rule => rule.source === node.type)
@@ -402,13 +385,16 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                 .map(n => ({
                                     id: n.id,
                                     label: n.name,
-                                    group: 'Existing Nodes'
+                                    group: t('common.existingNodes')
                                 }));
+
+                            const verb = rule.verb.charAt(0).toUpperCase() + rule.verb.slice(1);
+                            const target = t(`modeling.elements.${rule.target.toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`);
 
                             return (
                                 <div key={`${rule.source}-${rule.target}`} className="space-y-2">
                                     <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 block">
-                                        {rule.verb.charAt(0).toUpperCase() + rule.verb.slice(1)} ({rule.target.replace('_', ' ')})
+                                        {verb} ({target})
                                     </label>
 
                                     {connectedNodes.length > 0 && (
@@ -431,7 +417,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                                             }
                                                         }}
                                                         className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                                        title="Unlink"
+                                                        title={t('common.unpin')}
                                                     >
                                                         <Trash2 size={14} />
                                                     </button>
@@ -451,7 +437,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                         onCreate={(name) => {
                                             onSpawnAndLink(node.id, rule.target, name);
                                         }}
-                                        placeholder={`+ Add ${rule.target.replace('_', ' ')}...`}
+                                        placeholder={t('properties.placeholders.addType', { type: target })}
                                         allowCustomValue={false}
                                         data-relationship-type={rule.target}
                                         className="relationship-smart-select"
@@ -480,14 +466,14 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
             {/* Actions Section */}
             <section>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-4">Actions</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">{t('properties.actions')}</h3>
                 <GlassButton
                     variant="danger"
                     size="sm"
                     onClick={() => onDeleteNode(node.id)}
                     className="w-full"
                 >
-                    <Trash2 size={16} className="mr-2" /> Delete Node
+                    <Trash2 size={16} className="mr-2" /> {t('properties.deleteNode')}
                 </GlassButton>
 
                 <ElementHelp type={node.type} />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { useModelList } from '../../modeling';
 import { X, Plus, Trash2, Edit2 } from 'lucide-react';
@@ -21,6 +22,7 @@ interface ModelListModalProps {
 }
 
 const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, currentModelId }) => {
+    const { t, i18n } = useTranslation();
     const { models, addModel, updateModel, removeModel } = useModelList();
     const [isCreating, setIsCreating] = useState(false);
     const [newModelName, setNewModelName] = useState('');
@@ -111,7 +113,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
     };
 
     const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleDateString(undefined, {
+        return new Date(timestamp).toLocaleDateString(i18n.language, {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -128,7 +130,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                 onClick={e => e.stopPropagation()}
             >
                 <div className="flex justify-between items-center p-6 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">My Models</h2>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('modelList.title')}</h2>
                     <GlassButton variant="ghost" size="sm" onClick={onClose} className="rounded-full !p-2">
                         <X size={20} />
                     </GlassButton>
@@ -138,11 +140,10 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                     <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
                         <span className="text-lg">💾</span>
                         <span>
-                            These models live in your <strong>browser cache</strong>.
-                            Clearing your history/cache will remove them.
+                            {t('modelList.browserCacheWarning')}
                             <br />
                             <span className="font-semibold text-xs opacity-75">
-                                Tip: Export important models as backups.
+                                {t('modelList.exportTip')}
                             </span>
                         </span>
                     </p>
@@ -158,20 +159,20 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                                 className="w-full !justify-start gap-2 text-purple-600 dark:text-purple-300 font-bold hover:bg-purple-500/10"
                             >
                                 <Plus size={20} className="text-xl" />
-                                Create New Model
+                                {t('modelList.createNewModel')}
                             </GlassButton>
                         ) : (
                             <div className="flex gap-2 items-center">
                                 <GlassInput
                                     value={newModelName}
                                     onChange={e => setNewModelName(e.target.value)}
-                                    placeholder="Enter model name..."
+                                    placeholder={t('modelList.enterModelName')}
                                     autoFocus
                                     onKeyDown={e => e.key === 'Enter' && handleCreate()}
                                     className="flex-1"
                                 />
-                                <GlassButton onClick={handleCreate} size="md">Create</GlassButton>
-                                <GlassButton variant="ghost" onClick={() => setIsCreating(false)} size="md">Cancel</GlassButton>
+                                <GlassButton onClick={handleCreate} size="md">{t('modelList.create')}</GlassButton>
+                                <GlassButton variant="ghost" onClick={() => setIsCreating(false)} size="md">{t('common.cancel')}</GlassButton>
                             </div>
                         )}
                     </div>
@@ -179,7 +180,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                     {/* List Section */}
                     <div className="space-y-2">
                         {models.length === 0 ? (
-                            <p className="text-center text-slate-500 py-8">No models found. Create one to get started!</p>
+                            <p className="text-center text-slate-500 py-8">{t('modelList.noModelsFound')}</p>
                         ) : (
                             models.sort((a, b) => b.updatedAt - a.updatedAt).map(model => (
                                 <div
@@ -210,17 +211,17 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                                                 <button
                                                     onClick={(e) => startEditing(model.id, model.name, e)}
                                                     className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-purple-600 transition-opacity p-1"
-                                                    title="Rename"
+                                                    title={t('modelList.rename')}
                                                 >
                                                     <Edit2 size={14} />
                                                 </button>
                                                 {model.id === currentModelId && (
-                                                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full">Current</span>
+                                                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full">{t('modelList.current')}</span>
                                                 )}
                                             </div>
                                         )}
                                         <p className="text-xs text-slate-500 mt-1">
-                                            Last modified: {formatDate(model.updatedAt)}
+                                            {t('modelList.lastModified')}: {formatDate(model.updatedAt)}
                                         </p>
                                     </div>
 
@@ -229,7 +230,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                                         size="sm"
                                         onClick={(e) => handleDelete(model.id, e)}
                                         className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-500/10 !p-2 rounded-full"
-                                        title="Remove from list"
+                                        title={t('modelList.removeFromList')}
                                     >
                                         <Trash2 size={20} />
                                     </GlassButton>
@@ -245,7 +246,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
                 open={Boolean(deleteAnchorEl)}
                 onClose={() => setDeleteAnchorEl(null)}
                 onConfirm={confirmDelete}
-                message="Are you sure you want to remove this model from your list?"
+                message={t('modelList.confirmDelete')}
             />
         </div >
     );

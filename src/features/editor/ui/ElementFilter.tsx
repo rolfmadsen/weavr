@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Node } from '../../modeling';
 import {
     Search,
@@ -16,6 +17,7 @@ interface ElementFilterProps {
 }
 
 const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [isCollapsed, setIsCollapsed] = useState(true);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -84,7 +86,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
 
     if (isCollapsed) {
         return (
-            <GlassTooltip content="Find Element">
+            <GlassTooltip content={t('editor.findElement')}>
                 <button
                     onClick={() => setIsCollapsed(false)}
                     className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:border-purple-400 hover:text-purple-600 transition-all mb-4 text-slate-500 dark:text-slate-400 active:scale-95"
@@ -102,13 +104,13 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
         >
             <div className="p-3 border-b border-gray-200/50 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-200 font-semibold text-sm">
-                    <span className="flex-1">Find Element</span>
+                    <span className="flex-1">{t('editor.findElement')}</span>
                     <button onClick={() => setIsCollapsed(true)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
                         <X size={16} />
                     </button>
                 </div>
                 <GlassInput
-                    placeholder="Search elements..."
+                    placeholder={t('editor.searchElements')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -122,7 +124,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
                 className="overflow-y-auto flex-1 max-h-[350px] custom-scrollbar"
             >
                 {searchTerm && displayedNodes.length === 0 ? (
-                    <p className="p-4 text-center text-xs text-slate-400 italic">No elements found</p>
+                    <p className="p-4 text-center text-xs text-slate-400 italic">{t('editor.noElementsFound')}</p>
                 ) : (
                     displayedNodes.map((node, index) => {
                         const style = ELEMENT_STYLE[node.type as keyof typeof ELEMENT_STYLE];
@@ -145,7 +147,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
 
                                 <div className="flex-1 overflow-hidden">
                                     <div className={`text-sm truncate ${isHighlighted ? 'font-semibold text-purple-700 dark:text-purple-200' : 'font-medium text-slate-700 dark:text-slate-200'}`}>
-                                        {node.name || 'Untitled'}
+                                        {node.name || t('common.untitled')}
                                     </div>
                                     <div className="text-[10px] text-slate-400 uppercase tracking-wider">
                                         {node.type?.replace(/_/g, ' ')}

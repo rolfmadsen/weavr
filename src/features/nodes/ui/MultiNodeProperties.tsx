@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pin, PinOff, Trash2 } from 'lucide-react';
 import { Node, Slice } from '../../modeling';
 import { CrossModelItem } from '../../modeling/store/useCrossModelData';
@@ -28,19 +29,20 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
     onUnpinSelection,
     nameInputRef
 }) => {
+    const { t } = useTranslation();
     const sliceOptions = useMemo(() => {
         const localOptions = slices.map((s: any) => ({
             id: s.id,
-            label: s.title || 'Untitled',
+            label: s.title || t('common.untitled'),
             color: s.color,
-            group: 'Local Slices'
+            group: t('properties.slice')
         }));
 
         const remoteOptions = crossModelSlices.map((s) => ({
             id: `remote:${s.id}:${s.label}`,
             label: s.label,
-            subLabel: `From ${s.modelName}`,
-            group: 'Suggestions',
+            subLabel: t('modeling.fromModel', { modelName: s.modelName }),
+            group: t('common.suggestions'),
             originalData: s
         }));
 
@@ -50,7 +52,7 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
     const handleSliceCreate = (name: string) => {
         const existingSlice = slices.find((s) => (s.title || '').toLowerCase() === name.toLowerCase());
         if (existingSlice) {
-            alert(`Slice "${existingSlice.title}" already exists.`);
+            alert(t('properties.sliceExists', { name: existingSlice.title }));
             return existingSlice.id;
         }
         const newId = onAddSlice(name);
@@ -77,43 +79,43 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
     return (
         <div className="flex flex-col gap-6">
             <section>
-                <h3 className="text-md font-bold text-slate-800 dark:text-white mb-1">{nodes.length} items selected</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Edit properties for all selected items.</p>
+                <h3 className="text-md font-bold text-slate-800 dark:text-white mb-1">{t('properties.itemsSelected', { count: nodes.length })}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{t('properties.editAllSelected')}</p>
             </section>
 
             <div className="h-px bg-slate-200 dark:bg-white/10"></div>
 
             <section>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">Batch Actions</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">{t('properties.batchActions')}</h3>
 
                 <div className="grid grid-cols-2 gap-2 mb-6">
                     <GlassButton variant="secondary" size="sm" onClick={onPinSelection} disabled={!onPinSelection}
                         onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
                     >
-                        <Pin size={16} className="mr-1" /> Pin
+                        <Pin size={16} className="mr-1" /> {t('properties.pin')}
                     </GlassButton>
                     <GlassButton variant="secondary" size="sm" onClick={onUnpinSelection} disabled={!onUnpinSelection}
                         onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
                     >
-                        <PinOff size={16} className="mr-1" /> Unpin
+                        <PinOff size={16} className="mr-1" /> {t('properties.unpin')}
                     </GlassButton>
                 </div>
 
                 <div className="mb-6">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Assign to Slice</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">{t('properties.assignToSlice')}</label>
                     <SmartSelect
                         options={sliceOptions}
                         value=""
                         onChange={handleSliceChange}
                         onCreate={handleSliceCreate}
-                        placeholder="Select slice for all..."
+                        placeholder={t('properties.placeholders.selectSliceForAll')}
                         allowCustomValue={false}
                         ref={nameInputRef}
                     />
                 </div>
 
                 <GlassButton variant="danger" onClick={() => nodes.forEach((n) => onDeleteNode(n.id))} className="w-full">
-                    <Trash2 size={16} className="mr-2" /> Delete All Selected
+                    <Trash2 size={16} className="mr-2" /> {t('properties.deleteAllSelected')}
                 </GlassButton>
             </section>
         </div>

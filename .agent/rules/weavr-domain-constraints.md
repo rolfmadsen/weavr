@@ -1,5 +1,5 @@
 ---
-name: weavr-domain-constraints
+trigger: always_on
 description: Enforces the Event Modeling alphabet, Aggregates hierarchy, and Information Completeness rules.
 ---
 
@@ -15,5 +15,5 @@ description: Enforces the Event Modeling alphabet, Aggregates hierarchy, and Inf
 - **Hierarchy**: An Entity/Value Object MUST have a `parentId` pointing to an Aggregate.
 - **Root Rule (NON-NEGOTIABLE)**: Exactly ONE member of an Aggregate MUST be marked as `isRoot`.
 
-## 🔍 Information Completeness (OIC)
+## 🔍 Information Completeness Check
 - **Lineage (STRICT)**: Every field on a Screen MUST be traceable back to a user input via an Event and a Command. Absolutely no data "out of thin air."

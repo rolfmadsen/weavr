@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { bus } from './shared/events/eventBus';
 import Konva from 'konva';
@@ -39,11 +40,13 @@ import {
   Toolbar,
   HelpModal,
   ModelListModal,
+  HelpButton,
   useKeyboardShortcuts,
   useWorkspaceManager
 } from './features/workspace';
 import { usePlausible } from './features/analytics';
 import { ThemeProvider } from './shared/providers/ThemeProvider';
+import { GlassTooltip } from './shared/components/GlassTooltip';
 
 function getModelIdFromUrl(): string {
   const hash = window.location.hash.slice(1);
@@ -71,6 +74,7 @@ function getModelIdFromUrl(): string {
 
 
 const App: React.FC = () => {
+  const { t } = useTranslation();
   // Preline initialization
   useEffect(() => {
     const initPreline = async () => {
@@ -357,7 +361,7 @@ const App: React.FC = () => {
       const html = await generator.generate({
         projectTitle: currentModelName || 'Event Model',
         description: `<a href="https://weavr.dk">Weavr.dk ${new Date().getFullYear()}`
-      }, (_curr, _total, text) => {
+      }, t, (_curr, _total, text) => {
         msg.innerText = text;
       });
 
@@ -613,15 +617,26 @@ const App: React.FC = () => {
             />
           </div>
 
+          <div className="absolute bottom-8 right-24 md:bottom-12 md:right-32 z-20 pointer-events-none flex items-center justify-center">
+             <GlassTooltip content={t('workspace.header.help')}>
+                <HelpButton onClick={() => { setIsHelpModalOpen(true); signal("Help.Opened"); }} />
+             </GlassTooltip>
+          </div>
+
           <Toolbar onAddNode={handleAddNode} disabled={!isReady} isMenuOpen={isToolbarOpen} onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} />
 
           <Sidebar
             isOpen={!!sidebarView}
             onClose={handleCloseSidebar}
-            title={sidebarView === 'properties' ? 'Properties' : sidebarView === 'slices' ? 'Slices' : sidebarView === 'actors' ? 'Actors' : 'Data Dictionary'}
+            title={sidebarView === 'properties' ? t('workspace.sidebar.properties') : sidebarView === 'slices' ? t('workspace.sidebar.slices') : sidebarView === 'actors' ? t('workspace.sidebar.actors') : t('workspace.sidebar.dictionary')}
             activeTab={sidebarView || 'properties'}
             onTabChange={(tab: string) => { setSidebarView(tab as any); }}
-            tabs={[{ id: 'properties', label: 'Properties', title: 'Alt + P' }, { id: 'dictionary', label: 'Data', title: 'Alt + D' }, { id: 'slices', label: 'Slices', title: 'Alt + S' }, { id: 'actors', label: 'Actors', title: 'Start' }]}
+            tabs={[
+                { id: 'properties', label: t('workspace.sidebar.properties'), title: 'Alt + P' }, 
+                { id: 'dictionary', label: t('workspace.sidebar.dictionary'), title: 'Alt + D' }, 
+                { id: 'slices', label: t('workspace.sidebar.slices'), title: 'Alt + S' }, 
+                { id: 'actors', label: t('workspace.sidebar.actors'), title: 'Start' }
+            ]}
           >
             {sidebarView === 'properties' && (
               <PropertiesPanel

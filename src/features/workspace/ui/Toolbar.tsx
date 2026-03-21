@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus,
   Monitor,
@@ -23,15 +24,16 @@ interface ToolbarProps {
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOpen, onToggleMenu }) => {
+  const { t } = useTranslation();
   // Mapping local enum if needed, or importing from modeling. 
   // Assuming these enums match the 'any' or exact type passed.
   const tools = [
-    { type: 'SCREEN', label: 'Screen', icon: <Monitor size={24} />, shortcut: '1' },
-    { type: 'COMMAND', label: 'Command', icon: <SquareActivity size={24} />, shortcut: '2' },
-    { type: 'DOMAIN_EVENT', label: 'Domain Event', icon: <Zap size={24} />, shortcut: '3' },
-    { type: 'READ_MODEL', label: 'Read Model', icon: <Eye size={24} />, shortcut: '4' },
-    { type: 'INTEGRATION_EVENT', label: 'Integration Event', icon: <Globe size={24} />, shortcut: '5' },
-    { type: 'AUTOMATION', label: 'Automation', icon: <Settings size={24} />, shortcut: '6' },
+    { type: 'SCREEN', label: t('modeling.elements.screen'), icon: <Monitor size={24} />, shortcut: '1' },
+    { type: 'COMMAND', label: t('modeling.elements.command'), icon: <SquareActivity size={24} />, shortcut: '2' },
+    { type: 'DOMAIN_EVENT', label: t('modeling.elements.domainEvent'), icon: <Zap size={24} />, shortcut: '3' },
+    { type: 'READ_MODEL', label: t('modeling.elements.readModel'), icon: <Eye size={24} />, shortcut: '4' },
+    { type: 'INTEGRATION_EVENT', label: t('modeling.elements.integrationEvent'), icon: <Globe size={24} />, shortcut: '5' },
+    { type: 'AUTOMATION', label: t('modeling.elements.automation'), icon: <Settings size={24} />, shortcut: '6' },
   ];
 
   const handleAddClick = (type: any) => {
@@ -51,9 +53,9 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
                 </span>
                 <button
                   onClick={() => handleAddClick(tool.type)}
-                  aria-label={`Add ${tool.label}`}
+                  aria-label={`${t('common.add')} ${tool.label}`}
                   className="w-12 h-12 bg-white/40 dark:bg-slate-800/60 hover:bg-white/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-white/30 dark:border-white/10 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ease-out hover:scale-110 hover:border-purple-500 hover:text-purple-600 active:scale-95 backdrop-blur-md outline-none"
-                  title={`Add ${tool.label} (Press ${tool.shortcut})`}
+                  title={`${t('common.add')} ${tool.label} (Press ${tool.shortcut})`}
                   style={{ transitionDelay: `${index * 30}ms` }}
                 >
                   {tool.icon}
@@ -62,17 +64,17 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
             ))}
           </div>
         )}
-
+ 
         {/* FAB */}
         <button
           onClick={onToggleMenu}
-          aria-label={isMenuOpen ? "Close Menu" : "Add Element Menu"}
+          aria-label={isMenuOpen ? t('common.closeMenu') : t('common.addElementMenu')}
           disabled={disabled}
           className={cn(
             "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ease-out border border-white/20 backdrop-blur-md outline-none",
             disabled ? 'bg-slate-400/50 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 hover:scale-105 hover:shadow-orange-500/40 active:scale-95 text-white'
           )}
-          title={disabled ? 'Connecting...' : (isMenuOpen ? 'Close (Esc)' : 'Add Element (A/N)')}
+          title={disabled ? t('common.connecting') : (isMenuOpen ? t('common.closeEsc') : t('common.addElementShortcut'))}
         >
           <div className={cn("flex items-center justify-center transform transition-transform duration-300", isMenuOpen && !disabled ? 'rotate-45' : 'rotate-0')}>
             <Plus className="text-3xl md:text-4xl leading-none translate-y-px" size={32} />

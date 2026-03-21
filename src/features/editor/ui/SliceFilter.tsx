@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Slice } from '../../modeling';
 import {
     Filter,
@@ -35,6 +36,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
     onFocusModeStepsChange,
     effectiveHiddenSliceIds
 }) => {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [isCollapsed, setIsCollapsed] = useState(true);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -47,7 +49,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
         let result = slices;
         if (searchTerm.trim()) {
             const lower = searchTerm.toLowerCase();
-            result = slices.filter(s => (s.title || 'Untitled').toLowerCase().includes(lower));
+            result = slices.filter(s => (s.title || t('common.untitled')).toLowerCase().includes(lower));
         }
         return [...result].sort((a, b) => (a.order || 0) - (b.order || 0));
     }, [slices, searchTerm]);
@@ -127,7 +129,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
 
     if (isCollapsed) {
         return (
-            <GlassTooltip content={focusModeEnabled ? 'Focus Mode Active' : 'Filter Slices'}>
+            <GlassTooltip content={focusModeEnabled ? t('editor.focusModeActive') : t('editor.filterSlices')}>
                 <button
                     onClick={() => setIsCollapsed(false)}
                     className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:border-purple-400 hover:text-purple-600 transition-all mb-4 text-slate-500 dark:text-slate-400 relative active:scale-95"
@@ -155,13 +157,13 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
             {/* Header */}
             <div className="p-3 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-200 font-semibold text-sm">
-                    <span className="flex-1">Filter Slices</span>
+                    <span className="flex-1">{t('editor.filterSlices')}</span>
                     <button onClick={() => setIsCollapsed(true)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
                         <X size={16} />
                     </button>
                 </div>
                 <GlassInput
-                    placeholder="Search slices..."
+                    placeholder={t('editor.searchSlices')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -178,7 +180,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                         ? 'border-amber-300/50 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-900/20'
                         : 'border-gray-200/30 dark:border-white/5 bg-black/3 dark:bg-white/3'
                 }`}>
-                    <GlassTooltip content={focusModeEnabled ? 'Disable Focus Mode' : 'Enable Focus Mode'}>
+                    <GlassTooltip content={focusModeEnabled ? t('common.disableFocusMode') : t('common.enableFocusMode')}>
                         <button
                             onClick={() => onFocusModeChange(!focusModeEnabled)}
                             className={`p-1.5 rounded-lg transition-all ${
@@ -194,7 +196,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                     <span className={`text-[10px] font-semibold uppercase tracking-wider flex-1 ${
                         focusModeEnabled ? 'text-amber-700 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'
                     }`}>
-                        Focus Mode
+                        {t('editor.focusMode')}
                     </span>
 
                     {focusModeEnabled && onFocusModeStepsChange && (
@@ -217,7 +219,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                                 <Plus size={12} />
                             </button>
                             <span className="text-[9px] text-amber-600/60 dark:text-amber-400/60 ml-0.5">
-                                steps
+                                {t('editor.steps')}
                             </span>
                         </div>
                     )}
@@ -227,7 +229,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
             {/* Actions */}
             <div className="px-3 py-2 flex justify-between items-center border-b border-gray-200/30 dark:border-white/5 bg-black/5 dark:bg-white/5">
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
-                    {visibleCount} Slices Visible
+                    {t('editor.slicesVisible', { count: visibleCount })}
                 </span>
                 <div className="flex gap-1">
                     <button
@@ -238,7 +240,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                                 ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
                                 : 'text-slate-400 hover:text-purple-600 dark:text-slate-500 dark:hover:text-purple-400 hover:bg-black/5 dark:hover:bg-white/10'
                         }`}
-                        title="Show All Visible"
+                        title={t('editor.showAllVisible')}
                     >
                         <SquareCheck size={16} />
                     </button>
@@ -250,7 +252,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                                 ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
                                 : 'text-slate-400 hover:text-purple-600 dark:text-slate-500 dark:hover:text-purple-400 hover:bg-black/5 dark:hover:bg-white/10'
                         }`}
-                        title="Hide All Visible"
+                        title={t('editor.hideAllVisible')}
                     >
                         <Square size={16} />
                     </button>
@@ -263,7 +265,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                 className="overflow-y-auto flex-1 max-h-[250px] custom-scrollbar"
             >
                 {displayedSlices.length === 0 ? (
-                    <p className="p-4 text-center text-xs text-slate-400 italic">No slices found</p>
+                    <p className="p-4 text-center text-xs text-slate-400 italic">{t('editor.noSlicesFound')}</p>
                 ) : (
                     displayedSlices.map((slice, index) => {
                         const isHighlighted = index === selectedIndex;
@@ -288,7 +290,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                                 </div>
 
                                 <span className={`text-sm truncate flex-1 ${isVisible ? 'font-medium text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500 line-through decoration-slate-300 dark:decoration-slate-700'}`}>
-                                    {slice.title || 'Untitled'}
+                                    {slice.title || t('common.untitled')}
                                 </span>
 
                                 <div

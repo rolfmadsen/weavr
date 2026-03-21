@@ -57,11 +57,24 @@ export type ModelingEvent =
     // External Events (From GunDB remote peer)
     | { type: 'external:stateChanged'; payload: { type: 'node' | 'link' | 'slice'; id: string; data: any } };
 
+// ==========================================
+// 3. WORKSPACE (Settings / UI State)
+// ==========================================
+export type WorkspaceCommand =
+    | { type: 'workspace:changeLanguage'; payload: { languageCode: string } };
+
+export type WorkspaceEvent =
+    | { type: 'workspace:languageChanged'; payload: { languageCode: string } };
+
 // Helper map for Mitt to enforce types
 export type EventBusMap = {
     [K in ModelingCommand['type']]: Extract<ModelingCommand, { type: K }> extends { payload: infer P } ? P : void;
 } & {
     [K in ModelingEvent['type']]: Extract<ModelingEvent, { type: K }> extends { payload: infer P } ? P : void;
+} & {
+    [K in WorkspaceCommand['type']]: Extract<WorkspaceCommand, { type: K }> extends { payload: infer P } ? P : void;
+} & {
+    [K in WorkspaceEvent['type']]: Extract<WorkspaceEvent, { type: K }> extends { payload: infer P } ? P : void;
 } & {
     // Wildcard support if needed (handled manually in generic wrappers)
     '*': any;

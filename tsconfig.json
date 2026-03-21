@@ -14,8 +14,9 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.json"],
   "exclude": ["node_modules", "dist", "vite.config.ts", "tailwind.config.js", "postcss.config.js", "server.js"]
 }

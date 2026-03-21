@@ -20,7 +20,7 @@ interface SidebarProps {
 
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 800;
-const DEFAULT_WIDTH = 384;
+const DEFAULT_WIDTH = 480;
 
 const Sidebar: React.FC<SidebarProps> = ({
     isOpen,
@@ -158,12 +158,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={onClose}
             />
 
+            {/* Resize Curtain: captured mouse events during resize to prevent interference with canvas */}
+            {isResizing && (
+                <div 
+                    className="fixed inset-0 z-[60] cursor-ew-resize select-none"
+                    style={{ pointerEvents: 'auto' }}
+                />
+            )}
+
             {/* Sidebar Panel */}
             <aside
                 ref={sidebarRef}
                 id="sidebar"
                 className={cn(
-                    "fixed top-0 bottom-0 right-0 z-50 flex flex-col transition-transform duration-300 ease-in-out shadow-2xl",
+                    "fixed top-0 bottom-0 right-0 z-50 flex flex-col transition-transform duration-300 ease-in-out shadow-2xl overflow-x-hidden",
                     "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-l border-white/20 dark:border-white/10",
                     isOpen ? "translate-x-0" : "translate-x-full"
                 )}
@@ -186,7 +194,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     onClick={() => onTabChange?.(tab.id)}
                                     className={cn(
                                         "hs-tab-active:bg-white hs-tab-active:text-purple-600 hs-tab-active:shadow-sm dark:hs-tab-active:bg-slate-800 dark:hs-tab-active:text-purple-300",
-                                        "py-2 px-4 inline-flex items-center gap-x-2 bg-transparent text-sm font-medium text-slate-500 hover:text-purple-600 rounded-lg disabled:opacity-50 disabled:pointer-events-none dark:text-slate-400 dark:hover:text-purple-300",
+                                        "py-2 px-3 inline-flex items-center gap-x-1.5 bg-transparent text-sm font-medium text-slate-500 hover:text-purple-600 rounded-lg disabled:opacity-50 disabled:pointer-events-none dark:text-slate-400 dark:hover:text-purple-300",
                                         activeTab === tab.id && "active bg-white text-purple-600 shadow-sm dark:bg-slate-800 dark:text-purple-300"
                                     )}
                                     id={`sidebar-tab-${tab.id}`}
@@ -212,7 +220,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </header>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 custom-scrollbar">
                     {children}
                 </div>
             </aside>

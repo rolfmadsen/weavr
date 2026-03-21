@@ -36,40 +36,40 @@ export class DocumentationGenerator {
         return this.nodes.filter(n => n.sliceId === sliceId);
     }
 
-    private generateSliceMetadata(slice: Slice): string {
+    private generateSliceMetadata(slice: Slice, t: (key: string) => string): string {
         const parts: string[] = [];
-        if (slice.context) parts.push(`<span><strong>Context:</strong> ${slice.context}</span>`);
-        if (slice.status) parts.push(`<span><strong>Status:</strong> ${slice.status}</span>`);
-        if (slice.actors && slice.actors.length > 0) parts.push(`<span><strong>Actors:</strong> ${slice.actors.join(', ')}</span>`);
+        if (slice.context) parts.push(`<span><strong>${t('docs.context')}:</strong> ${slice.context}</span>`);
+        if (slice.status) parts.push(`<span><strong>${t('docs.status')}:</strong> ${slice.status}</span>`);
+        if (slice.actors && slice.actors.length > 0) parts.push(`<span><strong>${t('docs.actors')}:</strong> ${slice.actors.join(', ')}</span>`);
 
         if (parts.length === 0) return '';
         return `<div class="slice-metadata">${parts.join('')}</div>`;
     }
 
-    private generateFieldTable(fields?: Field[]): string {
+    private generateFieldTable(fields: Field[] | undefined, t: (key: string) => string): string {
         if (!fields || fields.length === 0) return '';
 
-        let html = '<table class="field-table"><thead><tr><th>Field</th><th>Type</th><th>PII</th><th>Required</th><th>Description</th></tr></thead><tbody>';
+        let html = `<table class="field-table"><thead><tr><th>${t('docs.field')}</th><th>${t('docs.type')}</th><th>${t('docs.pii')}</th><th>${t('docs.required')}</th><th>${t('docs.description')}</th></tr></thead><tbody>`;
         fields.forEach(f => {
             const typeDisplay = f.schema ? `<a href="#def-${f.schema}">${f.type}${f.subfields ? '[]' : ''}</a>` : `${f.type}${f.subfields ? '[]' : ''}`;
-            const piiDisplay = f.isPII ? '<span style="color: red; font-weight: bold;">PII</span>' : '-';
+            const piiDisplay = f.isPII ? `<span style="color: red; font-weight: bold;">${t('docs.pii')}</span>` : '-';
             html += `<tr>
                 <td>${f.name}</td>
                 <td>${typeDisplay}</td>
                 <td>${piiDisplay}</td>
-                <td>${f.required ? 'Yes' : 'No'}</td>
+                <td>${f.required ? t('docs.yes') : t('docs.no')}</td>
                 <td>${f.description || '-'}</td>
              </tr>`;
             if (f.subfields) {
                 // Simple nested representation
                 f.subfields.forEach((sf: Field) => {
                     const sfTypeDisplay = sf.schema ? `<a href="#def-${sf.schema}">${sf.type}</a>` : sf.type;
-                    const sfPiiDisplay = sf.isPII ? '<span style="color: red; font-weight: bold;">PII</span>' : '-';
+                    const sfPiiDisplay = sf.isPII ? `<span style="color: red; font-weight: bold;">${t('docs.pii')}</span>` : '-';
                     html += `<tr>
                         <td style="padding-left: 20px;">↳ ${sf.name}</td>
                         <td>${sfTypeDisplay}</td>
                         <td>${sfPiiDisplay}</td>
-                        <td>${sf.required ? 'Yes' : 'No'}</td>
+                        <td>${sf.required ? t('docs.yes') : t('docs.no')}</td>
                         <td>${sf.description || '-'}</td>
                      </tr>`;
                 });
@@ -79,14 +79,14 @@ export class DocumentationGenerator {
         return html;
     }
 
-    private renderService(node: Node): string {
+    private renderService(node: Node, t: (key: string) => string): string {
         if (node.context === 'EXTERNAL') {
-            return node.service ? `<span><strong>External Provider:</strong> ${node.service}</span>` : '';
+            return node.service ? `<span><strong>${t('docs.externalProvider')}:</strong> ${node.service}</span>` : '';
         }
-        return node.service ? `<span><strong>Owning Microservice:</strong> ${node.service}</span>` : '';
+        return node.service ? `<span><strong>${t('docs.owningMicroservice')}:</strong> ${node.service}</span>` : '';
     }
 
-    private generateTechnicalReference(slice: Slice): string {
+    private generateTechnicalReference(slice: Slice, t: (key: string) => string): string {
         const sliceNodes = this.getSliceNodes(slice.id);
         const commands = sliceNodes.filter(n => n.type === ElementType.Command);
         const events = sliceNodes.filter(n => n.type === ElementType.DomainEvent || n.type === ElementType.IntegrationEvent);
@@ -96,74 +96,74 @@ export class DocumentationGenerator {
 
         if (commands.length === 0 && events.length === 0 && readModels.length === 0 && screens.length === 0 && automations.length === 0) return '';
 
-        let html = '<div class="tech-ref-section"><h2>Technical Reference</h2>';
+        let html = `<div class="tech-ref-section"><h2>${t('docs.technicalReference')}</h2>`;
 
         if (screens.length > 0) {
-            html += '<h3>Screens</h3>';
+            html += `<h3>${t('docs.screens')}</h3>`;
             screens.forEach(scr => {
                 html += `<div class="tech-item">
                     <h4>${scr.name}</h4>
                     ${scr.description ? `<p class="desc">${scr.description}</p>` : ''}
                     <div class="tech-meta">
-                        ${this.renderService(scr)}
+                        ${this.renderService(scr, t)}
                     </div>
                 </div>`;
             });
         }
 
         if (commands.length > 0) {
-            html += '<h3>Commands</h3>';
+            html += `<h3>${t('docs.commands')}</h3>`;
             commands.forEach(cmd => {
                 html += `<div class="tech-item">
                     <h4>${cmd.name}</h4>
                     ${cmd.description ? `<p class="desc">${cmd.description}</p>` : ''}
                     <div class="tech-meta">
-                        ${cmd.apiEndpoint ? `<span><strong>Endpoint:</strong> ${cmd.apiEndpoint}</span>` : ''}
-                        ${this.renderService(cmd)}
-                        ${cmd.aggregate ? `<span><strong>Aggregate:</strong> ${cmd.aggregate}</span>` : ''}
+                        ${cmd.apiEndpoint ? `<span><strong>${t('docs.endpoint')}:</strong> ${cmd.apiEndpoint}</span>` : ''}
+                        ${this.renderService(cmd, t)}
+                        ${cmd.aggregate ? `<span><strong>${t('docs.aggregate')}:</strong> ${cmd.aggregate}</span>` : ''}
                     </div>
-                    ${this.generateFieldTable(cmd.fields)}
+                    ${this.generateFieldTable(cmd.fields, t)}
                  </div>`;
             });
         }
 
         if (events.length > 0) {
-            html += '<h3>Events</h3>';
+            html += `<h3>${t('docs.events')}</h3>`;
             events.forEach(evt => {
                 html += `<div class="tech-item">
                     <h4>${evt.name}</h4>
                     ${evt.description ? `<p class="desc">${evt.description}</p>` : ''}
                     <div class="tech-meta">
-                        ${this.renderService(evt)}
-                        ${evt.domain ? `<span><strong>Domain:</strong> ${evt.domain}</span>` : ''}
+                        ${this.renderService(evt, t)}
+                        ${evt.domain ? `<span><strong>${t('docs.domain')}:</strong> ${evt.domain}</span>` : ''}
                     </div>
-                ${this.generateFieldTable(evt.fields)}
+                ${this.generateFieldTable(evt.fields, t)}
                 </div>`;
             });
         }
 
         if (readModels.length > 0) {
-            html += '<h3>Read Models</h3>';
+            html += `<h3>${t('docs.readModels')}</h3>`;
             readModels.forEach(rm => {
                 html += `<div class="tech-item">
                     <h4>${rm.name}</h4>
                     ${rm.description ? `<p class="desc">${rm.description}</p>` : ''}
                     <div class="tech-meta">
-                        ${this.renderService(rm)}
+                        ${this.renderService(rm, t)}
                     </div>
-                ${this.generateFieldTable(rm.fields)}
+                ${this.generateFieldTable(rm.fields, t)}
                 </div>`;
             });
         }
 
         if (automations.length > 0) {
-            html += '<h3>Automations</h3>';
+            html += `<h3>${t('docs.automations')}</h3>`;
             automations.forEach(auto => {
                 html += `<div class="tech-item">
                     <h4>${auto.name}</h4>
                     ${auto.description ? `<p class="desc">${auto.description}</p>` : ''}
                     <div class="tech-meta">
-                        ${this.renderService(auto)}
+                        ${this.renderService(auto, t)}
                     </div>
                 </div>`;
             });
@@ -173,15 +173,15 @@ export class DocumentationGenerator {
         return html;
     }
 
-    private generateGWT(slice: Slice): string {
+    private generateGWT(slice: Slice, t: (key: string) => string): string {
         // Option 1: Explicit Specifications (Preferred)
         if (slice.specifications && slice.specifications.length > 0) {
             let html = '<div class="gwt-section">';
-            html += '<h2>Specification</h2>';
+            html += `<h2>${t('docs.specification')}</h2>`;
 
             slice.specifications.forEach(spec => {
                 html += `<div class="scenario-block">`;
-                html += `<span class="scenario-title">Scenario: ${spec.title}</span>`;
+                html += `<span class="scenario-title">${t('docs.scenario')}: ${spec.title}</span>`;
 
                 if (spec.comments && spec.comments.length > 0) {
                     spec.comments.forEach(c => {
@@ -190,13 +190,13 @@ export class DocumentationGenerator {
                 }
 
                 spec.given.forEach(step => {
-                    html += `<div class="step-row"><span class="step-keyword">Given</span> ${step.title}</div>`;
+                    html += `<div class="step-row"><span class="step-keyword">${t('slices.given')}</span> ${step.title}</div>`;
                 });
                 spec.when.forEach(step => {
-                    html += `<div class="step-row"><span class="step-keyword">When</span> ${step.title}</div>`;
+                    html += `<div class="step-row"><span class="step-keyword">${t('slices.when')}</span> ${step.title}</div>`;
                 });
                 spec.then.forEach(step => {
-                    html += `<div class="step-row"><span class="step-keyword">Then</span> ${step.title}</div>`;
+                    html += `<div class="step-row"><span class="step-keyword">${t('slices.then')}</span> ${step.title}</div>`;
                 });
 
                 html += `</div>`;
@@ -209,13 +209,17 @@ export class DocumentationGenerator {
         // Option 2: No Specification
         return `
             <div class="gwt-section">
-                <h2>Specification</h2>
-                <p>No specification defined.</p>
+                <h2>${t('docs.specification')}</h2>
+                <p>${t('docs.noSpecification')}</p>
             </div>
         `;
     }
 
-    public async generate(config: GeneratorConfig, onProgress?: (current: number, total: number, message: string) => void): Promise<string> {
+    public async generate(
+        config: GeneratorConfig, 
+        t: (key: string, options?: any) => string,
+        onProgress?: (current: number, total: number, message: string) => void
+    ): Promise<string> {
         const sortedSlices = [...this.slices].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const total = sortedSlices.length;
 
@@ -229,17 +233,17 @@ export class DocumentationGenerator {
         htmlBody += `
             <div class="project-header">
                 <h1>${config.projectTitle}</h1>
-                <p>Documentation generated on ${new Date().toLocaleDateString()}</p>
+                <p>${t('docs.generatedOn', { date: new Date().toLocaleDateString() })}</p>
                 <p>${config.description || ''}</p>
             </div>
             <div class="data-dictionary">
-                <h2>Data Dictionary</h2>
-                ${this.generateDictionaryHTML()}
+                <h2>${t('docs.dataDictionary')}</h2>
+                ${this.generateDictionaryHTML(t)}
             </div>
         `;
 
         // 2. Iterate Slices with Chapter Grouping
-        htmlBody += '<h1 style="margin-top: 4rem; margin-bottom: 2rem; border-bottom: 2px solid #333; padding-bottom: 0.5rem;">Slices</h1>';
+        htmlBody += `<h1 style="margin-top: 4rem; margin-bottom: 2rem; border-bottom: 2px solid #333; padding-bottom: 0.5rem;">${t('docs.slices')}</h1>`;
 
         // Group slices by chapter
         const slicesByChapter: Record<string, Slice[]> = {};
@@ -253,12 +257,6 @@ export class DocumentationGenerator {
             }
             slicesByChapter[chap].push(slice);
         });
-
-        // Ensure "General" is last if it exists? Or first? usually first.
-        // Let's stick to the sorted order found in slices (which are sorted by drag-order).
-        // Actually, if we want visuals to match current drag order, we should respect that.
-        // But drag order doesn't enforce chapters yet.
-        // Grouping them effectively reorders them in the Docs. This is acceptable for "Chapters".
 
         let globalIndex = 0;
 
@@ -294,16 +292,16 @@ export class DocumentationGenerator {
                     <div class="slice-header">
                             <div class="slice-title-row">
                                 <h2>${globalIndex}. ${slice.title}</h2>
-                                <a href="#top">Back to Top</a>
+                                <a href="#top">${t('docs.backToTop')}</a>
                             </div>
-                            ${this.generateSliceMetadata(slice)}
+                            ${this.generateSliceMetadata(slice, t)}
                         </div>
                         <div class="slice-image">
                             <img src="${dataUrl}" alt="${slice.title}" />
                         </div>
                         <div class="slice-details">
-                            ${this.generateTechnicalReference(slice)}
-                            ${this.generateGWT(slice)}
+                            ${this.generateTechnicalReference(slice, t)}
+                            ${this.generateGWT(slice, t)}
                         </div>
                     </section>
                     <hr/>
@@ -555,8 +553,8 @@ export class DocumentationGenerator {
         `;
     }
 
-    private generateDictionaryHTML(): string {
-        if (this.definitions.length === 0) return '<p>No data definitions.</p>';
+    private generateDictionaryHTML(t: (key: string) => string): string {
+        if (this.definitions.length === 0) return `<p>${t('docs.noSpecification')}</p>`;
 
         let html = '';
 
@@ -568,13 +566,13 @@ export class DocumentationGenerator {
                 
                 ${def.attributes && def.attributes.length > 0 ? `
                     <table class="field-table">
-                        <thead><tr><th>Attribute</th><th>Type</th><th>PII</th></tr></thead>
+                        <thead><tr><th>${t('docs.field')}</th><th>${t('docs.type')}</th><th>${t('docs.pii')}</th></tr></thead>
                         <tbody>
                             ${def.attributes.map((attr: Attribute) => `
                                 <tr>
                                     <td>${attr.name}</td>
                                     <td>${attr.type}</td>
-                                    <td>${attr.isPII ? '<span style="color: red; font-weight: bold;">PII</span>' : '-'}</td>
+                                    <td>${attr.isPII ? `<span style="color: red; font-weight: bold;">${t('docs.pii')}</span>` : '-'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>

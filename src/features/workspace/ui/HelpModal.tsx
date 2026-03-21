@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { ElementType } from '../../modeling';
 import { ELEMENT_STYLE } from '../../../shared/constants';
 import {
@@ -11,10 +12,10 @@ import {
   Settings,
   Upload,
   BookOpen,
-  Link2,
   CheckSquare,
   Keyboard,
-  BadgeAlert
+  BadgeAlert,
+  Layers
 } from 'lucide-react';
 import { GlassCard } from '../../../shared/components/GlassCard';
 import { GlassButton } from '../../../shared/components/GlassButton';
@@ -31,366 +32,406 @@ interface HelpModalProps {
   onImport: (file: File) => void;
 }
 
-const Kbd: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const Kbd: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
   <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg">{children}</kbd>
 );
 
-const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> = {
-  [ElementType.Screen]: { name: 'Screen', icon: <Monitor size={20} /> },
-  [ElementType.Command]: { name: 'Command', icon: <SquareActivity size={20} /> },
-  [ElementType.DomainEvent]: { name: 'Domain Event', icon: <Zap size={20} /> },
-  [ElementType.ReadModel]: { name: 'Read Model', icon: <Eye size={20} /> },
-  [ElementType.IntegrationEvent]: { name: 'Integration Event', icon: <Globe size={20} /> },
-  [ElementType.Automation]: { name: 'Automation', icon: <Settings size={20} /> },
+const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadExample }) => {
+  const { t } = useTranslation();
+
+  const ELEMENT_MAP: Record<ElementType, { name: string; icon: React.ReactNode }> = {
+    [ElementType.Screen]: { name: t('modeling.elements.screen'), icon: <Monitor size={20} /> },
+    [ElementType.Command]: { name: t('modeling.elements.command'), icon: <SquareActivity size={20} /> },
+    [ElementType.DomainEvent]: { name: t('modeling.elements.domainEvent'), icon: <Zap size={20} /> },
+    [ElementType.ReadModel]: { name: t('modeling.elements.readModel'), icon: <Eye size={20} /> },
+    [ElementType.IntegrationEvent]: { name: t('modeling.elements.integrationEvent'), icon: <Globe size={20} /> },
+    [ElementType.Automation]: { name: t('modeling.elements.automation'), icon: <Settings size={20} /> },
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100/50 dark:border-purple-500/10 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-purple-900 dark:text-purple-300">{t('help.newToEventModeling')}</h3>
+          <p className="text-purple-700 dark:text-purple-400 text-sm mt-1">
+            {t('help.loadExampleDescription')}
+          </p>
+        </div>
+        <button
+          onClick={onLoadExample}
+          className="shrink-0 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-purple-500/20"
+        >
+          <Upload className="w-5 h-5" />
+          {t('help.loadExampleButton')}
+        </button>
+      </div>
+
+      <p className="text-base text-gray-700 dark:text-gray-300">
+        <strong className="font-semibold text-purple-600 dark:text-purple-400">{t('help.introContent.title')}</strong> {t('help.introContent.description')}
+      </p>
+
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">{t('help.introContent.storage.title')}</h3>
+        <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
+          <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 dark:text-gray-300">
+            <li>
+              {t('help.introContent.storage.localFirst')}
+            </li>
+            <li>
+              {t('help.introContent.storage.persistence')}
+            </li>
+            <li>
+              {t('help.introContent.storage.backups')}
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3">{t('help.introContent.coreElements')}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          {Object.values(ElementType).map(type => (
+            <div key={type} className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
+                style={{ backgroundColor: ELEMENT_STYLE[type].color, color: ELEMENT_STYLE[type].textColor }}
+              >
+                {ELEMENT_MAP[type].icon}
+              </div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{ELEMENT_MAP[type].name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">{t('help.introContent.patterns.title')}</h3>
+        <div className="space-y-6">
+          <div>
+            <h4 className="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-1">
+              {t('help.introContent.patterns.stateChange.title')}
+            </h4>
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-mono mb-2 flex items-center flex-wrap gap-1">
+              <span className="font-semibold text-gray-800 dark:text-gray-300">{t('modeling.elements.screen')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>{t('modeling.elements.command')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}(s)</span>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('help.introContent.patterns.stateChange.description')}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-1">
+              {t('help.introContent.patterns.stateView.title')}
+            </h4>
+            <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}(s)</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>{t('modeling.elements.readModel')}</span>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('help.introContent.patterns.stateView.description')}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-1">
+              {t('help.introContent.patterns.automation.title')}
+            </h4>
+            <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}(s)</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>{t('modeling.elements.readModel')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>{t('modeling.elements.automation')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>{t('modeling.elements.command')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}(s)</span>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('help.introContent.patterns.automation.description')}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-1">
+              {t('help.introContent.patterns.translation.title')}
+            </h4>
+            <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>{t('modeling.elements.integrationEvent')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>{t('modeling.elements.automation')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>{t('modeling.elements.command')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>{t('modeling.elements.integrationEvent')}</span>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('help.introContent.patterns.translation.description')}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-bold text-red-800 dark:text-red-400 mb-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+          {t('help.introContent.antiPatterns.title')}
+        </h3>
+        <div className="space-y-6">
+          <div>
+            <h4 className="font-bold text-gray-800 dark:text-white mb-1">{t('help.introContent.antiPatterns.leftChair.title')}</h4>
+            <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+              <span className="font-semibold">{t('modeling.elements.screen')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>{t('modeling.elements.command')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}</span> +
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}</span> +
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}...</span>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('help.introContent.antiPatterns.leftChair.description')}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-gray-800 dark:text-white mb-1">{t('help.introContent.antiPatterns.rightChair.title')}</h4>
+            <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}</span> +
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}</span> +
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>{t('modeling.elements.domainEvent')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>{t('modeling.elements.readModel')}</span>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('help.introContent.antiPatterns.rightChair.description')}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-gray-800 dark:text-white mb-1">{t('help.introContent.antiPatterns.bed.title')}</h4>
+            <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
+              <span className="font-semibold">{t('modeling.elements.screen')}</span> →
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>{t('modeling.elements.command')}</span> +
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>{t('modeling.elements.command')}</span> +
+              <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>{t('modeling.elements.command')}</span>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('help.introContent.antiPatterns.bed.description')}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-gray-800 dark:text-white mb-1">{t('help.introContent.antiPatterns.bookshelf.title')}</h4>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('help.introContent.antiPatterns.bookshelf.description')}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadExample }) => (
-  <div className="space-y-6">
-    <div className="bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100/50 dark:border-purple-500/10 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      <div>
-        <h3 className="text-lg font-bold text-purple-900 dark:text-purple-300">New to Event Modeling?</h3>
-        <p className="text-purple-700 dark:text-purple-400 text-sm mt-1">
-          Load a complete example project to see how Weavr models itself.
+const SemanticsContent = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-8 pb-4">
+      <div className="bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100/50 dark:border-purple-500/10 rounded-xl p-5">
+        <h3 className="text-purple-900 dark:text-purple-300 font-bold mb-2 flex items-center gap-2">
+          <Monitor className="w-5 h-5" />
+          {t('help.semanticsContent.title')}
+        </h3>
+        <p className="text-purple-700/80 dark:text-purple-400/80 text-sm leading-relaxed">
+          {t('help.semanticsContent.description')}
         </p>
       </div>
-      <button
-        onClick={onLoadExample}
-        className="shrink-0 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-purple-500/20"
-      >
-        <Upload className="w-5 h-5" />
-        Load Example Project
-      </button>
+
+      <div className="grid grid-cols-1 gap-6">
+        {/* 1. Data Dictionary */}
+        <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">{t('help.semanticsContent.dictionary.title')}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <Trans i18nKey="help.semanticsContent.dictionary.description" components={{ strong: <strong />, kbd: <Kbd /> }} />
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Properties Panel */}
+        <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <Settings className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">{t('help.semanticsContent.fields.title')}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <Trans i18nKey="help.semanticsContent.fields.description" components={{ strong: <strong />, kbd: <Kbd /> }} />
+              </p>
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
+                  <div className="w-6 h-6 flex items-center justify-center bg-amber-500/10 border border-amber-500/30 rounded text-amber-600"><CheckSquare size={12} /></div>
+                  <span>{t('help.semanticsContent.fields.required')}</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
+                  <div className="w-6 h-6 flex items-center justify-center bg-blue-500/10 border border-blue-500/30 rounded text-blue-500"><Eye size={12} /> / <Keyboard size={12} /></div>
+                  <span>{t('help.semanticsContent.fields.roles')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Information Completeness */}
+        <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
+              <BadgeAlert size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">{t('help.semanticsContent.completeness.title')}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <Trans i18nKey="help.semanticsContent.completeness.description" components={{ strong: <strong />, kbd: <Kbd /> }} />
+              </p>
+
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BadgeAlert size={14} className="text-amber-500" />
+                  <span className="text-[10px] font-bold text-amber-600 uppercase">{t('help.semanticsContent.completeness.flag')}</span>
+                </div>
+                <p className="text-[10px] text-amber-700/70 dark:text-amber-400/70 italic">
+                  "<Trans i18nKey="help.semanticsContent.completeness.example" components={{ strong: <strong />, kbd: <Kbd /> }} />"
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                <Trans i18nKey="help.semanticsContent.completeness.note" components={{ strong: <strong />, kbd: <Kbd /> }} />
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Aggregates */}
+        <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <Globe className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">{t('help.semanticsContent.aggregates.title')}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <Trans i18nKey="help.semanticsContent.aggregates.description" components={{ strong: <strong />, kbd: <Kbd /> }} />
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Slices */}
+        <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
+              <Layers className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">{t('help.semanticsContent.slices.title')}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <Trans i18nKey="help.semanticsContent.slices.description" components={{ strong: <strong />, kbd: <Kbd /> }} />
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+};
 
-    <p className="text-base text-gray-700 dark:text-gray-300">
-      <strong className="font-semibold text-purple-600 dark:text-purple-400">Event Modeling</strong> is a visual way to design systems by focusing on how information changes over time. You build a complete "story" of your system with each chapter being a slice or building block told from left to right.
-    </p>
+const ControlsContent = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">{t('help.controlsContent.canvasBasics')}</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+          <li><Trans i18nKey="help.controlsContent.pan" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.horizontalPan" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.zoom" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.deselectAll" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+        </ul>
+      </div>
 
-    <div>
-      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Storage & Privacy</h3>
-      <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
-        <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 dark:text-gray-300">
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">{t('help.controlsContent.workingWithElements')}</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
           <li>
-            <strong>Local-First:</strong> Data is stored exclusively in your browser (IndexedDB). Weavr has no access to it.
+            <Trans
+              i18nKey="help.controlsContent.addElement"
+              components={{
+                strong: <strong />,
+                kbd: <Kbd />,
+                plus: <span className="inline-flex items-center justify-center w-6 h-6 bg-orange-500 text-white rounded-full font-bold">+</span>
+              }}
+            />
+          </li>
+          <li><Trans i18nKey="help.controlsContent.quickAdd" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.selectAll" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.singleSelect" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.multiSelect" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.moveSingle" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.moveMultiple" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.delete" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.navigate" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.focusNode" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.duplicate" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.copyPaste" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">{t('help.controlsContent.propertiesPanel')}</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+          <li><Trans i18nKey="help.controlsContent.openPanel" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.closePanel" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.multiEdit" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">{t('help.controlsContent.sidebarNavigation')}</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+          <li><Trans i18nKey="help.controlsContent.openProperties" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.openDictionary" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.openSlices" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+          <li><Trans i18nKey="help.controlsContent.openActors" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">{t('help.controlsContent.creatingRelationships')}</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+          <li>
+            <Trans
+              i18nKey="help.controlsContent.jumpToRelationships"
+              components={{
+                strong: <strong />,
+                kbd: <Kbd />,
+                plus: <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px]">+</span>
+              }}
+            />
           </li>
           <li>
-            <strong>Persistence:</strong> Your data remains here as long as you don't clear your browser's "Site Data" or "Cache".
+            <Trans
+              i18nKey="help.controlsContent.drawConnection"
+              components={{
+                strong: <strong />,
+                kbd: <Kbd />,
+                plus: <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px]">+</span>
+              }}
+            />
           </li>
-          <li>
-            <strong>Backups:</strong> To keep your data safe from accidental deletion, use the <strong>Export</strong> button in the top header to save a <code>.json</code> file to your computer.
-          </li>
+          <li><Trans i18nKey="help.controlsContent.quickDraw" components={{ strong: <strong />, kbd: <Kbd /> }} /></li>
         </ul>
       </div>
     </div>
-
-    <div>
-      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3">Core Elements</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-        {Object.values(ElementType).map(type => (
-          <div key={type} className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
-              style={{ backgroundColor: ELEMENT_STYLE[type].color, color: ELEMENT_STYLE[type].textColor }}
-            >
-              {ELEMENT_MAP[type].icon}
-            </div>
-            <span className="font-medium text-gray-700 dark:text-gray-300">{ELEMENT_MAP[type].name}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    <div>
-      <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">4 Event Model Patterns</h3>
-      <div className="space-y-6">
-        <div>
-          <h4 className="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-1">
-            State Change Pattern
-          </h4>
-          <div className="text-sm text-gray-500 dark:text-gray-400 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold text-gray-800 dark:text-gray-300">Screen</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Domain Event(s)</span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            State Change Pattern describes a state change and its way from the start (what is the trigger?) to the end (what is the state change?). It starts with a white box (Screen), followed by a blue box (Command) and then one or multiple yellow boxes (Event).
-          </p>
-        </div>
-
-        <div>
-          <h4 className="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-1">
-            State View Pattern
-          </h4>
-          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Domain Event(s)</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE.READ_MODEL.color }}>Read Model (View)</span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            State View Pattern connects existing events from the board to a green “Read Model (View)” box. That leads to a quick overview of what information will be used by it.
-          </p>
-        </div>
-
-        <div>
-          <h4 className="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-1">
-            Automation Pattern
-          </h4>
-          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Domain Event(s)</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>Read Model (View)</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>Automated Trigger</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Domain Event(s)</span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            Use this pattern whenever the system should do something automatically. It is essentially a combined State Change and State View Pattern with an automated trigger in the middle.
-          </p>
-        </div>
-
-        <div>
-          <h4 className="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-1">
-            Translation Pattern (System integration)
-          </h4>
-          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Automation].color }}>Automation</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.IntegrationEvent].textColor }}>Integration Event</span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            Used for transferring knowledge between systems. An external <strong>Integration Event</strong> triggers an <strong>Automation</strong> that issues a <strong>Command</strong> to produce an outgoing <strong>Integration Event</strong>. External data can also populate <strong>Read Models</strong> directly for visualization.
-          </p>
-        </div>
-
-      </div>
-    </div>
-
-    <div>
-      <h3 className="text-lg font-bold text-red-800 dark:text-red-400 mb-2 pt-4 border-t border-gray-100 dark:border-gray-800">
-        The 4 Anti-Patterns (Overcomplication)
-      </h3>
-      <div className="space-y-6">
-        <div>
-          <h4 className="font-bold text-gray-800 dark:text-white mb-1">The Left Chair</h4>
-          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold">Screen</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> +
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> +
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event...</span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            One command triggering too many events. This often happens when business logic is crammed into one place instead of being broken down into separate state changes.
-          </p>
-        </div>
-
-        <div>
-          <h4 className="font-bold text-gray-800 dark:text-white mb-1">The Right Chair</h4>
-          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> +
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> +
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.DomainEvent].color }}>Event</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.ReadModel].color }}>Read Model (View</span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            Many events feeding into a single read model (View). This indicates a "Summary View" that knows everything, potentially creating high coupling.
-          </p>
-        </div>
-
-        <div>
-          <h4 className="font-bold text-gray-800 dark:text-white mb-1">The Bed</h4>
-          <div className="text-sm text-gray-500 font-mono mb-2 flex items-center flex-wrap gap-1">
-            <span className="font-semibold">Screen</span> →
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> +
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span> +
-            <span className="font-semibold" style={{ color: ELEMENT_STYLE[ElementType.Command].color }}>Command</span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            One UI component firing multiple commands in sequence. This reveals orchestration happening in the front-end instead of letting the event flow handle the sequence.
-          </p>
-        </div>
-
-        <div>
-          <h4 className="font-bold text-gray-800 dark:text-white mb-1">The Bookshelf</h4>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
-            One slice contains all your business rules and logic (Given-When-Thens), while others are anemic. This is a "God-Object" in visual form where one slice does everything.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const SemanticsContent = () => (
-  <div className="space-y-8 pb-4">
-    <div className="bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100/50 dark:border-purple-500/10 rounded-xl p-5">
-      <h3 className="text-purple-900 dark:text-purple-300 font-bold mb-2 flex items-center gap-2">
-        <Monitor className="w-5 h-5" />
-        Beyond Just Drawing
-      </h3>
-      <p className="text-purple-700/80 dark:text-purple-400/80 text-sm leading-relaxed">
-        Weavr isn't just for sketching—it's a system specification engine. It helps you ensure that your design is logically complete and ready for implementation.
-      </p>
-    </div>
-
-    <div className="grid grid-cols-1 gap-6">
-      {/* 1. Properties */}
-      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <Settings className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">1. Fields & Payload</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Define the data payload for any element in the <strong>Schema (Payload)</strong> section.
-            </p>
-            <div className="space-y-2 mb-3">
-              <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
-                <div className="w-6 h-6 flex items-center justify-center bg-amber-500/10 border border-amber-500/30 rounded text-amber-600"><CheckSquare size={12} /></div>
-                <span><strong>Required:</strong> Mark fields as mandatory for business logic.</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
-                <div className="w-6 h-6 flex items-center justify-center bg-blue-500/10 border border-blue-500/30 rounded text-blue-500"><Eye size={12} /> / <Keyboard size={12} /></div>
-                <span><strong>Roles (Screens):</strong> Choose if a field is <em>Display-only</em> or <em>Input</em>.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 1.5 Data Dictionary */}
-      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <BookOpen className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">2. Unified Dictionary</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Synchronize fields across your model by linking them to the <strong>Data Dictionary</strong>.
-            </p>
-            <div className="space-y-2 mb-3">
-              <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 p-2 rounded border border-emerald-500/10">
-                <Link2 className="w-3.5 h-3.5" />
-                <span><strong>Quick-Link:</strong> Click the link icon to search and bind attributes in-place.</span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-              Linked fields are read-only to ensure names and types stay consistent everywhere.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Aggregates */}
-      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Globe className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">3. Aggregates & Boundaries</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Aggregates define the "State" boundary. Commands and Events are grouped into swimlanes based on their assigned Aggregate.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. OIC */}
-      <div className="group relative bg-white/5 dark:bg-black/20 p-5 rounded-xl border border-slate-200/50 dark:border-white/5 transition-all hover:border-purple-500/30">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Monitor size={24} />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">4. Information Completeness (OIC)</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Weavr automatically flags <strong>Linage Gaps</strong> if a required field has no incoming source.
-            </p>
-
-            <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 mb-4">
-               <div className="flex items-center gap-2 mb-2">
-                 <BadgeAlert size={14} className="text-amber-500" />
-                 <span className="text-[10px] font-bold text-amber-600 uppercase">Information Incomplete</span>
-               </div>
-               <p className="text-[10px] text-amber-700/70 dark:text-amber-400/70">
-                 "Screen is missing data from Read Model: OrderID"
-               </p>
-            </div>
-
-            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              This ensures that your technical designs are mathematically sound before a single line of code is written.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-
-const ControlsContent = () => (
-
-  <div className="space-y-6">
-    <div>
-      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Canvas Basics</h3>
-      <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-        <li><strong>Pan:</strong> Scroll anywhere, or hold <Kbd>Space</Kbd> + Drag (Hand tool).</li>
-        <li><strong>Horizontal Pan:</strong> Hold <Kbd>Shift</Kbd> + Scroll.</li>
-        <li><strong>Zoom:</strong> <Kbd>Ctrl/Cmd</Kbd> + Scroll, or use <Kbd>Ctrl/Cmd</Kbd> + <Kbd>+</Kbd>/<Kbd>-</Kbd>/<Kbd>0</Kbd>.</li>
-        <li><strong>Deselect All:</strong> Click once on the empty canvas background.</li>
-      </ul>
-    </div>
-
-    <div>
-      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Working with Elements</h3>
-      <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-        <li><strong>Add Element:</strong> Click the <span className="inline-flex items-center justify-center w-6 h-6 bg-orange-500 text-white rounded-full font-bold">+</span> button or press <Kbd>A</Kbd> / <Kbd>N</Kbd>.</li>
-        <li><strong>Quick Add:</strong> With toolbar open, press <Kbd>1</Kbd>-<Kbd>6</Kbd> to add specific elements.</li>
-        <li><strong>Select All:</strong> Press <Kbd>Ctrl/Cmd</Kbd> + <Kbd>A</Kbd> to select all elements.</li>
-        <li><strong>Single Select:</strong> Click any element to select it.</li>
-        <li><strong>Multi-Select:</strong> Hold <Kbd>Shift</Kbd> + Drag (Marquee) or <Kbd>Shift</Kbd> + Click.</li>
-        <li><strong>Move Single Element:</strong> Click and drag a single element.</li>
-        <li><strong>Move Multiple Elements:</strong> Select multiple elements, then drag them with the cursor or use the <Kbd>Arrow Keys</Kbd>.</li>
-        <li><strong>Delete:</strong> Select one or more elements and press <Kbd>Delete</Kbd> or <Kbd>Backspace</Kbd>.</li>
-        <li><strong>Navigate:</strong> Use <Kbd>Tab</Kbd> and <Kbd>Shift</Kbd>+<Kbd>Tab</Kbd> to cycle through elements.</li>
-        <li><strong>Focus Node:</strong> Press <Kbd>F</Kbd> to center the view on the selected element.</li>
-        <li><strong>Duplicate:</strong> Select elements and press <Kbd>Ctrl/Cmd</Kbd> + <Kbd>D</Kbd>.</li>
-        <li><strong>Copy/Paste:</strong> Press <Kbd>Ctrl/Cmd</Kbd> + <Kbd>C</Kbd> to Copy, <Kbd>Ctrl/Cmd</Kbd> + <Kbd>V</Kbd> to Paste.</li>
-      </ul>
-    </div>
-
-    <div>
-      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Properties Panel</h3>
-      <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-        <li><strong>Open Panel:</strong> Double-click an element, or select one and press <Kbd>Enter</Kbd>.</li>
-        <li><strong>Close Panel:</strong> Press <Kbd>Esc</Kbd> or click the 'X' button.</li>
-        <li><strong>Multi-Edit:</strong> Select multiple elements (Shift+Drag or Shift+Click) to assign Slices or Entities to all of them at once.</li>
-      </ul>
-    </div>
-
-    <div>
-      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Sidebar Navigation</h3>
-      <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-        <li><strong>Open Properties:</strong> Press <Kbd>Alt</Kbd> + <Kbd>1</Kbd> (or <Kbd>P</Kbd>).</li>
-        <li><strong>Open Dictionary:</strong> Press <Kbd>Alt</Kbd> + <Kbd>2</Kbd> (or <Kbd>D</Kbd>).</li>
-        <li><strong>Open Slices:</strong> Press <Kbd>Alt</Kbd> + <Kbd>3</Kbd> (or <Kbd>S</Kbd>).</li>
-        <li><strong>Open Actors:</strong> Press <Kbd>Alt</Kbd> + <Kbd>4</Kbd>.</li>
-      </ul>
-    </div>
-
-    <div>
-      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Creating Relationships</h3>
-      <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-        <li><strong>Jump to Relationships:</strong> Select a node and press <Kbd>C</Kbd>, or click the <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px]">+</span> handle.</li>
-        <li><strong>Draw Connection:</strong> Drag the <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px]">+</span> handle to another node.</li>
-        <li><strong>Quick Draw:</strong> Hold <Kbd>Alt</Kbd> and drag from a node.</li>
-      </ul>
-    </div>
-  </div>
-);
-
+  );
+};
 
 const TabButton: React.FC<{
   isActive: boolean;
@@ -411,6 +452,7 @@ const TabButton: React.FC<{
 );
 
 const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'introduction' | 'semantics' | 'controls'>('introduction');
 
   useEffect(() => {
@@ -433,7 +475,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
       onClose();
     } catch (error) {
       console.error('Error loading example:', error);
-      alert('Failed to load example project. Please try again.');
+      alert(t('help.loadExampleError'));
     }
   };
 
@@ -450,7 +492,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-6 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Help</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('help.title')}</h2>
           <GlassButton variant="ghost" size="sm" onClick={onClose} className="rounded-full !p-2">
             <X size={20} />
           </GlassButton>
@@ -462,19 +504,19 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
               isActive={activeTab === 'introduction'}
               onClick={() => setActiveTab('introduction')}
             >
-              Introduction
+              {t('help.introduction')}
             </TabButton>
             <TabButton
               isActive={activeTab === 'semantics'}
               onClick={() => setActiveTab('semantics')}
             >
-              Semantics
+              {t('help.semantics')}
             </TabButton>
             <TabButton
               isActive={activeTab === 'controls'}
               onClick={() => setActiveTab('controls')}
             >
-              Controls
+              {t('help.controls')}
             </TabButton>
           </div>
         </div>
@@ -491,7 +533,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
             onClick={onClose}
             className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors shadow-lg hover:shadow-purple-500/30"
           >
-            Got it!
+            {t('help.gotIt')}
           </button>
         </div>
       </GlassCard>

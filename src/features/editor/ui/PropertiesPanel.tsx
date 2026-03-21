@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Node, Link, DataDefinition } from '../../modeling';
 import { useCrossModelData } from '../../modeling';
 import { useModelingContext } from '../../modeling/store/ModelingContext';
@@ -17,6 +18,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onFocusHandled,
   modelId
 }) => {
+  const { t } = useTranslation();
   const store = useModelingContext();
   const nameInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -57,7 +59,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   if (!store || !selectedItem) {
     return (
       <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-        <p>Select an item to view properties</p>
+        <p>{t('common.selectItemToViewProperties')}</p>
       </div>
     );
   }

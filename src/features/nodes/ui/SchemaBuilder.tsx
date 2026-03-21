@@ -1,9 +1,11 @@
 import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react';
-import { Plus, X, ChevronDown, CheckSquare, Square, Search, Link2, Eye, Keyboard } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Plus, X, CheckSquare, Square, Search, Link2, Eye, Keyboard } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Node, Field, DataDefinition, DefinitionType, ElementType, Link } from '../../modeling/domain/types';
 import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassTooltip } from '../../../shared/components/GlassTooltip';
+import { GlassSelect } from '../../../shared/components/GlassSelect';
 import { InlineOmnibar } from './InlineOmnibar';
 import { useFlattenedDictionary, SearchableAttribute } from '../../dictionary/store/useFlattenedDictionary';
 import { PRIMITIVE_TYPES } from '../../modeling/domain/constants';
@@ -25,6 +27,7 @@ const QuickPickLinker: React.FC<{
     onClose: () => void;
     anchorRect?: DOMRect;
 }> = ({ query: initialQuery, definitions, onSelect, onClose, anchorRect }) => {
+    const { t } = useTranslation();
     const [query, setQuery] = useState(initialQuery);
     const { attributes } = useFlattenedDictionary(definitions, query);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -65,12 +68,12 @@ const QuickPickLinker: React.FC<{
                     className="py-2 px-3 ps-9 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs bg-white dark:bg-neutral-900 text-gray-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-all"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
-                    placeholder="Search attributes..."
+                    placeholder={t('schema.searchAttributes')}
                 />
             </div>
             <div className="max-h-40 overflow-y-auto">
                 {attributes.length === 0 && (
-                    <div className="p-3 text-center text-[10px] text-gray-400 italic">No matches found.</div>
+                    <div className="p-3 text-center text-[10px] text-gray-400 italic">{t('schema.noMatches')}</div>
                 )}
                 {attributes.map((attr) => (
                     <button
@@ -84,7 +87,7 @@ const QuickPickLinker: React.FC<{
                                 {attr.attribute.name}
                             </span>
                             <span className="text-[9px] text-gray-400 truncate">
-                                in {attr.parentName ?? 'Orphan'}
+                                {t('schema.in')} {attr.parentName ?? t('modeling.elements.orphan')}
                             </span>
                         </div>
                         <div className="ml-auto flex flex-col items-end gap-0.5">
@@ -122,6 +125,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
     allLinks = [],
     onAddDefinition
 }) => {
+    const { t } = useTranslation();
     const fields = node.fields || [];
 
     // ICC: Compute available fields from incoming Read Models (for Screen smart defaults)
@@ -183,9 +187,9 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
     return (
         <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center mb-1">
-                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Schema (Payload)</h4>
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">{t('schema.title')}</h4>
                 <GlassButton variant="ghost" size="sm" onClick={handleAddField}>
-                    <Plus size={14} className="mr-1" /> Add
+                    <Plus size={14} className="mr-1" /> {t('schema.add')}
                 </GlassButton>
             </div>
 
@@ -201,7 +205,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
 
             {/* Fields List */}
             <div className="flex flex-col gap-2">
-                {fields.length === 0 && <p className="text-xs text-gray-400 italic">No fields defined.</p>}
+                {fields.length === 0 && <p className="text-xs text-gray-400 italic">{t('schema.noFields')}</p>}
                 {fields.map((field, idx) => {
                     const isLinked = !!field.definitionId;
                     const definition = definitions.find(d => d.id === field.definitionId);
@@ -217,15 +221,15 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                             <div className="flex items-center gap-2">
                                 {/* Required Indicator (Left) */}
                                 <div className="flex-shrink-0">
-                                    <GlassTooltip content={field.required ? "This field is MANDATORY for this element" : "This field is OPTIONAL for this element"}>
+                                    <GlassTooltip content={field.required ? t('schema.mandatoryTooltip') : t('schema.optionalTooltip')}>
                                         <button
                                             className={`h-8 w-8 flex items-center justify-center rounded-lg cursor-pointer transition-all border ${field.required
                                                 ? "bg-amber-500/10 border-amber-500/50 text-amber-600 shadow-sm"
                                                 : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-40 hover:opacity-100"
                                                 }`}
                                             onClick={() => handleUpdateField(idx, { required: !field.required })}
-                                            aria-label={field.required ? "Mark as Optional" : "Mark as Required"}
-                                            title={field.required ? "Mark as Optional" : "Mark as Required"}
+                                            aria-label={field.required ? t('schema.markOptional') : t('schema.markRequired')}
+                                            title={field.required ? t('schema.markOptional') : t('schema.markRequired')}
                                         >
                                             {field.required ? <CheckSquare size={14} /> : <Square size={14} />}
                                         </button>
@@ -241,15 +245,15 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
 
                                     {/* Role Toggle (Screen Only) */}
                                     {node.type === ElementType.Screen && (
-                                        <GlassTooltip content={field.role === 'display' ? "Displaying data from Read Model" : "Capturing user input for Command"}>
+                                        <GlassTooltip content={field.role === 'display' ? t('schema.displayTooltip') : t('schema.inputTooltip')}>
                                             <button
                                                 className={`h-8 w-7 flex items-center justify-center rounded-lg cursor-pointer transition-all border ${field.role === 'display'
                                                     ? "bg-blue-500/10 border-blue-500/30 text-blue-500"
                                                     : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-60 hover:opacity-100"
                                                     }`}
                                                 onClick={() => handleUpdateField(idx, { role: field.role === 'display' ? 'input' : 'display' })}
-                                                aria-label={field.role === 'display' ? "Switch to Input Role" : "Switch to Display Role"}
-                                                title={field.role === 'display' ? "Switch to Input Role" : "Switch to Display Role"}
+                                                aria-label={field.role === 'display' ? t('schema.switchToInput') : t('schema.switchToDisplay')}
+                                                title={field.role === 'display' ? t('schema.switchToInput') : t('schema.switchToDisplay')}
                                             >
                                                 {field.role === 'display' ? <Eye size={12} /> : <Keyboard size={12} />}
                                             </button>
@@ -271,72 +275,66 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
 
                                 <span className="text-gray-400 opacity-30">:</span>
 
-                                <div className="relative w-1/3">
-                                    <select
-                                        className={`h-8 px-2.5 pr-6 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs bg-white dark:bg-neutral-950 focus:border-blue-500 focus:ring-blue-500 appearance-none transition-all ${isLinked
-                                            ? 'text-blue-500/80 cursor-not-allowed bg-gray-50 dark:bg-neutral-800'
-                                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-neutral-300'
-                                            }`}
-                                        value={displayType}
-                                        onChange={(e) => !isLinked && handleUpdateField(idx, { type: e.target.value })}
-                                        disabled={isLinked}
-                                    >
-                                        <optgroup label="Primitives">
-                                            {PRIMITIVE_TYPES.map(t => (
-                                                <option key={t} value={t} className="bg-white dark:bg-neutral-900">{t}</option>
-                                            ))}
-                                        </optgroup>
-                                        {!PRIMITIVE_TYPES.includes(displayType) && (
-                                            <option value={displayType} className="bg-white dark:bg-neutral-900 italic">{displayType}</option>
-                                        )}
-                                    </select>
-                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                                        <ChevronDown size={10} />
-                                    </div>
-                                </div>
+                                <GlassSelect
+                                    className="w-1/3"
+                                    buttonClassName="h-8 py-0 px-2.5 text-xs font-mono font-bold"
+                                    value={displayType}
+                                    onChange={(val) => !isLinked && handleUpdateField(idx, { type: val })}
+                                    disabled={isLinked}
+                                    options={[
+                                        ...PRIMITIVE_TYPES.map(p => ({ id: p, label: p, group: t('schema.primitives') })),
+                                        ...(!PRIMITIVE_TYPES.includes(displayType) ? [{ id: displayType, label: displayType }] : [])
+                                    ]}
+                                />
 
-                                {/* Actions (Right) */}
-                                <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {isLinked ? (
-                                        <GlassTooltip content={`Linked to Domain Entity: ${definition?.name}. Click to unlink and make ad-hoc.`}>
-                                            <button
-                                                className="h-8 px-2 flex items-center justify-center hover:bg-purple-500/10 text-purple-500 rounded-lg transition-colors border border-blue-500/20 cursor-pointer"
-                                                onClick={() => handleUpdateField(idx, { definitionId: undefined, attributeKey: undefined })}
-                                                aria-label="Unlink from Domain Entity"
-                                                title="Unlink from Domain Entity"
-                                            >
-                                                <Link2 size={14} />
-                                            </button>
-                                        </GlassTooltip>
-                                    ) : (
-                                        <GlassTooltip content="Link this ad-hoc field to a Domain Entity">
-                                            <button
-                                                className="h-8 px-2 flex items-center justify-center hover:bg-blue-500/10 text-blue-500 rounded-lg transition-colors border border-blue-500/20 cursor-pointer"
-                                                onClick={(e) => setLinkingFieldIndex({ index: idx, rect: e.currentTarget.getBoundingClientRect() })}
-                                                aria-label="Link to Domain Entity"
-                                                title="Link to Domain Entity"
-                                            >
-                                                <Link2 size={14} />
-                                            </button>
-                                        </GlassTooltip>
-                                    )}
-
-                                    {isLinked ? (
-                                        <div className="h-8 px-2 flex items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[9px] font-bold tracking-tight uppercase">
-                                            Linked
+                                {/* Status & Actions (Right) */}
+                                <div className="ml-auto flex items-center gap-1">
+                                    {/* Always visible 'Linked' status */}
+                                    {isLinked && (
+                                        <div className="h-8 px-2 flex items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[9px] font-bold tracking-tight uppercase shrink-0">
+                                            {t('schema.linked')}
                                         </div>
-                                    ) : (
-                                        <GlassTooltip content="Remove this field">
-                                            <button
-                                                onClick={() => handleRemoveField(idx)}
-                                                className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
-                                                aria-label="Remove Field"
-                                                title="Remove Field"
-                                            >
-                                                <X size={14} />
-                                            </button>
-                                        </GlassTooltip>
                                     )}
+
+                                    {/* Actions visible on hover */}
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {isLinked ? (
+                                            <GlassTooltip content={t('schema.linkedTooltip', { name: definition?.name })}>
+                                                <button
+                                                    className="h-8 px-2 flex items-center justify-center hover:bg-purple-500/10 text-purple-500 rounded-lg transition-colors border border-blue-500/20 cursor-pointer"
+                                                    onClick={() => handleUpdateField(idx, { definitionId: undefined, attributeKey: undefined })}
+                                                    aria-label={t('schema.unlink')}
+                                                    title={t('schema.unlink')}
+                                                >
+                                                    <Link2 size={14} />
+                                                </button>
+                                            </GlassTooltip>
+                                        ) : (
+                                            <GlassTooltip content={t('schema.linkTooltip')}>
+                                                <button
+                                                    className="h-8 px-2 flex items-center justify-center hover:bg-blue-500/10 text-blue-500 rounded-lg transition-colors border border-blue-500/20 cursor-pointer"
+                                                    onClick={(e) => setLinkingFieldIndex({ index: idx, rect: e.currentTarget.getBoundingClientRect() })}
+                                                    aria-label={t('schema.link')}
+                                                    title={t('schema.link')}
+                                                >
+                                                    <Link2 size={14} />
+                                                </button>
+                                            </GlassTooltip>
+                                        )}
+
+                                        {!isLinked && (
+                                            <GlassTooltip content={t('schema.removeField')}>
+                                                <button
+                                                    onClick={() => handleRemoveField(idx)}
+                                                    className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
+                                                    aria-label={t('schema.removeField')}
+                                                    title={t('schema.removeField')}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </GlassTooltip>
+                                        )}
+                                    </div>
                                     {/* In-place Linker UI */}
                                     {linkingFieldIndex?.index === idx && (
                                         <QuickPickLinker
@@ -366,7 +364,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                                             <span className="text-purple-500/60">{definition.name}</span>
                                         </span>
                                     ) : (
-                                        <span className="text-amber-500/60 italic">Unassigned</span>
+                                        <span className="text-amber-500/60 italic">{t('schema.unassigned')}</span>
                                     )}
                                 </div>
                             )}

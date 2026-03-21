@@ -66,19 +66,26 @@ export function useKeyboardShortcuts({
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            // Ignore events from input fields, textareas, and contenteditable elements
-            if (
+            // [UX Fix] If focused on an input/textarea, we must prevent our global 
+            // shortcuts (like Ctrl+A, Ctrl+C, Ctrl+D) from shadowing browser-native 
+            // text editing. We only allow specific navigation-level shortcuts (Alt+Key).
+            const isInput =
                 event.target instanceof HTMLInputElement ||
                 event.target instanceof HTMLTextAreaElement ||
-                (event.target instanceof HTMLElement && event.target.isContentEditable)
-            ) {
-                // Allow Alt+Key and Ctrl/Cmd shortcuts to work even in inputs
-                // Also allow Escape to work in inputs (unless prevented by the input itself)
+                (event.target instanceof HTMLElement && (event.target as any).isContentEditable);
+
+            if (isInput) {
+                // Always allow Escape to fall through so it can clear selection or close panels
                 if (event.key === 'Escape') {
-                    // If the input handled it (e.g. cleared text), it should have prevented default.
-                    // If not, we let it bubble to our handler below.
-                    if (event.defaultPrevented) return;
-                } else if (!event.altKey && !event.ctrlKey && !event.metaKey) {
+                    // Check below at line 86
+                } 
+                // ONLY proceed for Alt-shortcuts (e.g. Alt+1 for tabs, Alt+S for Slices)
+                // We exclude Ctrl/Meta to allow native Select All (Ctrl+A), Copy/Paste, etc.
+                else if (event.altKey && !event.ctrlKey && !event.metaKey) {
+                    // Proceed to switch statement below
+                } 
+                else {
+                    // Let the browser handle everything else (Ctrl+A, Backspace, Arrows, etc)
                     return;
                 }
             }

@@ -95,7 +95,8 @@ export interface ModelData {
 export enum SliceType {
   StateChange = 'STATE_CHANGE',
   StateView = 'STATE_VIEW',
-  Automation = 'AUTOMATION'
+  Automation = 'AUTOMATION',
+  Integration = 'INTEGRATION'
 }
 
 export interface Slice {

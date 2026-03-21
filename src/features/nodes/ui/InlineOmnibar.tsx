@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Search, Plus, ChevronLeft, CheckSquare, Square, ArrowRight } from 'lucide-react';
 import { DataDefinition, DefinitionType, Field } from '../../modeling/domain/types';
 import {
@@ -38,6 +39,7 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
   availableFields = [],
   isScreen = false,
 }) => {
+  const { t } = useTranslation();
   // Search state
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -263,7 +265,7 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search attributes & definitions…"
+          placeholder={t('omnibar.placeholder')}
           autoComplete="off"
           className="py-2 ps-8 pe-3 block w-full border-gray-200 rounded-lg text-xs focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-300 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
         />
@@ -293,7 +295,7 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                   {attributes.length > 0 && (
                     <div>
                       <div className="px-3 py-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-neutral-400">
-                        Attributes
+                        {t('omnibar.attributes')}
                       </div>
                       {attributes.map((attr, idx) => {
                         const isAdded = existingFields.some(
@@ -338,7 +340,7 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                    {entities.length > 0 && (
                      <div>
                        <div className="px-3 py-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-neutral-400 mt-1">
-                         Definitions
+                         {t('omnibar.definitions')}
                        </div>
                       {entities.map((ent, idx) => {
                         const itemIndex = attributes.length + idx;
@@ -364,7 +366,7 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                                  {ent.entityType.substring(0, 3)}
                                </span>
                                <span className="text-[10px] text-gray-400 dark:text-neutral-500">
-                                 {attrCount} attr{attrCount !== 1 ? 's' : ''}
+                                 {attrCount} {t('omnibar.field', { count: attrCount })}
                                </span>
                                <ArrowRight size={12} className="text-gray-300 dark:text-neutral-600" />
                              </div>
@@ -377,6 +379,9 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                   {/* ─── Create Orphan Fallback ──────────────── */}
                   {showCreateFallback && (
                     <div className="pt-1 mt-1 border-t border-gray-200 dark:border-neutral-700">
+                      <div className="px-4 py-2 border-b border-gray-100 dark:border-neutral-800">
+                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('common.suggestions')}</h4>
+                      </div>
                       <button
                         type="button"
                         data-omni-item
@@ -384,7 +389,7 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                         className="w-full text-left py-2 px-3 rounded-lg flex items-center gap-2 text-xs text-blue-600 font-medium hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-800/30 transition-colors"
                       >
                         <Plus size={14} />
-                        Create "{query.trim()}"
+                        {t('omnibar.create', { name: query.trim() })}
                       </button>
                     </div>
                   )}
@@ -392,7 +397,7 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
                   {/* ─── Empty Hint ──────────────────────────── */}
                   {!showCreateFallback && flatOptions.length === 0 && !query.trim() && (
                     <div className="p-3 text-center text-xs text-gray-400 dark:text-neutral-500 italic">
-                      Start typing to search attributes & definitions…
+                      {t('omnibar.emptyHint')}
                     </div>
                   )}
                 </>
@@ -424,6 +429,7 @@ const DrillDownView: React.FC<DrillDownViewProps> = ({
   onImport,
   onBack,
 }) => {
+  const { t } = useTranslation();
   const attrs = Array.isArray(entity.definition.attributes) ? entity.definition.attributes : [];
 
   return (
@@ -472,7 +478,7 @@ const DrillDownView: React.FC<DrillDownViewProps> = ({
           );
         })}
         {attrs.length === 0 && (
-          <p className="text-xs text-gray-400 italic p-2 text-center">No attributes defined.</p>
+          <p className="text-xs text-gray-400 italic p-2 text-center">{t('omnibar.noAttributes')}</p>
         )}
       </div>
 
@@ -485,7 +491,7 @@ const DrillDownView: React.FC<DrillDownViewProps> = ({
             disabled={selectedAttrs.size === 0}
             className="w-full py-1.5 px-3 inline-flex items-center justify-center gap-x-2 text-[11px] font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-colors shadow-sm"
           >
-            Import {selectedAttrs.size} Field{selectedAttrs.size !== 1 ? 's' : ''}
+            {t('omnibar.import', { count: selectedAttrs.size })}
           </button>
         </div>
       )}

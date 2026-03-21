@@ -7,6 +7,7 @@ import { initLinkCommands } from '../../links/domain/linkCommands';
 import { initSliceCommands } from '../../slices/domain/sliceCommands';
 import { initActorCommands } from '../../actors/domain/actorCommands';
 import { initDictionaryCommands } from '../../dictionary/domain/dictionaryCommands';
+import { initWorkspaceCommands } from '../../workspace/domain/workspaceCommands';
 
 // Initialization function to bind listeners
 export const initCommandHandler = () => {
@@ -17,6 +18,7 @@ export const initCommandHandler = () => {
     initSliceCommands();
     initActorCommands();
     initDictionaryCommands();
+    initWorkspaceCommands();
 
     // ------------------------------------------------------------------
     // MODEL COMMANDS (Global meta commands kept here for now)

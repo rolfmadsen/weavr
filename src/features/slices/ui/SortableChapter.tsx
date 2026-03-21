@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Trash2, Edit2, GripVertical, ChevronDown, Check, X } from 'lucide-react';
@@ -21,6 +22,7 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
     onDelete,
     onRename
 }) => {
+    const { t } = useTranslation();
     const {
         attributes,
         listeners,
@@ -105,7 +107,7 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
                                             setIsEditing(true);
                                         }}
                                         className="opacity-0 group-hover/title:opacity-100 text-gray-400 hover:text-blue-600 transition-opacity p-1"
-                                        title="Rename Chapter"
+                                        title={t('modelList.rename')}
                                     >
                                         <Edit2 size={12} />
                                     </button>
@@ -123,10 +125,10 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
                                 onDelete(chapterName, 'ungroup');
                             }}
                             className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-red-600 hover:text-red-800 focus:outline-none focus:text-red-800 disabled:opacity-50 disabled:pointer-events-none dark:text-red-500 dark:hover:text-red-400 dark:focus:text-red-400"
-                            title="Ungroup Slices"
+                            title={t('slices.ungroupAll')}
                         >
                             <Trash2 size={14} />
-                            Ungroup
+                            {t('slices.ungroupAll')}
                         </button>
                     </div>
                 )}

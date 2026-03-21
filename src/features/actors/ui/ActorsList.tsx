@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Actor } from '../../modeling';
 import { Trash2, ChevronDown, Plus, Users } from 'lucide-react';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
@@ -18,6 +19,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
     onUpdateActor,
     onRemoveActor
 }) => {
+    const { t } = useTranslation();
     const [newName, setNewName] = useState('');
     const [deleteActorInfo, setDeleteActorInfo] = useState<{ id: string, anchorEl: HTMLElement } | null>(null);
 
@@ -37,7 +39,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
             <div className="mb-4">
                 <div className="flex gap-2">
                     <GlassInput
-                        placeholder="New Actor Name..."
+                        placeholder={t('actors.placeholder')}
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
@@ -66,27 +68,27 @@ const ActorsList: React.FC<ActorsListProps> = ({
                         <div className="p-4 bg-black/5 dark:bg-black/20 border-t border-white/10">
                             <div className="flex flex-col gap-4">
                                 <GlassInput
-                                    label="Name"
+                                    label={t('actors.name')}
                                     value={actor.name}
                                     onChange={(e) => onUpdateActor(actor.id, { name: e.target.value })}
                                 />
                                  <div className="flex flex-col gap-1.5">
-                                     <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">Description</label>
+                                     <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">{t('actors.description')}</label>
                                      <textarea
                                          value={actor.description || ''}
                                          onChange={(e) => {
                                              onUpdateActor(actor.id, { description: e.target.value });
                                          }}
-                                         className="py-2 px-3 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 text-gray-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none min-h-[60px]"
+                                         placeholder={t('actors.description')}
+                                         className="py-3 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-200 placeholder-gray-400 dark:placeholder-neutral-500 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none min-h-[80px]"
                                      />
                                  </div>
 
                                  <GlassInput
-                                     label="Color"
+                                     label={t('actors.color')}
                                      type="color"
                                      value={actor.color || '#9333ea'}
                                      onChange={(e) => onUpdateActor(actor.id, { color: e.target.value })}
-                                     className="p-1 h-10 block w-full border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 cursor-pointer focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
                                  />
 
                                 <div className="flex justify-end pt-2">
@@ -95,7 +97,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
                                         size="sm"
                                         onClick={(e) => setDeleteActorInfo({ id: actor.id, anchorEl: e.currentTarget })}
                                     >
-                                        <Trash2 size={16} className="mr-1" /> Delete
+                                        <Trash2 size={16} className="mr-1" /> {t('actors.delete')}
                                     </GlassButton>
                                 </div>
                             </div>
@@ -103,7 +105,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
                     </details>
                 ))}
                 {actors.length === 0 && (
-                    <p className="text-center text-slate-500 pt-8 italic">No actors defined yet.</p>
+                    <p className="text-center text-slate-500 pt-8 italic">{t('actors.noActors')}</p>
                 )}
             </div>
 
@@ -117,7 +119,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
                         setDeleteActorInfo(null);
                     }
                 }}
-                message="Delete this actor?"
+                message={t('actors.deleteConfirm')}
             />
         </div>
     );

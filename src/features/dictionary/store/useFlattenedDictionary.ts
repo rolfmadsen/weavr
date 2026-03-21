@@ -29,6 +29,8 @@ export function flattenDefinitions(definitions: DataDefinition[]): SearchableIte
   const items: SearchableItem[] = [];
 
   for (const def of definitions) {
+    if (def.type === DefinitionType.Aggregate) continue;
+
     const attrs = Array.isArray(def.attributes) ? def.attributes : [];
 
     // Detect "orphan" definitions: no parent, with a single self-named attribute
