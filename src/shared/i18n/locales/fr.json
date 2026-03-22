@@ -52,6 +52,14 @@
     }
   },
   "modeling": {
+    "verbs": {
+      "triggers": "Déclenche",
+      "results in": "Résulte en",
+      "populates": "Remplît",
+      "is displayed on": "Est affiché sur",
+      "issues": "Émet",
+      "informs": "Informe"
+    },
     "noAggregate": "Aucun agrégat",
     "fromModel": "Depuis le modèle {{modelName}}",
     "importedFrom": "Importé depuis {{modelName}}",
@@ -97,6 +105,11 @@
       "AUTOMATION_purpose": "Actions déclenchées par le système.",
       "AUTOMATION_story": "Le « Robot ». Il surveille des événements spécifiques (faits) et déclenche automatiquement une nouvelle commande (intention) pour maintenir un processus en mouvement.",
       "AUTOMATION_tech": "Gestionnaire de processus. Déclencheur d'effets secondaires."
+    },
+    "validation": {
+      "incompleteSource": "{{name}} n'a pas de source de données.",
+      "missingFrom": "Il manque à {{name}} des données provenant de {{source}}: {{fields}}",
+      "lineageGaps": "Le suivi des données suivantes pour {{name}} est manquant:\n{{details}}\n\nIl n'apparaît pas clairement dans le modèle comment ces données entrent initialement dans le système (par exemple, via un élément d'écran ou d'intégration)."
     }
   },
   "help": {

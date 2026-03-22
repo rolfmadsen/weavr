@@ -52,6 +52,14 @@
     }
   },
   "modeling": {
+    "verbs": {
+      "triggers": "Löst aus",
+      "results in": "Ergibt",
+      "populates": "Füllt",
+      "is displayed on": "Wird angezeigt auf",
+      "issues": "Erstellt",
+      "informs": "Informiert"
+    },
     "noAggregate": "Kein Aggregat",
     "fromModel": "Aus Modell {{modelName}}",
     "importedFrom": "Importiert aus {{modelName}}",
@@ -91,12 +99,17 @@
       "READ_MODEL_tech": "Projektion (f(Zustand, Ereignis) => Zustand). Abgeleitete Daten.",
       "INTEGRATION_EVENT_title": "Integrationsereignis",
       "INTEGRATION_EVENT_purpose": "Verbindung mit der Außenwelt.",
-      "INTEGRATION_EVENT_story": "Ein Signal, normalerweise eine Nachricht mit einer ID, dass in einer anderen Grenze (wie einem Zahlungsanbieter) etwas passiert ist, auf das wir reagieren müssen.",
+      "INTEGRATION_EVENT_story": "Ein signal, normalerweise eine Nachricht mit einer ID, dass in einer anderen Grenze (wie einem Zahlungsanbieter) etwas passiert ist, auf das wir reagieren müssen.",
       "INTEGRATION_EVENT_tech": "Externes / Öffentliches Ereignis. Kontextübergreifende Kommunikation.",
       "AUTOMATION_title": "Automatisierung",
       "AUTOMATION_purpose": "Systemgesteuerte Aktionen.",
       "AUTOMATION_story": "Der „Roboter“. Er überwacht bestimmte Ereignisse (Fakten) und löst automatisch einen neuen Befehl (Absicht) aus, um einen Prozess am Laufen zu halten.",
       "AUTOMATION_tech": "Prozessmanager. Nebenwirkungsauslöser."
+    },
+    "validation": {
+      "incompleteSource": "{{name}} fehlt eine Datenquelle.",
+      "missingFrom": "{{name}} fehlen Daten von {{source}}: {{fields}}",
+      "lineageGaps": "Die folgenden Daten für {{name}} fehlen in der Nachverfolgung:\n{{details}}\n\nAus dem Modell geht nicht hervor, wie diese Daten ursprünglich in das System gelangen (z. B. über ein Bildschirm- oder Integrationselement)."
     }
   },
   "help": {

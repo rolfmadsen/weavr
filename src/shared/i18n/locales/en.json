@@ -108,6 +108,11 @@
       "AUTOMATION_purpose": "System-triggered actions.",
       "AUTOMATION_story": "The \"Robot\". It watches for specific Events (facts) and automatically triggers a new Command (intent) to keep a process moving.",
       "AUTOMATION_tech": "Process Manager. Side-effect trigger."
+    },
+    "validation": {
+      "incompleteSource": "{{name}} is missing a data source.",
+      "missingFrom": "{{name}} is missing data from {{source}}: {{fields}}",
+      "lineageGaps": "The following data for {{name}} is missing tracking:\n{{details}}\n\nIt is not clear from the model how this data originally enters the system (e.g. via a Screen or Integration element)."
     }
   },
   "help": {
