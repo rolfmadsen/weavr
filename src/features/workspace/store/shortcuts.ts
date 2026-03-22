@@ -24,6 +24,9 @@ interface UseKeyboardShortcutsProps {
     onFocusNode: (id?: string) => void;
     onAutoLayout: () => void;
     onPaste: (nodes: Node[]) => void;
+    onOpenHelp: () => void;
+    onToggleSearch: () => void;
+    onToggleSliceFilter: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -52,13 +55,17 @@ export function useKeyboardShortcuts({
     onDuplicate,
     onZoomIn,
     onZoomOut,
-    onResetZoom
+    onResetZoom,
+    onOpenHelp,
+    onToggleSearch,
+    onToggleSliceFilter
 }: UseKeyboardShortcutsProps & {
     onSelectAll?: () => void;
     onDuplicate?: () => void;
     onZoomIn?: () => void;
     onZoomOut?: () => void;
     onResetZoom?: () => void;
+    onOpenHelp: () => void;
 }) {
 
     // Throttle for arrow key holding
@@ -202,6 +209,26 @@ export function useKeyboardShortcuts({
                         shouldPreventDefault = true;
                         break;
 
+                    case 'h': case 'H': case '?':
+                        onOpenHelp();
+                        shouldPreventDefault = true;
+                        break;
+                    
+                    case '/':
+                        onToggleSearch();
+                        shouldPreventDefault = true;
+                        break;
+                    
+                    case 's': case 'S':
+                        if (event.altKey) {
+                            onOpenSlices?.();
+                            shouldPreventDefault = true;
+                        } else {
+                            onToggleSliceFilter();
+                            shouldPreventDefault = true;
+                        }
+                        break;
+
                     case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
                         if (selectedNodeIds.length > 0 && !showSlices) {
                             const now = Date.now();
@@ -236,13 +263,6 @@ export function useKeyboardShortcuts({
                                 onMoveNodes(updates);
                                 shouldPreventDefault = true;
                             }
-                        }
-                        break;
-
-                    case 's': case 'S':
-                        if (event.altKey) {
-                            onOpenSlices?.();
-                            shouldPreventDefault = true;
                         }
                         break;
 

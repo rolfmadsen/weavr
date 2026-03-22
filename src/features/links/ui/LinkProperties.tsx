@@ -5,12 +5,13 @@ import { Link } from '../../modeling';
 import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassInput } from '../../../shared/components/GlassInput';
 import { useDebouncedInput } from '../../../shared/hooks/useDebouncedInput';
+import { Label } from '../../../shared/components/ui/label';
 
 interface LinkPropertiesProps {
     link: Link;
     onUpdateLink: <K extends keyof Link>(id: string, key: K, value: Link[K]) => void;
     onDeleteLink: (id: string) => void;
-    nameInputRef: React.RefObject<HTMLInputElement | null>;
+    nameInputRef: React.RefObject<any>;
 }
 
 const LinkProperties: React.FC<LinkPropertiesProps> = ({ link, onUpdateLink, onDeleteLink, nameInputRef }) => {
@@ -23,7 +24,9 @@ const LinkProperties: React.FC<LinkPropertiesProps> = ({ link, onUpdateLink, onD
     return (
         <div className="flex flex-col gap-6">
             <section>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">{t('properties.relationship')}</h3>
+                <Label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    {t('properties.relationship')}
+                </Label>
                 <GlassInput
                     label={t('properties.label')}
                     {...labelInputGroup}
@@ -34,7 +37,9 @@ const LinkProperties: React.FC<LinkPropertiesProps> = ({ link, onUpdateLink, onD
             <div className="h-px bg-slate-200 dark:bg-white/10"></div>
 
             <section>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-4">{t('properties.actions')}</h3>
+                <Label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    {t('properties.actions')}
+                </Label>
                 <GlassButton
                     variant="danger"
                     size="sm"

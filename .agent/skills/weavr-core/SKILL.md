@@ -1,9 +1,9 @@
 ---
 name: weavr-core
-description: "MANDATORY: You MUST read this skill file via view_file before writing or styling any UI React components. The Operator's Manual for Weavr: Project structure, React 19 standards, and the Preline UI design system."
+description: "MANDATORY: You MUST read this skill file via view_file before writing or styling any UI React components. The Operator's Manual for Weavr: Project structure, React 19 standards, and the Shadcn UI design system."
 category: "Core / UI"
 author: "Rolf Madsen"
-tags: ["react", "typescript", "tailwind", "vite", "preline"]
+tags: ["react", "typescript", "tailwind", "vite", "shadcn"]
 metadata:
   model: Gemini 3 Pro (High)
 ---
@@ -17,7 +17,7 @@ You are the master of the Weavr technical foundation. This skill covers the proj
 
 ## Use this skill when
 - Implementing or refactoring **React components**.
-- Styling interfaces using the **Preline UI** design system.
+- Styling interfaces using the **Shadcn UI** design system.
 - Managing project **structure**, dependencies, or build configurations.
 - Handling **Vite**, TypeScript, or general Web API integrations.
 
@@ -41,17 +41,17 @@ Follow the **Vertical Slice** architecture. Logic should be decomposed into feat
 
 ---
 
-## 🎨 2. UI & Aesthetic Standards (Preline UI)
-Weavr uses the official **Preline UI** design system to ensure a unified, accessible, and highly rigorous interface.
+## 🎨 2. UI & Aesthetic Standards (Shadcn UI)
+Weavr uses **Shadcn UI** (Radix Primitives) to ensure a unified, accessible, and robust interface.
 
 ### THE MUI BAN
 > [!IMPORTANT]
-> **Strictly NO MUI (`@mui/*`)**. Existing MUI components are being phased out. Always implement new UI using Tailwind v4 base classes.
+> **Strictly NO MUI (`@mui/*`)**. Existing MUI components are being phased out. Always implement new UI using Tailwind v4 base classes and Shadcn components.
 
-### The Preline Playbook
-- **Standardization**: Use official [Preline UI](https://preline.co/) HTML DOM structures and standard Tailwind utility classes for all UI elements.
-- **Solid Foundations**: Rely on solid colors (`bg-white`, `bg-gray-50`), structured borders (`border-gray-200`), and distinct shadows instead of translucent effects.
-- **Shared Components**: Always check `src/shared/components/` to verify if a standard Preline component (like Button, Input, or Card) has already been wrapped.
+### The Shadcn Playbook
+- **Standardization**: Use official [Shadcn UI](https://ui.shadcn.com/) components, markup, and Tailwind classes for all UI elements.
+- **Glassmorphism**: Retain Weavr's signature "Glassmorphism" look by using our `glass-card`, `glass-input`, and `glass-button` utility classes alongside Shadcn components.
+- **Shared Components**: Always check `src/shared/components/ui/` for standardized primitives and `src/shared/components/` for Weavr-specific overrides.
 
 ---
 

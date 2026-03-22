@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Slice, SliceType } from '../../modeling';
 import {
@@ -7,19 +7,17 @@ import {
     Edit2,
     ArrowUp,
     ArrowDown,
-    X,
     Trash2
 } from 'lucide-react';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
-import { GlassCard } from '../../../shared/components/GlassCard';
 import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassInput } from '../../../shared/components/GlassInput';
-import { twMerge } from 'tailwind-merge';
-import clsx from 'clsx';
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/shared/components/ui/dialog";
 
 interface SliceManagerModalProps {
     isOpen: boolean;
@@ -54,15 +52,6 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
 
     const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
     const [deleteSliceId, setDeleteSliceId] = useState<string | null>(null);
-
-
-    useEffect(() => {
-        if (isOpen && initialViewingSpecsId) {
-            setViewingSpecsId(initialViewingSpecsId);
-        } else if (isOpen && !initialViewingSpecsId) {
-            setViewingSpecsId(null);
-        }
-    }, [isOpen, initialViewingSpecsId]);
 
     const sortedSlices = [...slices].sort((a, b) => (a.order || 0) - (b.order || 0));
 
@@ -122,59 +111,27 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
         }
     };
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                if (editingId) {
-                    cancelEdit();
-                } else if (deleteAnchorEl) {
-                    setDeleteAnchorEl(null);
-                    setDeleteSliceId(null);
-                } else if (viewingSpecsId) {
-                    setViewingSpecsId(null);
-                } else {
-                    onClose();
-                }
-            }
-        };
-        if (isOpen) {
-            window.addEventListener('keydown', handleKeyDown);
-        }
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, onClose, editingId, deleteAnchorEl, viewingSpecsId]);
-
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
-            <GlassCard
-                variant="panel"
-                className={cn(
-                    "w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden shadow-2xl"
-                )}
-                onClick={e => e.stopPropagation()}
-            >
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="glass-card w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden p-0 border-none shadow-2xl">
+                <DialogHeader className="p-5 border-b border-gray-200/20 flex flex-row items-center gap-3">
+                    {viewingSpecsId && (
+                        <GlassButton 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setViewingSpecsId(null)} 
+                            className="rounded-full p-2!"
+                        >
+                            <ArrowLeft size={20} />
+                        </GlassButton>
+                    )}
+                    <DialogTitle className="text-lg font-bold text-slate-800 dark:text-white">
+                        {viewingSpecsId
+                            ? t('editor.scenariosTitle', { name: slices.find(s => s.id === viewingSpecsId)?.title })
+                            : t('editor.manageSlices')}
+                    </DialogTitle>
+                </DialogHeader>
 
-                {/* Header */}
-                <div className="flex justify-between items-center p-5 border-b border-gray-200/20">
-                    <div className="flex items-center gap-3">
-                        {viewingSpecsId && (
-                            <GlassButton variant="ghost" size="sm" onClick={() => setViewingSpecsId(null)} className="rounded-full !p-2">
-                                <ArrowLeft size={20} />
-                            </GlassButton>
-                        )}
-                        <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-                            {viewingSpecsId
-                                ? t('editor.scenariosTitle', { name: slices.find(s => s.id === viewingSpecsId)?.title })
-                                : t('editor.manageSlices')}
-                        </h2>
-                    </div>
-                    <GlassButton variant="ghost" size="sm" onClick={onClose} className="rounded-full !p-2">
-                        <X size={20} />
-                    </GlassButton>
-                </div>
-
-                {/* Content */}
                 <div className="flex-grow overflow-y-auto p-5 space-y-3 custom-scrollbar">
                     {viewingSpecsId ? (
                         <div className="p-8 text-center text-slate-500 italic bg-purple-500/5 rounded-xl border border-dashed border-purple-500/20">
@@ -247,7 +204,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <div className="flex flex-col -gap-1 mr-2 border-r border-white/10 pr-2">
                                                         <button
-                                                            disabled={slices.indexOf(slice) === 0}
+                                                            disabled={sortedSlices.indexOf(slice) === 0}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 const idx = sortedSlices.indexOf(slice);
@@ -263,7 +220,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                             <ArrowUp size={16} />
                                                         </button>
                                                         <button
-                                                            disabled={slices.indexOf(slice) === slices.length - 1}
+                                                            disabled={sortedSlices.indexOf(slice) === sortedSlices.length - 1}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 const idx = sortedSlices.indexOf(slice);
@@ -283,14 +240,14 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                     <button
                                                         onClick={() => setViewingSpecsId(slice.id)}
                                                         className="p-2 text-slate-400 hover:text-purple-500 rounded-lg hover:bg-purple-500/10 transition-colors"
-                                                         title={t('common.manageScenarios')}
+                                                        title={t('common.manageScenarios')}
                                                     >
                                                         <FileText size={18} />
                                                     </button>
                                                     <button
                                                         onClick={() => startEditing(slice)}
                                                         className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-blue-500/10 transition-colors"
-                                                         title={t('common.rename')}
+                                                        title={t('common.rename')}
                                                     >
                                                         <Edit2 size={18} />
                                                     </button>
@@ -349,15 +306,14 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                     </div>
                 )}
 
-            </GlassCard>
-            <ConfirmMenu
-                anchorEl={deleteAnchorEl}
-                open={Boolean(deleteAnchorEl)}
-                onClose={() => setDeleteAnchorEl(null)}
-                onConfirm={confirmDelete}
-                message={t('editor.confirmDeleteSlice')}
-            />
-        </div>
+                <ConfirmMenu
+                    open={Boolean(deleteAnchorEl)}
+                    onClose={() => setDeleteAnchorEl(null)}
+                    onConfirm={confirmDelete}
+                    message={t('editor.confirmDeleteSlice')}
+                />
+            </DialogContent>
+        </Dialog>
     );
 };
 

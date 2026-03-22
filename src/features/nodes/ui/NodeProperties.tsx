@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Pin, PinOff, Trash2, BadgeAlert } from 'lucide-react';
 import { Node, Slice, DataDefinition, DefinitionType, Actor, Link, ElementType } from '../../modeling';
 import { CrossModelItem } from '../../modeling/store/useCrossModelData';
-import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassInput } from '../../../shared/components/GlassInput';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import { GlassSelect } from '../../../shared/components/GlassSelect';
@@ -12,6 +11,10 @@ import validationService from '../../modeling/domain/validation';
 import { useNodeValidation } from '../../modeling/hooks/useNodeValidation';
 import { SchemaBuilder } from './SchemaBuilder';
 import { useDebouncedInput } from '../../../shared/hooks/useDebouncedInput';
+import { Textarea } from '../../../shared/components/ui/textarea';
+import { Label } from '../../../shared/components/ui/label';
+import { Button } from '../../../shared/components/ui/button';
+import { cn } from '../../../shared/lib/utils';
 
 
 interface NodePropertiesProps {
@@ -24,7 +27,7 @@ interface NodePropertiesProps {
     onAddDefinition: (def: Omit<DataDefinition, 'id'>) => string;
     crossModelSlices: CrossModelItem[];
     crossModelDefinitions: CrossModelItem[];
-    nameInputRef: React.RefObject<HTMLInputElement | null>;
+    nameInputRef: React.RefObject<any>;
     actors: Actor[];
     onAddActor: (actor: { name: string; description: string; color: string }) => string;
     allNodes: Node[];
@@ -205,7 +208,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             <section>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{t('properties.general')}</h3>
-                    <GlassButton
+                    <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => onUpdateNode(node.id, 'pinned', !node.pinned)}
@@ -214,10 +217,13 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                 e.stopPropagation();
                             }
                         }}
-                        className={node.pinned ? "text-purple-500 bg-purple-500/10" : ""}
+                        className={cn(
+                            "rounded-full transition-all duration-200",
+                            node.pinned ? "text-purple-500 bg-purple-500/10 hover:bg-purple-500/20" : "text-slate-600 dark:text-slate-300"
+                        )}
                     >
                         {node.pinned ? <><Pin size={16} className="mr-1" /> {t('properties.pinned')}</> : <><PinOff size={16} className="mr-1" /> {t('properties.pin')}</>}
-                    </GlassButton>
+                    </Button>
                 </div>
 
                 <div className="space-y-4">
@@ -229,9 +235,9 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                     />
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">{t('properties.description')}</label>
-                        <textarea
-                            className="py-3 px-4 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-200 placeholder-gray-400 dark:placeholder-neutral-500 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none min-h-[80px]"
+                        <Label className="ml-1">{t('properties.description')}</Label>
+                        <Textarea
+                            className="glass-input min-h-[80px]"
                             {...descriptionInputGroup}
                         />
                     </div>
@@ -279,11 +285,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
                     {(node.type === 'SCREEN' || node.type === 'AUTOMATION') && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('properties.actor')}</label>
+                            <Label className="ml-1">{t('properties.actor')}</Label>
                             <SmartSelect
                                 options={actorOptions}
                                 value={node.actor || '__none__'}
-                                onChange={(id) => onUpdateNode(node.id, 'actor', (id === '__none__' || !id) ? undefined : id)}
+                                onChange={(id: string) => onUpdateNode(node.id, 'actor', (id === '__none__' || !id) ? undefined : id)}
                                 onCreate={handleActorCreate}
                                 placeholder={t('properties.placeholders.selectOrCreateActor')}
                                 allowCustomValue={false}
@@ -293,11 +299,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
                     {node.type === 'DOMAIN_EVENT' && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('properties.aggregate')}</label>
+                            <Label className="ml-1">{t('properties.aggregate')}</Label>
                             <SmartSelect
                                 options={aggregateOptions}
                                 value={node.aggregate || '__none__'}
-                                onChange={(id, opt) => {
+                                onChange={(id: string, opt?: any) => {
                                     if (id && id.startsWith('remote:') && opt?.subLabel) {
                                         // Import remote aggregate
                                         const newId = onAddDefinition({
@@ -320,11 +326,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
 
                     {node.type === 'COMMAND' && (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('properties.aggregate')}</label>
+                            <Label className="ml-1">{t('properties.aggregate')}</Label>
                             <SmartSelect
                                 options={aggregateOptions}
                                 value={node.aggregate || '__none__'}
-                                onChange={(id, opt) => {
+                                onChange={(id: string, opt?: any) => {
                                     if (id && id.startsWith('remote:') && opt?.subLabel) {
                                         // Import remote aggregate
                                         const newId = onAddDefinition({
@@ -354,7 +360,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">{t('properties.organization')}</h3>
 
                 <div className="mb-4">
-                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 block">{t('properties.slice')}</label>
+                    <Label className="mb-2 block">{t('properties.slice')}</Label>
                     <SmartSelect
                         options={sliceOptions}
                         value={node.sliceId ? node.sliceId.toString() : ''}
@@ -388,39 +394,43 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                     group: t('common.existingNodes')
                                 }));
 
-                            const verb = rule.verb.charAt(0).toUpperCase() + rule.verb.slice(1);
+                            const rawVerb = rule.verb;
+                            const translatedVerb = t(`modeling.verbs.${rawVerb}`, rawVerb);
+                            const verb = translatedVerb.charAt(0).toUpperCase() + translatedVerb.slice(1);
                             const target = t(`modeling.elements.${rule.target.toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`);
 
                             return (
                                 <div key={`${rule.source}-${rule.target}`} className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 block">
+                                    <Label className="mb-2 block">
                                         {verb} ({target})
-                                    </label>
+                                    </Label>
 
                                     {connectedNodes.length > 0 && (
                                         <div className="space-y-1 mb-2">
                                             {connectedNodes.map(cn => (
                                                 <div key={cn.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-neutral-800/50 group">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => onUpdateNode(cn.id, 'id', cn.id)} // Dummy to trigger focus/select if needed, but better use a real focus action
-                                                        className="text-sm text-gray-700 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 truncate text-left flex-1"
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => onUpdateNode(cn.id, 'id', cn.id)} // Dummy to trigger focus/select if needed
+                                                        className="text-sm text-gray-700 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 truncate text-left flex-1 h-auto py-1 px-2 justify-start font-normal"
                                                     >
                                                         {cn.name}
-                                                    </button>
-                                                    <button
-                                                        type="button"
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon-xs"
                                                         onClick={() => {
                                                             const link = allLinks.find(l => l.source === node.id && l.target === cn.id);
                                                             if (link) {
                                                                 onDeleteLink(link.id);
                                                             }
                                                         }}
-                                                        className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                                                         title={t('common.unpin')}
                                                     >
                                                         <Trash2 size={14} />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             ))}
                                         </div>
@@ -429,12 +439,12 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                     <SmartSelect
                                         options={targetOptions}
                                         value=""
-                                        onChange={(id) => {
+                                        onChange={(id: string) => {
                                             if (id) {
                                                 onAddLink(node.id, id);
                                             }
                                         }}
-                                        onCreate={(name) => {
+                                        onCreate={(name: string) => {
                                             onSpawnAndLink(node.id, rule.target, name);
                                         }}
                                         placeholder={t('properties.placeholders.addType', { type: target })}
@@ -467,14 +477,14 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             {/* Actions Section */}
             <section>
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">{t('properties.actions')}</h3>
-                <GlassButton
-                    variant="danger"
+                <Button
+                    variant="destructive"
                     size="sm"
                     onClick={() => onDeleteNode(node.id)}
                     className="w-full"
                 >
                     <Trash2 size={16} className="mr-2" /> {t('properties.deleteNode')}
-                </GlassButton>
+                </Button>
 
                 <ElementHelp type={node.type} />
             </section>

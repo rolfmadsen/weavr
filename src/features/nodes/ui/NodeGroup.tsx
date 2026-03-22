@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Group, Rect, Path, Text, Circle } from 'react-konva';
 import { Portal } from 'react-konva-utils';
 import Konva from 'konva';
@@ -31,8 +32,6 @@ interface NodeGroupProps {
 // ─── Warning Badge SVG Path (Triangle with !) ────────────────────────
 // Simplified 24x24 alert-triangle path
 const ALERT_PATH = 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z';
-// Plus Icon Path
-const PLUS_PATH = 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z';
 
 const NodeGroup = React.memo(({
     node,
@@ -54,6 +53,7 @@ const NodeGroup = React.memo(({
     stageScale,
     isDraggable
 }: NodeGroupProps) => {
+    const { t } = useTranslation();
     const defaultStyle = { color: 'gray', shape: 'rect', textColor: 'black' };
     const style = ELEMENT_STYLE[node.type as keyof typeof ELEMENT_STYLE] || defaultStyle;
 
@@ -65,7 +65,8 @@ const NodeGroup = React.memo(({
 
     const [showAura, setShowAura] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
-    const [showTooltip, setShowTooltip] = useState(false);
+    const [hoveredIcon, setHoveredIcon] = useState<'edit' | 'link' | 'unpin' | null>(null);
+    const [showValidationTooltip, setShowValidationTooltip] = useState(false);
 
     const groupRef = useRef<Konva.Group>(null);
 
@@ -167,6 +168,8 @@ const NodeGroup = React.memo(({
                     };
                 }}
             >
+                {/* ─── Padding Hit Box (bridges gap to handles) ──────── */}
+                <Rect x={-15} y={-25} width={width + 45} height={height + 50} fill="transparent" listening={true} />
                 <Rect x={contentOffsetX} y={contentOffsetY} width={width} height={height} fill="transparent" listening={true} perfectDrawEnabled={false} />
                 
                 {/* ─── Relational Aura (Selection/Hover feedback) ─────── */}
@@ -206,14 +209,20 @@ const NodeGroup = React.memo(({
                 />
                 {node.pinned && (
                     <Group
-                        x={15}
-                        y={15}
+                        x={-5}
+                        y={-5}
                         onClick={(e) => {
                             e.cancelBubble = true;
                             onUnpin(node.id);
                         }}
-                        onMouseEnter={(e) => setCanvasCursor(e, 'pointer')}
-                        onMouseLeave={(e) => setCanvasCursor(e, '')}
+                        onMouseEnter={(e) => {
+                            setCanvasCursor(e, 'pointer');
+                            setHoveredIcon('unpin');
+                        }}
+                        onMouseLeave={(e) => {
+                            setCanvasCursor(e, '');
+                            setHoveredIcon(null);
+                        }}
                     >
                         <Circle radius={14} fill="#ef4444" shadowBlur={4} shadowOpacity={0.3} stroke="white" strokeWidth={2} />
                         <Path
@@ -229,15 +238,15 @@ const NodeGroup = React.memo(({
                 {/* ─── Validation Warning Badge ──────────────────────── */}
                 {isInvalid && (
                     <Group
-                        x={width - (isSelected ? 45 : 15)}
-                        y={15}
+                        x={width + 5}
+                        y={height + 5}
                         onMouseEnter={(e) => {
                             setCanvasCursor(e, 'pointer');
-                            setShowTooltip(true);
+                            setShowValidationTooltip(true);
                         }}
                         onMouseLeave={(e) => {
                             setCanvasCursor(e, '');
-                            setShowTooltip(false);
+                            setShowValidationTooltip(false);
                         }}
                     >
                         {/* Pulsing glow behind the badge */}
@@ -269,7 +278,7 @@ const NodeGroup = React.memo(({
                 )}
 
                 {/* ─── Validation Tooltip (Konva-native) ─────────────── */}
-                {isInvalid && showTooltip && (
+                {isInvalid && showValidationTooltip && (
                     <Group
                         x={width / 2 - tooltipWidth / 2}
                         y={height + 10}
@@ -277,11 +286,14 @@ const NodeGroup = React.memo(({
                         <Rect
                             width={tooltipWidth}
                             height={tooltipHeight}
-                            fill="#451a03"
+                            fill="#ffffff"
                             cornerRadius={6}
                             shadowBlur={8}
                             shadowColor="black"
-                            shadowOpacity={0.3}
+                            shadowOpacity={0.08}
+                            shadowOffsetY={2}
+                            stroke="#e2e8f0"
+                            strokeWidth={1}
                             listening={false}
                         />
                         <Text
@@ -289,9 +301,9 @@ const NodeGroup = React.memo(({
                             y={8}
                             width={tooltipWidth - 16}
                             text={tooltipText}
-                            fontSize={10}
+                            fontSize={11}
                             fontFamily={FONT_FAMILY}
-                            fill="#fbbf24"
+                            fill="#0f172a"
                             wrap="word"
                             listening={false}
                         />
@@ -347,7 +359,7 @@ const NodeGroup = React.memo(({
                     </Group>
                 )}
 
-                {/* ─── Relationship Plus Handle ──────────────────────── */}
+                {/* ─── Relationship Link Handle ──────────────────────── */}
                 {(showAura || isSelected) && (
                     <Group
                         x={width + 5}
@@ -364,45 +376,88 @@ const NodeGroup = React.memo(({
                             e.cancelBubble = true; 
                             onLinkStart({ x: x + width, y: y + height / 2 });
                         }}
-                        onMouseEnter={(e) => setCanvasCursor(e, 'crosshair')}
-                        onMouseLeave={(e) => setCanvasCursor(e, '')}
+                        onMouseEnter={(e) => {
+                            setCanvasCursor(e, 'crosshair');
+                            setHoveredIcon('link');
+                        }}
+                        onMouseLeave={(e) => {
+                            setCanvasCursor(e, '');
+                            setHoveredIcon(null);
+                        }}
                     >
-                        <Circle
-                            radius={14}
-                            fill="#4f46e5"
-                            stroke="white"
-                            strokeWidth={2}
-                            shadowBlur={4}
-                            shadowOpacity={0.3}
+                        <Circle 
+                            radius={14} 
+                            fill={hoveredIcon === 'link' ? "#a855f7" : "#4f46e5"} 
+                            shadowBlur={4} 
+                            shadowOpacity={0.3} 
+                            stroke="white" 
+                            strokeWidth={2} 
                         />
-                        <Path
-                            data={PLUS_PATH}
-                            fill="white"
-                            scale={{ x: 0.8, y: 0.8 }}
-                            offset={{ x: 12, y: 12 }}
-                            listening={false}
-                        />
+                        <Group scale={{ x: 0.7, y: 0.7 }} offset={{ x: 12, y: 12 }} listening={false}>
+                            <Path data="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="white" strokeWidth={2.5} lineCap="round" lineJoin="round" fillEnabled={false} />
+                            <Path data="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="white" strokeWidth={2.5} lineCap="round" lineJoin="round" fillEnabled={false} />
+                        </Group>
                     </Group>
                 )}
 
                 {/* ─── Edit Handle ──────────────────────────────────── */}
-                {isSelected && (
+                {(isSelected || showAura) && (
                     <Group
-                        x={width - 15}
-                        y={height - 15}
+                        x={width + 5}
+                        y={-5}
                         onClick={(e) => {
                             e.cancelBubble = true;
                             onNodeDoubleClick(node);
                         }}
-                        onMouseEnter={(e) => setCanvasCursor(e, 'pointer')}
-                        onMouseLeave={(e) => setCanvasCursor(e, '')}
+                        onMouseEnter={(e) => {
+                            setCanvasCursor(e, 'pointer');
+                            setHoveredIcon('edit');
+                        }}
+                        onMouseLeave={(e) => {
+                            setCanvasCursor(e, '');
+                            setHoveredIcon(null);
+                        }}
                     >
-                        <Circle radius={14} fill="#4f46e5" shadowBlur={4} shadowOpacity={0.3} stroke="white" strokeWidth={2} />
-                        <Path
-                            data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
-                            fill="white"
-                            scale={{ x: 0.7, y: 0.7 }}
-                            offset={{ x: 12, y: 12 }}
+                        <Circle 
+                            radius={14} 
+                            fill={hoveredIcon === 'edit' ? "#a855f7" : "#4f46e5"} 
+                            shadowBlur={4} 
+                            shadowOpacity={0.3} 
+                            stroke="white" 
+                            strokeWidth={2} 
+                        />
+                        <Group scale={{ x: 0.7, y: 0.7 }} offset={{ x: 12, y: 12 }} listening={false}>
+                            <Path data="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" stroke="white" strokeWidth={2.5} lineCap="round" lineJoin="round" fillEnabled={false} />
+                            <Path data="m15 5 4 4" stroke="white" strokeWidth={2.5} lineCap="round" lineJoin="round" fillEnabled={false} />
+                        </Group>
+                    </Group>
+                )}
+
+                {/* ─── Node Control Tooltips ────────────────────────── */}
+                {hoveredIcon && !isDragging && (
+                    <Group
+                        x={hoveredIcon === 'unpin' ? -75 : width + 30}
+                        y={hoveredIcon === 'edit' ? -5 : hoveredIcon === 'unpin' ? -40 : height / 2}
+                    >
+                        <Rect
+                            width={hoveredIcon === 'unpin' ? 140 : 220}
+                            height={28}
+                            fill="#ffffff"
+                            cornerRadius={6}
+                            shadowBlur={8}
+                            shadowColor="black"
+                            shadowOpacity={0.08}
+                            shadowOffsetY={2}
+                            stroke="#e2e8f0"
+                            strokeWidth={1}
+                        />
+                        <Text
+                            text={hoveredIcon === 'edit' ? t('canvas.editHint') : hoveredIcon === 'link' ? t('canvas.linkHint') : t('canvas.unpinHint')}
+                            fill="#0f172a"
+                            fontSize={11}
+                            fontStyle="500"
+                            padding={8}
+                            fontFamily={FONT_FAMILY}
                             listening={false}
                         />
                     </Group>

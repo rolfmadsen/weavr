@@ -3,23 +3,33 @@ import { useTranslation } from 'react-i18next';
 import { Slice, SliceType, Specification, SpecificationStep } from '../../modeling';
 import { useCrossModelData } from '../../modeling';
 import {
-    Trash2,
-    ChevronDown,
     Plus,
     X,
     GripVertical,
     Cpu,
     Network,
+    MousePointer2,
     Eye,
-    MousePointer2
+    Trash2,
+    ChevronDown
 } from 'lucide-react';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 import { v4 as uuidv4 } from 'uuid';
-import { GlassInput } from '../../../shared/components/GlassInput';
-import { GlassButton } from '../../../shared/components/GlassButton';
+import { Input } from '../../../shared/components/ui/input';
+import { Button } from '../../../shared/components/ui/button';
 import { GlassSelect } from '../../../shared/components/GlassSelect';
+import { GlassColorPicker } from '../../../shared/components/GlassColorPicker';
+
+import { Textarea } from '../../../shared/components/ui/textarea';
+import { Label } from '../../../shared/components/ui/label';
 import { SortableChapter } from './SortableChapter';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "../../../shared/components/ui/accordion";
 
 // DnD Kit Imports
 import {
@@ -93,50 +103,51 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
 
     return (
         <div ref={setNodeRef} style={style} className={`transition-opacity ${isDragging ? 'opacity-50' : 'opacity-100'} ${disabled ? 'pointer-events-none' : ''}`}>
-             <div
-                 className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 transition-all duration-200 ${expanded ? 'bg-gray-50 dark:bg-neutral-800' : ''}`}
-             >
-                 {/* Header Area */}
-                 <div className="flex items-center gap-0 list-none select-none">
-                     {/* Drag Handle - Stays outside the clickable area for expansion */}
-                     <div
-                         {...attributes}
-                         {...listeners}
-                         onClick={(e) => e.stopPropagation()}
-                         className="text-gray-400 hover:text-gray-600 dark:hover:text-neutral-400 cursor-grab active:cursor-grabbing p-3 -ml-1 h-full flex items-center"
-                     >
-                         <GripVertical size={16} />
-                     </div>
- 
-                     {/* Clickable Area for Expansion */}
-                     <div
-                         onClick={() => onExpandChange(!expanded)}
-                         className="flex-1 flex items-center gap-3 p-3 pl-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-r-lg"
-                     >
-                         <ChevronDown size={20} className={`text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
- 
-                         <div className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: slice.color }} />
- 
-                         <span className="text-sm font-medium text-gray-800 dark:text-neutral-200 flex-1">{slice.title || 'Untitled Slice'}</span>
- 
-                         {slice.sliceType && (
-                             <span className="inline-flex items-center gap-x-1.5 py-1 px-2 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-neutral-700 dark:text-white uppercase tracking-wider">
-                                 {slice.sliceType === SliceType.StateChange ? t('slices.command') : 
-                                  slice.sliceType === SliceType.StateView ? t('slices.view') : 
-                                  slice.sliceType === SliceType.Automation ? t('slices.auto') : 
-                                  slice.sliceType}
-                             </span>
-                         )}
-                     </div>
-                 </div>
- 
-                 {/* Content Area */}
-                 {expanded && (
-                     <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700 rounded-b-lg animate-in slide-in-from-top-2 duration-200">
-                         {children}
-                     </div>
-                 )}
-             </div>
+            <div
+                className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 transition-all duration-200 ${expanded ? 'bg-gray-50 dark:bg-neutral-800' : ''}`}
+            >
+                {/* Header Area */}
+                <div className="flex items-center gap-0 list-none select-none">
+                    {/* Drag Handle - Stays outside the clickable area for expansion */}
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-neutral-400 cursor-grab active:cursor-grabbing p-3 -ml-1 h-full flex items-center"
+                    >
+                        <GripVertical size={16} />
+                    </div>
+
+                    {/* Clickable Area for Expansion */}
+                    <div
+                        onClick={() => onExpandChange(!expanded)}
+                        className="flex-1 flex items-center gap-3 p-3 pl-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-r-lg"
+                    >
+                        <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+
+                        <div className="size-4 rounded-full flex-shrink-0 shadow-sm ring-1 ring-gray-300 dark:ring-neutral-600" style={{ backgroundColor: slice.color }} />
+
+                        <span className="text-sm font-light text-gray-800 dark:text-neutral-200 flex-1">{slice.title || 'Untitled Slice'}</span>
+
+                        {slice.sliceType && (
+                            <span className="inline-flex items-center gap-x-1.5 py-1 px-2 rounded-md text-[10px] font-bold bg-gray-100 text-gray-800 dark:bg-neutral-700 dark:text-white uppercase tracking-wider">
+                                {slice.sliceType === SliceType.StateChange ? t('slices.command') :
+                                    slice.sliceType === SliceType.StateView ? t('slices.view') :
+                                        slice.sliceType === SliceType.Automation ? t('slices.auto') :
+                                            slice.sliceType === SliceType.Integration ? t('slices.integration') :
+                                                slice.sliceType}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Content Area */}
+                {expanded && (
+                    <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700 rounded-b-lg">
+                        {children}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
@@ -169,7 +180,7 @@ const SpecificationStepItem: React.FC<{
                 <span className="text-gray-400 dark:text-neutral-600 text-[10px]">•</span>
             </div>
 
-            <textarea
+            <Textarea
                 value={value}
                 onChange={onChange}
                 onBlur={onBlur}
@@ -182,10 +193,9 @@ const SpecificationStepItem: React.FC<{
                         el.style.height = `${el.scrollHeight}px`;
                     }
                 }}
-                className="flex-1 text-sm text-gray-700 dark:text-neutral-300 border border-transparent hover:border-blue-500/20 focus:border-blue-500/50 rounded-md px-2 py-1 bg-transparent focus:bg-white dark:focus:bg-neutral-900/50 transition-all outline-none resize-none overflow-hidden placeholder:italic placeholder:text-gray-400/50"
+                className="flex-1 text-sm text-gray-700 dark:text-neutral-300 border border-transparent hover:border-blue-500/20 focus:border-blue-500/50 rounded-md px-2 py-1 bg-transparent focus:bg-white dark:focus:bg-neutral-900/50 transition-all outline-none resize-none overflow-hidden placeholder:italic placeholder:text-gray-400/50 min-h-[28px]"
                 placeholder={t('slices.describeStep', { step: t(`slices.${section}`) })}
                 rows={1}
-                style={{ minHeight: '28px' }}
                 onKeyDown={(e) => {
                     onKeyDown(e);
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -215,12 +225,12 @@ const SpecificationItem: React.FC<{
     const [deleteAnchorEl, setDeleteAnchorEl] = useState<HTMLElement | null>(null);
     const [focusTarget, setFocusTarget] = useState<string | null>(null);
 
-    const { 
-        value: titleValue, 
-        onChange: onTitleChange, 
-        onBlur: onTitleBlur, 
+    const {
+        value: titleValue,
+        onChange: onTitleChange,
+        onBlur: onTitleBlur,
         onFocus: onTitleFocus,
-        onKeyDown: onTitleKeyDown 
+        onKeyDown: onTitleKeyDown
     } = useDebouncedInput(
         spec.title,
         (val) => onUpdate(spec.id, { title: val })
@@ -277,11 +287,11 @@ const SpecificationItem: React.FC<{
         const currentHeaders = spec.examples?.headers || [t('slices.exampleHeader', { number: 1 })];
         const currentRows = spec.examples?.rows || [];
         const newRow = new Array(currentHeaders.length).fill('');
-        onUpdate(spec.id, { 
-            examples: { 
-                headers: currentHeaders, 
-                rows: [...currentRows, newRow] 
-            } 
+        onUpdate(spec.id, {
+            examples: {
+                headers: currentHeaders,
+                rows: [...currentRows, newRow]
+            }
         });
     };
 
@@ -299,176 +309,183 @@ const SpecificationItem: React.FC<{
     };
 
     return (
-        <details className="group border border-gray-200 dark:border-neutral-700 rounded-xl overflow-hidden bg-white dark:bg-neutral-800 open:ring-1 open:ring-purple-500/20 shadow-sm mb-3 transition-all">
-             <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none list-none marker:hidden hover:bg-gray-50 dark:hover:bg-neutral-700/50 transition-colors">
-                 <div className="flex items-center gap-3 flex-1">
-                     <span className="transform transition-transform group-open:rotate-90 text-gray-400 text-[10px]">▶</span>
-                     <span className="text-sm font-semibold text-gray-800 dark:text-neutral-100 truncate">
-                        {spec.title || t('slices.specPlaceholder')}
-                     </span>
-                 </div>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteAnchorEl(e.currentTarget);
-                    }}
-                    className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Delete Specification"
-                >
-                    <Trash2 size={16} />
-                </button>
-                <ConfirmMenu
-                    open={Boolean(deleteAnchorEl)}
-                    anchorEl={deleteAnchorEl}
-                    onClose={() => setDeleteAnchorEl(null)}
-                    onConfirm={() => onDelete(spec.id)}
-                    message={t('slices.confirmDeleteSpec')}
-                />
-            </summary>
+        <Accordion multiple className="mb-3">
+            <AccordionItem value={spec.id} className="glass-card overflow-hidden border-none shadow-sm transition-all">
+                <AccordionTrigger className="flex items-center justify-between px-4 py-3 hover:bg-white/10 dark:hover:bg-neutral-800/50 no-underline hover:no-underline">
+                    <div className="flex items-center gap-3 flex-1 text-left">
+                        <span className="text-sm font-semibold text-slate-800 dark:text-neutral-100 truncate">
+                            {spec.title || t('slices.specPlaceholder')}
+                        </span>
+                    </div>
+                </AccordionTrigger>
 
-            <div className="p-4 bg-gray-50/50 dark:bg-neutral-900/30 border-t border-gray-100 dark:border-neutral-700 space-y-6">
-                <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">
-                        {t('slices.specPlaceholder')}
-                    </label>
-                    <GlassInput
-                        value={titleValue}
-                        onChange={onTitleChange}
-                        onBlur={onTitleBlur}
-                        onFocus={onTitleFocus}
-                        onKeyDown={onTitleKeyDown}
-                        placeholder={t('slices.specPlaceholder')}
+                <AccordionContent className="p-4 bg-slate-50/50 dark:bg-neutral-900/30 border-t border-white/10 space-y-6">
+                    <div className="flex justify-end -mt-2 mb-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteAnchorEl(e.currentTarget);
+                            }}
+                            className="text-slate-400 hover:text-red-500 p-1 transition-colors"
+                            title="Delete Specification"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+
+                    <ConfirmMenu
+                        open={Boolean(deleteAnchorEl)}
+                        anchorEl={deleteAnchorEl}
+                        onClose={() => setDeleteAnchorEl(null)}
+                        onConfirm={() => onDelete(spec.id)}
+                        message={t('slices.confirmDeleteSpec')}
                     />
-                </div>
-                {(['given', 'when', 'then'] as const).map(section => {
-                    const hasSteps = spec[section].length > 0;
 
-                    if (!hasSteps) {
-                        return (
-                            <div key={section} className="flex justify-start">
-                                <button
-                                    onClick={() => handleAddStep(section)}
-                                    className="text-[10px] text-gray-400 hover:text-purple-500 hover:bg-purple-500/10 px-3 py-1.5 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700 hover:border-purple-500/30 transition-all font-bold uppercase tracking-wider"
-                                >
-                                    + {t('slices.addStep', { step: t(`slices.${section}`) })}
-                                </button>
-                            </div>
-                        );
-                    }
+                    <div>
+                        <Label className="mb-2 px-1 uppercase tracking-widest text-[10px] text-slate-400 block font-bold">
+                            {t('slices.specPlaceholder')}
+                        </Label>
+                        <Input
+                            value={titleValue}
+                            onChange={onTitleChange}
+                            onBlur={onTitleBlur}
+                            onFocus={onTitleFocus}
+                            onKeyDown={onTitleKeyDown}
+                            placeholder={t('slices.specPlaceholder')}
+                            className="bg-white dark:bg-neutral-900"
+                        />
+                    </div>
+                    {(['given', 'when', 'then'] as const).map(section => {
+                        const hasSteps = spec[section].length > 0;
 
-                    return (
-                        <div key={section} className="flex flex-col gap-2">
-                            <div className="flex items-center justify-between group/section">
-                                <span className={`font-bold uppercase tracking-widest text-[10px] ${section === 'given' ? 'text-blue-500' :
-                                    section === 'when' ? 'text-orange-500' : 'text-emerald-500'
-                                    }`}>
-                                    {t(`slices.${section}`)}
-                                </span>
-                                <div className="flex items-center gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                        if (!hasSteps) {
+                            return (
+                                <div key={section} className="flex justify-start">
                                     <button
                                         onClick={() => handleAddStep(section)}
-                                        className="text-gray-400 hover:text-purple-500 p-1 rounded hover:bg-purple-500/10"
+                                        className="text-[10px] text-slate-400 hover:text-purple-500 hover:bg-purple-500/10 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-neutral-700 hover:border-purple-500/30 transition-all font-bold uppercase tracking-wider"
                                     >
-                                        <Plus size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => onUpdate(spec.id, { [section]: [] })}
-                                        className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-500/10"
-                                    >
-                                        <Trash2 size={14} />
+                                        + {t('slices.addStep', { step: t(`slices.${section}`) })}
                                     </button>
                                 </div>
+                            );
+                        }
+
+                        return (
+                            <div key={section} className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between group/section">
+                                    <span className={`font-bold uppercase tracking-widest text-[10px] ${section === 'given' ? 'text-blue-500' :
+                                        section === 'when' ? 'text-orange-500' : 'text-emerald-500'
+                                        }`}>
+                                        {t(`slices.${section}`)}
+                                    </span>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => handleAddStep(section)}
+                                            className="text-slate-400 hover:text-purple-500 p-1 rounded hover:bg-purple-500/10"
+                                        >
+                                            <Plus size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => onUpdate(spec.id, { [section]: [] })}
+                                            className="text-slate-400 hover:text-red-500 p-1 rounded hover:bg-red-500/10"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <ul className="space-y-1">
+                                    {spec[section].map((step) => (
+                                        <SpecificationStepItem
+                                            key={step.id}
+                                            step={step}
+                                            section={section}
+                                            onUpdate={(updates) => handleUpdateStep(section, step.id, updates)}
+                                            onDelete={() => handleDeleteStep(section, step.id)}
+                                            onAddNext={() => handleAddStep(section, step.id)}
+                                            focusTarget={focusTarget}
+                                        />
+                                    ))}
+                                </ul>
                             </div>
+                        );
+                    })}
 
-                            <ul className="space-y-1">
-                                {spec[section].map((step) => (
-                                    <SpecificationStepItem 
-                                        key={step.id} 
-                                        step={step} 
-                                        section={section}
-                                        onUpdate={(updates) => handleUpdateStep(section, step.id, updates)}
-                                        onDelete={() => handleDeleteStep(section, step.id)}
-                                        onAddNext={() => handleAddStep(section, step.id)}
-                                        focusTarget={focusTarget}
-                                    />
-                                ))}
-                            </ul>
-                        </div>
-                    );
-                })}
-
-                {/* Examples Section */}
-                <div className="pt-4 border-t border-dashed border-gray-200 dark:border-neutral-700">
-                    <details className="group/examples">
-                        <summary className="text-[10px] font-bold text-gray-400 uppercase tracking-widest cursor-pointer hover:text-gray-600 dark:hover:text-neutral-400 select-none list-none marker:hidden flex items-center gap-2">
-                            <span className="transform transition-transform group-open/examples:rotate-90">▶</span>
-                            {t('slices.examplesTitle')}
-                        </summary>
-                        <div className="mt-4">
-                            {!spec.examples ? (
-                                <button
-                                    onClick={handleAddExampleRow}
-                                    className="text-xs text-purple-500 hover:text-purple-600 underline font-medium"
-                                >
-                                    {t('slices.createExamples')}
-                                </button>
-                            ) : (
-                                <div className="overflow-x-auto border border-gray-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800/50 shadow-sm">
-                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
-                                        <thead className="bg-gray-50 dark:bg-neutral-800">
-                                            <tr>
-                                                {(spec.examples.headers || []).map((header, i) => (
-                                                    <th key={i} scope="col" className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider border-r border-gray-100 dark:border-neutral-700 last:border-r-0">
-                                                        <input
-                                                            type="text"
-                                                            value={t(header, { number: i + 1, defaultValue: header })}
-                                                            onChange={(e) => updateExampleHeader(i, e.target.value)}
-                                                            className="bg-transparent border-none w-full focus:ring-0 p-0 text-[10px] font-bold text-gray-700 dark:text-neutral-300 outline-none"
-                                                            placeholder="VAR"
-                                                        />
-                                                    </th>
-                                                ))}
-                                                <th className="px-2 py-2 w-8">
-                                                    <button onClick={handleAddExampleColumn} className="text-purple-500 hover:text-purple-600 font-bold" title="Add Column">+</button>
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-transparent divide-y divide-gray-100 dark:divide-neutral-700">
-                                            {(spec.examples.rows || []).map((row, rowIndex) => (
-                                                <tr key={rowIndex} className="hover:bg-gray-50/50 dark:hover:bg-neutral-700/30 transition-colors">
-                                                    {row.map((cell, colIndex) => (
-                                                        <td key={colIndex} className="px-3 py-2 whitespace-nowrap text-sm text-gray-600 dark:text-neutral-400 border-r border-gray-100 dark:border-neutral-700 last:border-r-0">
-                                                            <input
-                                                                type="text"
-                                                                value={cell}
-                                                                onChange={(e) => updateExampleCell(rowIndex, colIndex, e.target.value)}
-                                                                className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs text-gray-700 dark:text-neutral-300 outline-none"
-                                                                placeholder="..."
-                                                            />
-                                                        </td>
+                    {/* Examples Section */}
+                    <div className="pt-4 border-t border-dashed border-slate-200 dark:border-neutral-700">
+                        <Accordion multiple>
+                            <AccordionItem value="examples" className="border-none">
+                                <AccordionTrigger className="text-[10px] font-bold text-slate-400 uppercase tracking-widest no-underline hover:no-underline py-0 h-auto">
+                                    {t('slices.examplesTitle')}
+                                </AccordionTrigger>
+                                <AccordionContent className="mt-4 pt-0">
+                                    {!spec.examples ? (
+                                        <button
+                                            onClick={handleAddExampleRow}
+                                            className="text-xs text-purple-500 hover:text-purple-600 underline font-medium"
+                                        >
+                                            {t('slices.createExamples')}
+                                        </button>
+                                    ) : (
+                                        <div className="overflow-x-auto border border-slate-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800/50 shadow-sm">
+                                            <table className="min-w-full divide-y divide-slate-200 dark:divide-neutral-700">
+                                                <thead className="bg-slate-50 dark:bg-neutral-800">
+                                                    <tr>
+                                                        {(spec.examples.headers || []).map((header, i) => (
+                                                            <th key={i} scope="col" className="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-100 dark:border-neutral-700 last:border-r-0">
+                                                                <input
+                                                                    type="text"
+                                                                    value={t(header, { number: i + 1, defaultValue: header })}
+                                                                    onChange={(e) => updateExampleHeader(i, e.target.value)}
+                                                                    className="bg-transparent border-none w-full focus:ring-0 p-0 text-[10px] font-bold text-slate-700 dark:text-neutral-300 outline-none"
+                                                                    placeholder="VAR"
+                                                                />
+                                                            </th>
+                                                        ))}
+                                                        <th className="px-2 py-2 w-8">
+                                                            <button onClick={handleAddExampleColumn} className="text-purple-500 hover:text-purple-600 font-bold" title="Add Column">+</button>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-transparent divide-y divide-slate-100 dark:divide-neutral-700">
+                                                    {(spec.examples.rows || []).map((row, rowIndex) => (
+                                                        <tr key={rowIndex} className="hover:bg-slate-50/50 dark:hover:bg-neutral-700/30 transition-colors">
+                                                            {row.map((cell, colIndex) => (
+                                                                <td key={colIndex} className="px-3 py-2 whitespace-nowrap text-sm text-slate-600 dark:text-neutral-400 border-r border-slate-100 dark:border-neutral-700 last:border-r-0">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={cell}
+                                                                        onChange={(e) => updateExampleCell(rowIndex, colIndex, e.target.value)}
+                                                                        className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs text-slate-700 dark:text-neutral-300 outline-none"
+                                                                        placeholder="..."
+                                                                    />
+                                                                </td>
+                                                            ))}
+                                                            <td className="px-2 py-2"></td>
+                                                        </tr>
                                                     ))}
-                                                    <td className="px-2 py-2"></td>
-                                                </tr>
-                                            ))}
-                                            <tr>
-                                                <td colSpan={100} className="px-3 py-2">
-                                                    <button 
-                                                        onClick={handleAddExampleRow} 
-                                                        className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-purple-500 transition-colors"
-                                                    >
-                                                        + {t('slices.addRow')}
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    </details>
-                </div>
-            </div>
-        </details>
+                                                    <tr>
+                                                        <td colSpan={100} className="px-3 py-2">
+                                                            <button
+                                                                onClick={handleAddExampleRow}
+                                                                className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-purple-500 transition-colors"
+                                                            >
+                                                                + {t('slices.addRow')}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
     );
 };
 
@@ -480,24 +497,24 @@ const SliceItemContent: React.FC<{
     onAddSpec: () => void;
 }> = ({ slice, onUpdateSlice, onDeleteSliceClick, onAddSpec }) => {
     const { t } = useTranslation();
-    
-    const { 
-        value: titleValue, 
-        onChange: onTitleChange, 
-        onBlur: onTitleBlur, 
+
+    const {
+        value: titleValue,
+        onChange: onTitleChange,
+        onBlur: onTitleBlur,
         onFocus: onTitleFocus,
-        onKeyDown: onTitleKeyDown 
+        onKeyDown: onTitleKeyDown
     } = useDebouncedInput(
         slice.title || '',
         (val) => onUpdateSlice(slice.id, { title: val })
     );
 
-    const { 
-        value: contextValue, 
-        onChange: onContextChange, 
-        onBlur: onContextBlur, 
+    const {
+        value: contextValue,
+        onChange: onContextChange,
+        onBlur: onContextBlur,
         onFocus: onContextFocus,
-        onKeyDown: onContextKeyDown 
+        onKeyDown: onContextKeyDown
     } = useDebouncedInput(
         slice.context || '',
         (val) => onUpdateSlice(slice.id, { context: val })
@@ -506,20 +523,18 @@ const SliceItemContent: React.FC<{
     return (
         <div className="flex flex-col gap-4 mb-6">
             <div className="flex flex-col gap-4">
-                <GlassInput
+                <Input
                     id={`slice-name-input-${slice.id}`}
-                    label={t('slices.nameLabel')}
                     value={titleValue}
                     onChange={onTitleChange}
                     onBlur={onTitleBlur}
                     onFocus={onTitleFocus}
                     onKeyDown={onTitleKeyDown}
-                    className="w-full text-base font-semibold"
+                    className="w-full text-base font-light bg-white dark:bg-neutral-900"
                 />
-
-                <div className="flex flex-col gap-1.5 focus-within:ring-1 focus-within:ring-blue-500/20 rounded-xl transition-all">
-                    <div className="flex gap-2">
-                        <div className="w-[140px] shrink-0">
+                <div className="grid grid-cols-1 gap-4 focus-within:ring-1 focus-within:ring-blue-500/20 rounded-xl transition-all">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1.5">
                             <GlassSelect
                                 label={t('slices.typeLabel') || 'Type'}
                                 value={slice.sliceType || ''}
@@ -533,27 +548,38 @@ const SliceItemContent: React.FC<{
                                 onChange={(id) => onUpdateSlice(slice.id, { sliceType: id as SliceType || undefined })}
                             />
                         </div>
-                        <div className="flex-grow">
-                            <GlassInput
-                                label={t('slices.contextLabel')}
-                                value={contextValue}
-                                onChange={onContextChange}
-                                onBlur={onContextBlur}
-                                onFocus={onContextFocus}
-                                onKeyDown={onContextKeyDown}
+                        <div className="flex flex-col gap-1.5">
+                            <GlassColorPicker
+                                label={t('actors.color') || 'Color'}
+                                color={slice.color || '#9333ea'}
+                                onChange={(color) => onUpdateSlice(slice.id, { color })}
                             />
                         </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                        <Label className="ml-1 text-xs opacity-70">{t('slices.contextLabel')}</Label>
+                        <Input
+                            value={contextValue}
+                            onChange={onContextChange}
+                            onBlur={onContextBlur}
+                            onFocus={onContextFocus}
+                            onKeyDown={onContextKeyDown}
+                            placeholder={t('slices.contextLabel')}
+                            className="bg-white dark:bg-neutral-900"
+                        />
                     </div>
                 </div>
 
                 <div className="flex justify-end">
-                    <GlassButton
-                        variant="danger"
+                    <Button
+                        variant="destructive"
                         size="sm"
-                        onClick={(e) => onDeleteSliceClick(e, slice.id, e.currentTarget)}
+                        onClick={(e: React.MouseEvent) => onDeleteSliceClick(e, slice.id, e.currentTarget as HTMLElement)}
+                        className="bg-red-600 hover:bg-red-500 text-white border-none"
                     >
-                        <Trash2 size={16} className="mr-1" /> {t('slices.deleteSlice')}
-                    </GlassButton>
+                        <Trash2 size={14} className="mr-1 text-white" /> {t('slices.deleteSlice')}
+                    </Button>
                 </div>
             </div>
 
@@ -562,16 +588,21 @@ const SliceItemContent: React.FC<{
             <div>
                 <div className="flex items-center justify-between mb-4">
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('slices.specificationsLabel')}</div>
-                    <GlassButton variant="ghost" size="sm" onClick={onAddSpec} className="px-2 h-7 text-[10px] uppercase tracking-wider font-bold">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onAddSpec}
+                        className="px-2 h-7 text-[10px] uppercase tracking-wider font-bold"
+                    >
                         <Plus size={14} className="mr-1" /> {t('slices.addSpec')}
-                    </GlassButton>
+                    </Button>
                 </div>
 
                 <div className="space-y-3">
                     {(slice.specifications || []).length === 0 ? (
                         <div className="text-center py-6 px-4 border-2 border-dashed border-gray-200 dark:border-neutral-700 rounded-xl">
                             <p className="text-xs text-gray-400 italic mb-2">{t('slices.noSpecs')}</p>
-                            <button 
+                            <button
                                 onClick={onAddSpec}
                                 className="text-[10px] font-bold uppercase tracking-widest text-purple-500 hover:text-purple-600 transition-colors"
                             >
@@ -933,20 +964,20 @@ const SliceList: React.FC<SliceListProps> = ({
                         options={remoteSliceOptions}
                         value=""
                         onChange={handleAddSlice}
-                        onCreate={(name) => handleAdd(name)}
+                        onCreate={(name: string) => handleAdd(name)}
                         placeholder={t('slices.addPlaceholder')}
                         allowCustomValue={false}
                         autoFocus={true}
                     />
                 </div>
-                <GlassButton
-                    variant="primary"
+                <Button
+                    variant="default"
                     size="sm"
                     onClick={handleCreateChapter}
                     title={t('slices.addChapter')}
                 >
                     <Plus size={16} /> <span className="sr-only">Chapter</span>
-                </GlassButton>
+                </Button>
             </div>
 
             <DndContext sensors={sensors} collisionDetection={customCollisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
@@ -974,7 +1005,7 @@ const SliceList: React.FC<SliceListProps> = ({
                                             onDeleteSliceClick={(_e, id, anchor) => setDeleteSliceInfo({ id, anchorEl: anchor })}
                                             disabled={isDraggingChapter}
                                         >
-                                            <SliceItemContent 
+                                            <SliceItemContent
                                                 slice={slice}
                                                 onUpdateSlice={onUpdateSlice}
                                                 onDeleteSliceClick={(_e, id, anchor) => setDeleteSliceInfo({ id, anchorEl: anchor })}

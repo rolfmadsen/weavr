@@ -1,5 +1,7 @@
 {
   "common": {
+    "system": "System",
+    "suggestions": "Suggestions",
     "language": "Language",
     "english": "English",
     "danish": "Danish",
@@ -29,8 +31,9 @@
       "autoLayout": "Auto Layout",
       "unpinAll": "Unpin All",
       "modelList": "My Models",
-      "docs": "Docs",
+      "docs": "Documentation",
       "share": "Share",
+      "shareTooltip": "Collaborate in real-time. Share the link with your team.",
       "project": "Project",
       "viewAndHelp": "View & Help",
       "openFromFile": "Open from File...",
@@ -52,6 +55,14 @@
     }
   },
   "modeling": {
+    "verbs": {
+      "triggers": "Triggers",
+      "results in": "Results in",
+      "populates": "Populates",
+      "is displayed on": "Is displayed on",
+      "issues": "Issues",
+      "informs": "Informs"
+    },
     "noAggregate": "No Aggregate",
     "fromModel": "From model {{modelName}}",
     "importedFrom": "Imported from {{modelName}}",
@@ -227,6 +238,9 @@
     "gotIt": "Got it!"
   },
   "canvas": {
+    "editHint": "Edit (Double-click / Alt + P)",
+    "linkHint": "Relation (Drag / C / Alt + Click)",
+    "unpinHint": "Unpin node (Click)",
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
     "resetZoom": "Reset Zoom to {{zoom}}%"
@@ -266,6 +280,7 @@
       }
     },
     "actor": "Actor",
+    "noActor": "No Actor",
     "aggregate": "Aggregate",
     "organization": "Organization",
     "slice": "Slice",
@@ -276,7 +291,8 @@
       "selectOrCreateSlice": "Select or create slice...",
       "addType": "+ Add {{type}}...",
       "externalProvider": "e.g. Stripe, Auth0",
-      "componentService": "e.g. Sales-Service"
+      "componentService": "e.g. Sales-Service",
+      "selectSliceForAll": "Select slice for all..."
     },
     "actions": "Actions",
     "deleteNode": "Delete Node",
@@ -287,8 +303,6 @@
     "editAllSelected": "Edit properties for all selected items.",
     "batchActions": "Batch Actions",
     "unpin": "Unpin",
-    "assignToSlice": "Assign to Slice",
-    "selectSliceForAll": "Select slice for all...",
     "deleteAllSelected": "Delete All Selected",
     "informationIncomplete": "Information Incomplete"
   },

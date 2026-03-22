@@ -1,5 +1,7 @@
 {
   "common": {
+    "system": "System",
+    "suggestions": "Forslag",
     "language": "Sprog",
     "english": "Engelsk",
     "danish": "Dansk",
@@ -27,10 +29,11 @@
       "import": "Importer",
       "merge": "Flet",
       "autoLayout": "Auto Layout",
-      "unpinAll": "Frigør alle",
+      "unpinAll": "Fjern alle pins",
       "modelList": "Mine Modeller",
       "docs": "Dokumentation",
       "share": "Del",
+      "shareTooltip": "Samarbejd i real-tid. Del linket med dit team.",
       "project": "Projekt",
       "viewAndHelp": "Visning & Hjælp",
       "openFromFile": "Åbn fra fil...",
@@ -41,7 +44,7 @@
       "lightMode": "Lys tilstand",
       "darkMode": "Mørk tilstand",
       "helpGuide": "Hjælpeguide",
-      "noNodesPinned": "Ingen noder er fastgjort",
+      "noNodesPinned": "Ingen noder er pinned",
       "copied": "Kopieret!"
     },
     "sidebar": {
@@ -52,32 +55,40 @@
     }
   },
   "modeling": {
+    "verbs": {
+      "triggers": "Udløser",
+      "results in": "Resulterer i",
+      "populates": "Udfylder",
+      "is displayed on": "Vises på",
+      "issues": "Udsteder",
+      "informs": "Leverer data til"
+    },
     "noAggregate": "Intet aggregat",
     "fromModel": "Fra model {{modelName}}",
     "importedFrom": "Importeret fra {{modelName}}",
     "elements": {
-      "screen": "Skærm",
-      "command": "Kommando",
-      "domainEvent": "Domænebegivenhed",
-      "readModel": "Visningsmodel",
-      "integrationEvent": "Integrationsbegivenhed",
-      "automation": "Automatisering",
-      "aggregate": "Aggregat",
-      "entity": "Entitet",
-      "valueObject": "Værdi-objekt",
+      "screen": "Screen",
+      "command": "Command",
+      "domainEvent": "Domain Event",
+      "readModel": "Read Model",
+      "integrationEvent": "Integration Event",
+      "automation": "Automation",
+      "aggregate": "Aggregate",
+      "entity": "Entity",
+      "valueObject": "Value Object",
       "enum": "Enum",
-      "orphan": "Forældreløs",
+      "orphan": "Orphan",
       "SCREEN": "Screen",
       "COMMAND": "Command",
       "DOMAIN_EVENT": "Domain Event",
       "READ_MODEL": "Read Model",
       "INTEGRATION_EVENT": "Integration Event",
       "AUTOMATION": "Automation",
-      "SCREEN_title": "Brugergrænseflade / Skærm",
+      "SCREEN_title": "Brugergrænseflade (Screen)",
       "SCREEN_purpose": "Visualiserer den aktuelle tilstand for brugeren.",
-      "SCREEN_story": "\"Scenen\". Den viser information afledt af tidligere begivenheder (via projektioner) og tilbyder kontroller til at udløse nye handlinger (kommandoer).",
+      "SCREEN_story": "\"Scenen\". Den viser information afledt af tidligere begivenheder (via projektioner) og tilbyder kontroller til at udløse nye handlinger (Commands).",
       "SCREEN_tech": "Præsentationslag. \"Hvor\" interaktionen finder sted.",
-      "COMMAND_title": "Kommando",
+      "COMMAND_title": "Command",
       "COMMAND_purpose": "En hensigt om at ændre systemets tilstand.",
       "COMMAND_story": "\"Forsøget\". Du beder systemet om at gøre noget. Før det siger \"Ja\", bygger systemet en beslutningsmodel for at tjekke, om det er tilladt.",
       "COMMAND_tech": "Input / Anmodning. Målretter specifikke tags (konsistensgrænse) for at validere invarianter.",
@@ -92,11 +103,16 @@
       "INTEGRATION_EVENT_title": "Integrationsbegivenhed",
       "INTEGRATION_EVENT_purpose": "Forbindelse med omverdenen.",
       "INTEGRATION_EVENT_story": "Et signal, typisk en besked med et id, om at der skete noget i en anden grænse (som en betalingsudbyder), som vi skal reagere på.",
-      "INTEGRATION_EVENT_tech": "Ekstern / Offentlig begivenhed. Kommunikation på tværs af kontekst.",
+      "INTEGRATION_EVENT_tech": "Ekstern / Offentlig begivenhed. Communication på tværs af kontekst.",
       "AUTOMATION_title": "Automatisering",
       "AUTOMATION_purpose": "System-udløste handlinger.",
-      "AUTOMATION_story": "\"Robotten\". Den overvåger specifikke begivenheder (fakta) og udløser automatisk en ny kommando (hensigt) for at holde en proces kørende.",
+      "AUTOMATION_story": "\"Robotten\". Den overvåger specifikke begivenheder (fakta) og udløser automatisk en ny Command (hensigt) for at holde en proces kørende.",
       "AUTOMATION_tech": "Procesansvarlig. Sideeffekt-trigger."
+    },
+    "validation": {
+      "incompleteSource": "{{name}} mangler angivelse af en datakilde.",
+      "missingFrom": "{{name}} mangler data fra {{source}}: {{fields}}",
+      "lineageGaps": "Følgende data til {{name}} mangler sporing:\n{{details}}\n\nDet fremgår ikke af modellen, hvordan disse data oprindelig kommer ind i systemet (fx via et Screen- eller Integration-element)."
     }
   },
   "help": {
@@ -122,7 +138,7 @@
         "title": "4 Event Model Mønstre",
         "stateChange": {
           "title": "Tilstandsændringsmønster",
-          "description": "Tilstandsændringsmønsteret beskriver en tilstandsændring og dens vej fra start (hvad er udløseren?) til slut (hvad er tilstandsændringen?). Det starter med en hvid boks (Screen), efterfulgt af en blå boks (Kommando) og derefter en eller flere gule bokse (Begivenhed)."
+          "description": "Tilstandsændringsmønsteret beskriver en tilstandsændring og dens vej fra start (hvad er udløseren?) til slut (hvad er tilstandsændringen?). Det starter med en hvid boks (Screen), efterfulgt af en blå boks (Command) og derefter en eller flere gule bokse (Begivenhed)."
         },
         "stateView": {
           "title": "Tilstandsvisningsmønster",
@@ -134,14 +150,14 @@
         },
         "translation": {
           "title": "Oversættelsesmønster (Systemintegration)",
-          "description": "Bruges til at overføre viden mellem systemer. En ekstern integrationsbegivenhed udløser en automatisering, der udsteder en kommando for at producere en udgående integrationsbegivenhed. Eksterne data kan også udfylde Read Models direkte til visualisering."
+          "description": "Bruges til at overføre viden mellem systemer. En ekstern integrationsbegivenhed udløser en automatisering, der udsteder en Command for at producere en udgående integrationsbegivenhed. Eksterne data kan også udfylde Read Models direkte til visualisering."
         }
       },
       "antiPatterns": {
         "title": "De 4 Anti-mønstre (Overkomplicering)",
         "leftChair": {
           "title": "The Left Chair",
-          "description": "Én kommando, der udløser for mange begivenheder. Dette sker ofte, når forretningslogik presses ind ét sted i stedet for at blive opdelt i separate tilstandsændringer."
+          "description": "Én Command, der udløser for mange begivenheder. Dette sker ofte, når forretningslogik presses ind ét sted i stedet for at blive opdelt i separate tilstandsændringer."
         },
         "rightChair": {
           "title": "The Right Chair",
@@ -149,7 +165,7 @@
         },
         "bed": {
           "title": "The Bed",
-          "description": "Én UI-komponent, der affyrer flere kommandoer i træk. Dette afslører orkestrering, der sker i front-enden i stedet for at lade begivenhedsstrømmen håndtere rækkefølgen."
+          "description": "Én UI-komponent, der affyrer flere Commands i træk. Dette afslører orkestrering, der sker i front-enden i stedet for at lade begivenhedsstrømmen håndtere rækkefølgen."
         },
         "bookshelf": {
           "title": "The Bookshelf",
@@ -228,6 +244,9 @@
     "gotIt": "Forstået!"
   },
   "canvas": {
+    "editHint": "Rediger (Dobbeltklik / Alt + P)",
+    "linkHint": "Relation (Klik+Træk / C)",
+    "unpinHint": "Fjern pin (Klik)",
     "zoomIn": "Zoom ind",
     "zoomOut": "Zoom ud",
     "resetZoom": "Nulstil zoom til {{zoom}}%"
@@ -248,8 +267,8 @@
   },
   "properties": {
     "general": "Generelt",
-    "pinned": "Fastgjort",
-    "pin": "Fastgør",
+    "pinned": "Pinned",
+    "pin": "Pin",
     "name": "Navn",
     "description": "Beskrivelse",
     "type": "Type",
@@ -266,7 +285,8 @@
         "externalDesc": "Ekstern: Et 3. parts værktøj."
       }
     },
-    "actor": "Actor",
+    "actor": "Aktør",
+    "noActor": "Ingen aktør",
     "aggregate": "Aggregate",
     "organization": "Organisation",
     "slice": "Slice",
@@ -277,7 +297,8 @@
       "selectOrCreateSlice": "Vælg eller opret slice...",
       "addType": "+ Tilføj {{type}}...",
       "externalProvider": "f.eks. Stripe, Auth0",
-      "componentService": "f.eks. Salgs-tjeneste"
+      "componentService": "f.eks. Salgs-tjeneste",
+      "selectSliceForAll": "Vælg slice til alle..."
     },
     "actions": "Handlinger",
     "deleteNode": "Slet element",
@@ -288,8 +309,6 @@
     "editAllSelected": "Rediger egenskaber for alle valgte elementer.",
     "batchActions": "Massehandlinger",
     "unpin": "Frigør",
-    "assignToSlice": "Tildel til Slice",
-    "selectSliceForAll": "Vælg slice til alle...",
     "deleteAllSelected": "Slet alle valgte",
     "informationIncomplete": "Information ufuldstændig"
   },
@@ -388,8 +407,8 @@
     "required": "Påkrævet",
     "description": "Beskrivelse",
     "technicalReference": "Teknisk reference",
-    "screens": "Skærme",
-    "commands": "Kommandoer",
+    "screens": "Screens",
+    "commands": "Commands",
     "events": "Begivenheder",
     "readModels": "Read Models",
     "automations": "Automatiseringer",
@@ -449,6 +468,8 @@
     "name": "Aktør Navn",
     "description": "Beskrivelse",
     "color": "Farve",
+    "palette": "Farvepalette",
+    "custom": "Egen farve",
     "delete": "Slet aktør",
     "deleteConfirm": "Er du sikker på, at du vil slette denne aktør?",
     "noActors": "Ingen aktører oprettet endnu."

@@ -1,19 +1,19 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataDefinition, DefinitionType } from '../../modeling';
 import { Plus, X, Lock, ChevronDown, Trash2, AlertTriangle } from 'lucide-react';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import ConfirmMenu from '../../../shared/components/ConfirmMenu';
 import { useCrossModelData } from '../../modeling';
-import { GlassButton } from '../../../shared/components/GlassButton';
+import { Button } from '../../../shared/components/ui/button';
+import { cn } from '../../../shared/lib/utils';
 import { GlassSelect } from '../../../shared/components/GlassSelect';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { PRIMITIVE_TYPES } from '../../modeling/domain/constants';
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
+import { PRIMITIVE_TYPES } from '../../modeling/domain/constants';
+import { useDebouncedInput } from '../../../shared/hooks/useDebouncedInput';
+import { Input } from '../../../shared/components/ui/input';
+import { Textarea } from '../../../shared/components/ui/textarea';
+import { Label } from '../../../shared/components/ui/label';
 
 interface DataDictionaryListProps {
     definitions: DataDefinition[];
@@ -36,6 +36,16 @@ const getTypeColor = (type: DefinitionType) => {
     }
 };
 
+const getTypeLabelKey = (type: DefinitionType) => {
+    switch (type) {
+        case DefinitionType.Aggregate: return 'modeling.elements.aggregate';
+        case DefinitionType.Entity: return 'modeling.elements.entity';
+        case DefinitionType.ValueObject: return 'modeling.elements.valueObject';
+        case DefinitionType.Enum: return 'modeling.elements.enum';
+        default: return '';
+    }
+};
+
 const DuplicateWarning: React.FC = () => {
     const { t } = useTranslation();
     return (
@@ -46,56 +56,319 @@ const DuplicateWarning: React.FC = () => {
     );
 };
 
-// Helper for optimizing updates/analytics
-const DebouncedInput: React.FC<any> = ({ value, onCommit, ...props }) => {
-    const [localValue, setLocalValue] = useState(value);
-    useEffect(() => setLocalValue(value), [value]);
-
+// Helper for consistent debounced inputs
+const DictionaryInput: React.FC<{
+    value: string;
+    onCommit: (val: string) => void;
+    placeholder?: string;
+    className?: string;
+    label?: string;
+}> = ({ value: initialValue, onCommit, placeholder, className, label }) => {
+    const { value, onChange, onBlur, onKeyDown } = useDebouncedInput(initialValue, onCommit);
     return (
-        <input
-            {...props}
-            className={cn(
-                "py-1.5 px-3 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs bg-white dark:bg-neutral-900 text-gray-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-all",
-                props.className
-            )}
-            value={localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={() => {
-                if (localValue !== value) onCommit(localValue);
-            }}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                    e.currentTarget.blur();
-                }
-            }}
-        />
+        <div className="flex flex-col gap-1.5 w-full">
+            {label && <Label className="ml-1">{label}</Label>}
+            <Input
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
+                onKeyDown={onKeyDown}
+                placeholder={placeholder}
+                className={className}
+            />
+        </div>
     );
 };
 
-const DebouncedTextarea: React.FC<any> = ({ value, onCommit, className, ...props }) => {
-    const [localValue, setLocalValue] = useState(value);
-    useEffect(() => setLocalValue(value), [value]);
-
+const DictionaryTextarea: React.FC<{
+    value: string;
+    onCommit: (val: string) => void;
+    placeholder?: string;
+    className?: string;
+    label?: string;
+}> = ({ value: initialValue, onCommit, placeholder, className, label }) => {
+    const { value, onChange, onBlur, onKeyDown } = useDebouncedInput(initialValue, onCommit);
     return (
-        <textarea
-            {...props}
-            className={cn(
-                "py-2 px-3 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-all duration-200 text-gray-800 dark:text-neutral-200 placeholder-gray-400 dark:placeholder-neutral-500 min-h-[60px]",
-                className
-            )}
-            value={localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={() => {
-                if (localValue !== value) onCommit(localValue);
-            }}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.currentTarget.blur();
-                }
-            }}
-        />
+        <div className="flex flex-col gap-1.5 w-full">
+            {label && <Label className="ml-1">{label}</Label>}
+            <Textarea
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
+                onKeyDown={onKeyDown}
+                placeholder={placeholder}
+                className={className}
+            />
+        </div>
     );
 };
+const DataDictionaryItem = React.memo<{
+    def: DataDefinition;
+    definitions: DataDefinition[];
+    parent?: DataDefinition;
+    isDuplicate: boolean;
+    aggregateOptions: any[];
+    t: any;
+    onUpdate: (id: string, def: Partial<DataDefinition>) => void;
+    onRemove: (id: string, anchorEl: HTMLElement | any) => void;
+    onAddAttribute: (defId: string, attrs: any[]) => void;
+    onUpdateAttribute: (defId: string, attrs: any[], index: number, field: 'name' | 'type', value: string) => void;
+    onSetPII: (defId: string, attrs: any[], index: number, isPII: boolean) => void;
+    onDeleteAttribute: (defId: string, attrs: any[], index: number) => void;
+    typeSuggestions: string[];
+}>(({
+    def,
+    definitions,
+    parent,
+    isDuplicate,
+    aggregateOptions,
+    t,
+    onUpdate,
+    onRemove,
+    onAddAttribute,
+    onUpdateAttribute,
+    onSetPII,
+    onDeleteAttribute,
+    typeSuggestions
+}) => {
+    return (
+        <details
+            className={`group bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm border border-gray-200 dark:border-neutral-700/50 rounded-lg overflow-hidden open:bg-gray-100/50 dark:open:bg-neutral-800 transition-all duration-200 shadow-sm ${def.parentId ? 'ml-6' : ''}`}
+        >
+            <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-gray-100/80 dark:hover:bg-neutral-800/80 select-none text-sm focus:outline-none">
+                <ChevronDown className="group-open:rotate-180 text-gray-500 transition-transform duration-200" size={16} />
+                <div className={`w-2.5 h-2.5 rounded-full ${getTypeColor(def.type)} ${def.isRoot ? 'ring-2 ring-emerald-500/50' : ''} shadow-sm`} />
+
+                <div className="flex flex-col flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-800 dark:text-neutral-100">{def.name}</span>
+                        {def.isRoot && (
+                            <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold uppercase tracking-tighter">{t('dataDictionary.root')}</span>
+                        )}
+                    </div>
+                    {parent && <span className="text-[10px] text-gray-500 opacity-60">{t('dataDictionary.partOf', { name: parent.name })}</span>}
+                </div>
+
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">
+                    {t(getTypeLabelKey(def.type))}
+                </span>
+            </summary>
+
+            <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700">
+                {/* Aggregate Members Section (Only for Aggregates) */}
+                {def.type === DefinitionType.Aggregate && (
+                    <div className="mb-6">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">{t('dataDictionary.aggregateMembers')}</h4>
+                        <div className="space-y-1">
+                            {definitions.filter(d => d.parentId === def.id).map(member => (
+                                <div key={member.id} className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-neutral-800 rounded border border-gray-100 dark:border-neutral-700 text-xs text-gray-700 dark:text-neutral-200">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${getTypeColor(member.type)}`} />
+                                    <span className="flex-1 font-medium">{member.name}</span>
+                                    {member.isRoot ? (
+                                        <span className="text-[9px] text-emerald-500 font-bold">{t('dataDictionary.root').toUpperCase()}</span>
+                                    ) : (
+                                        <Button
+                                            variant="ghost"
+                                            size="xs"
+                                            onClick={() => {
+                                                // Unset previous roots for this parent
+                                                definitions.filter(d => d.parentId === def.id && d.isRoot).forEach(r => {
+                                                    onUpdate(r.id, { isRoot: false });
+                                                });
+                                                // Set this one
+                                                onUpdate(member.id, { isRoot: true });
+                                            }}
+                                            className="text-[9px] text-gray-500 hover:text-emerald-500 transition-colors uppercase font-bold p-0 h-auto"
+                                        >
+                                            {t('dataDictionary.makeRoot')}
+                                        </Button>
+                                    )}
+                                </div>
+                            ))}
+                            {definitions.filter(d => d.parentId === def.id).length === 0 && (
+                                <div className="text-[10px] text-gray-500 italic p-2 border border-dashed border-gray-200 dark:border-neutral-700 rounded-lg">
+                                    {t('dataDictionary.noMembers')}
+                                </div>
+                            )}
+                        </div>
+                        <div className="h-px bg-gray-200 dark:bg-neutral-700 mt-6"></div>
+                    </div>
+                )}
+
+                {/* Definition Form */}
+                <div className="flex flex-col gap-4 mb-6">
+                    <DictionaryInput
+                        label={t('dataDictionary.nameLabel')}
+                        value={def.name || ''}
+                        onCommit={(val: string) => onUpdate(def.id, { name: val })}
+                    />
+
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getTypeColor(def.type)}`} />
+                        <span className={`text-[11px] font-bold truncate ${isDuplicate ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-neutral-200'}`}>
+                            {def.name}
+                        </span>
+                        {isDuplicate && <DuplicateWarning />}
+                        <span className="ml-auto text-[9px] font-bold text-gray-400 uppercase tracking-tight">
+                            {t(getTypeLabelKey(def.type))}
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <GlassSelect
+                                label={t('dataDictionary.typeLabel')}
+                                value={def.type}
+                                options={[
+                                    { id: DefinitionType.Aggregate, label: t('modeling.elements.aggregate'), icon: <div className="w-2 h-2 rounded-full bg-emerald-500" /> },
+                                    { id: DefinitionType.Entity, label: t('modeling.elements.entity'), icon: <div className="w-2 h-2 rounded-full bg-blue-500" /> },
+                                    { id: DefinitionType.ValueObject, label: t('modeling.elements.valueObject'), icon: <div className="w-2 h-2 rounded-full bg-purple-500" /> },
+                                    { id: DefinitionType.Enum, label: t('modeling.elements.enum'), icon: <div className="w-2 h-2 rounded-full bg-amber-500" /> },
+                                ]}
+                                onChange={(val: string) => onUpdate(def.id, { type: val as DefinitionType })}
+                            />
+                        </div>
+
+                        {def.type !== DefinitionType.Aggregate && (
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('dataDictionary.parentAggregate')}</label>
+                                <div className="flex gap-2">
+                                    <div className="flex-1">
+                                        <SmartSelect
+                                            options={aggregateOptions}
+                                            value={def.parentId || '__none__'}
+                                            onChange={(id: string) => {
+                                                const newParentId = (id === '__none__' || !id) ? undefined : id;
+                                                onUpdate(def.id, {
+                                                    parentId: newParentId,
+                                                    isRoot: newParentId ? def.isRoot : false // Clear root if unlinking
+                                                });
+                                            }}
+                                            placeholder={t('dataDictionary.none')}
+                                            allowCustomValue={false}
+                                        />
+                                    </div>
+                                    {def.parentId && (
+                                        <button
+                                            onClick={() => {
+                                                if (!def.isRoot) {
+                                                    // Unset others
+                                                    definitions.filter(d => d.parentId === def.parentId && d.isRoot).forEach(r => {
+                                                        onUpdate(r.id, { isRoot: false });
+                                                    });
+                                                }
+                                                onUpdate(def.id, { isRoot: !def.isRoot });
+                                            }}
+                                            className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all shadow-sm ${def.isRoot ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 dark:border-neutral-700 text-gray-500 bg-white dark:bg-neutral-800 hover:border-emerald-500/50'}`}
+                                        >
+                                            {t('dataDictionary.root').toUpperCase()}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 mt-2">
+                        <DictionaryTextarea
+                            label={t('dataDictionary.descriptionLabel')}
+                            value={def.description || ''}
+                            onCommit={(val: string) => onUpdate(def.id, { description: val })}
+                            className="min-h-[60px]"
+                        />
+                    </div>
+
+                    <div className="flex justify-end">
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={(e) => onRemove(def.id, e.currentTarget)}
+                        >
+                            <Trash2 size={16} className="mr-1" /> {t('dataDictionary.deleteAction')}
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="h-px bg-gray-200 dark:bg-neutral-700 mb-4"></div>
+
+                {/* Attributes */}
+                <div>
+                    <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">{t('dataDictionary.attributesLabel')}</h4>
+                        <Button variant="ghost" size="sm" onClick={() => onAddAttribute(def.id, def.attributes || [])}>
+                            <Plus size={14} className="mr-1" /> {t('dataDictionary.addAction')}
+                        </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                        {(Array.isArray(def.attributes) ? def.attributes : []).map((attr, index) => (
+                            <div key={index} className="group relative flex flex-col gap-1 bg-white dark:bg-neutral-900 p-2 rounded-lg border border-gray-200 dark:border-neutral-700 hover:border-blue-500/50 transition-colors shadow-sm">
+                                <div className="flex items-center gap-2">
+                                    {/* PII Toggle */}
+                                    <div className="flex-shrink-0">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            onClick={() => onSetPII(def.id, def.attributes || [], index, !attr.isPII)}
+                                            className={cn(
+                                                "rounded-lg transition-[background-color,border-color,color] border",
+                                                attr.isPII
+                                                    ? "bg-red-500/10 border-red-500/50 text-red-600 shadow-sm"
+                                                    : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-40 hover:opacity-100"
+                                            )}
+                                            title={attr.isPII ? t('dataDictionary.piiSensitive') : t('dataDictionary.piiMark')}
+                                        >
+                                            <Lock size={14} />
+                                        </Button>
+                                    </div>
+
+                                    <div className="relative w-1/2 flex items-center">
+                                        <div className="flex-1">
+                                            <input
+                                                className="h-8 px-2.5 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-neutral-950 text-gray-700 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 transition-[border-color,box-shadow] shadow-sm"
+                                                value={attr.name}
+                                                placeholder={t('dataDictionary.attributeNamePlaceholder')}
+                                                onChange={(e) => onUpdateAttribute(def.id, def.attributes || [], index, 'name', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="relative w-1/3">
+                                        <GlassSelect
+                                            value={attr.type}
+                                            options={[
+                                                ...PRIMITIVE_TYPES.map(typeName => ({ id: typeName, label: typeName, group: t('dataDictionary.primitives') })),
+                                                ...typeSuggestions.filter(typeName => !PRIMITIVE_TYPES.includes(typeName)).map(typeName => ({ id: typeName, label: typeName, group: t('dataDictionary.domainTypes') })),
+                                                ...(!typeSuggestions.includes(attr.type) ? [{ id: attr.type, label: attr.type, group: t('dataDictionary.custom') }] : [])
+                                            ] as any}
+                                            onChange={(val) => onUpdateAttribute(def.id, def.attributes || [], index, 'type', val)}
+                                            buttonClassName="h-8 py-0 px-2.5 text-xs font-mono font-bold"
+                                        />
+                                    </div>
+
+                                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            onClick={() => onDeleteAttribute(def.id, def.attributes || [], index)}
+                                            className="text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors p-0"
+                                        >
+                                            <X size={14} />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {(def.attributes || []).length === 0 && (
+                            <p className="text-center text-xs text-gray-400 italic py-2">{t('dataDictionary.noAttributes')}</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </details>
+    );
+});
+
+DataDictionaryItem.displayName = 'DataDictionaryItem';
 
 const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     definitions,
@@ -112,9 +385,9 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     // State for deleting definitions
     const [deleteDefInfo, setDeleteDefInfo] = useState<{ id: string, anchorEl: HTMLElement } | null>(null);
 
-    const isDuplicateName = (name: string, currentId?: string) => {
+    const isDuplicateName = useCallback((name: string, currentId?: string) => {
         return (definitions || []).some(d => d.name.toLowerCase() === name.toLowerCase() && d.id !== currentId);
-    };
+    }, [definitions]);
 
     // Calculate available types for suggestions (Primitives + Value Objects + Enums)
     const typeSuggestions = useMemo(() => {
@@ -206,25 +479,32 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
     };
 
     // Attribute Handlers
-    const handleAddAttribute = (def: DataDefinition) => {
-        const currentAttributes = def.attributes || [];
-        const newAttrs = [...currentAttributes, { name: '', type: 'String' }];
-        onUpdateDefinition(def.id, { attributes: newAttrs });
-    };
+    const handleAddAttribute = useCallback((defId: string, currentAttributes: any[]) => {
+        const newAttrs = [...(currentAttributes || []), { name: '', type: 'String' }];
+        onUpdateDefinition(defId, { attributes: newAttrs });
+    }, [onUpdateDefinition]);
 
-    const handleUpdateAttribute = (def: DataDefinition, index: number, field: 'name' | 'type', value: string) => {
-        const currentAttributes = [...(def.attributes || [])];
-        if (currentAttributes[index]) {
-            currentAttributes[index] = { ...currentAttributes[index], [field]: value };
-            onUpdateDefinition(def.id, { attributes: currentAttributes });
+    const handleUpdateAttribute = useCallback((defId: string, currentAttributes: any[], index: number, field: 'name' | 'type', value: string) => {
+        const latestAttributes = [...(currentAttributes || [])];
+        if (latestAttributes[index]) {
+            latestAttributes[index] = { ...latestAttributes[index], [field]: value };
+            onUpdateDefinition(defId, { attributes: latestAttributes });
         }
-    };
+    }, [onUpdateDefinition]);
 
-    const handleDeleteAttribute = (def: DataDefinition, index: number) => {
-        const currentAttributes = [...(def.attributes || [])];
-        currentAttributes.splice(index, 1);
-        onUpdateDefinition(def.id, { attributes: currentAttributes });
-    };
+    const handleSetPII = useCallback((defId: string, currentAttributes: any[], index: number, isPII: boolean) => {
+        const latestAttributes = [...(currentAttributes || [])];
+        if (latestAttributes[index]) {
+            latestAttributes[index] = { ...latestAttributes[index], isPII };
+            onUpdateDefinition(defId, { attributes: latestAttributes });
+        }
+    }, [onUpdateDefinition]);
+
+    const handleDeleteAttribute = useCallback((defId: string, currentAttributes: any[], index: number) => {
+        const latestAttributes = [...(currentAttributes || [])];
+        latestAttributes.splice(index, 1);
+        onUpdateDefinition(defId, { attributes: latestAttributes });
+    }, [onUpdateDefinition]);
 
     return (
         <div className="pb-24">
@@ -247,7 +527,9 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                     <span className="text-[10px] text-gray-400 font-mono">{field.type}</span>
                                 </div>
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
+                                    <Button
+                                        variant="glass-emerald"
+                                        size="xs"
                                         onClick={() => {
                                             const newId = onAddDefinition({
                                                 name: field.name,
@@ -258,17 +540,21 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                                 onLinkFieldToDefinition(field.name, field.type, newId);
                                             }
                                         }}
-                                        className="py-1 px-2 inline-flex items-center gap-x-1 text-[10px] font-bold rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all uppercase"
+                                        className="gap-x-1 uppercase font-bold"
                                     >
                                         {t('dataDictionary.toEntity')}
-                                    </button>
+                                    </Button>
                                     <div className="relative group/menu">
-                                        <button className="py-1 px-2 inline-flex items-center gap-x-1 text-[10px] font-bold rounded-md bg-purple-500/10 text-purple-600 border border-blue-500/20 hover:bg-purple-500 hover:text-white transition-all uppercase">
+                                        <Button
+                                          variant="glass"
+                                          size="xs"
+                                          className="gap-x-1 uppercase font-bold text-purple-600 border-purple-500/20 hover:bg-purple-500 hover:text-white"
+                                        >
                                             {t('dataDictionary.linkTo')}
-                                        </button>
+                                        </Button>
                                         <div className="absolute right-0 bottom-full mb-1 hidden group-hover/menu:block z-[110] min-w-[140px]">
                                             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-xl p-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                                {definitions.filter(d => d.type !== DefinitionType.Aggregate).map(def => (
+                                                {definitions.filter(d => d.type !== DefinitionType.Aggregate).map((def: DataDefinition) => (
                                                     <button
                                                         key={def.id}
                                                         onClick={() => onLinkFieldToDefinition?.(field.name, field.type, def.id)}
@@ -292,8 +578,8 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                 <SmartSelect
                     options={remoteDefinitionOptions}
                     value=""
-                    onChange={(val, opt) => handleAdd(val, opt)}
-                    onCreate={(name) => handleAdd(name)}
+                    onChange={(val: string, opt?: any) => handleAdd(val, opt)}
+                    onCreate={(name: string) => handleAdd(name)}
                     placeholder={t('dataDictionary.addPlaceholder')}
                     allowCustomValue={true}
                     autoFocus={true}
@@ -302,245 +588,28 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
 
             {/* List */}
             <div className="space-y-1">
-                {definitions.map((def) => {
-                    const parent = definitions.find(d => d.id === def.parentId);
+                {definitions.map((def) => (
+                    <DataDictionaryItem
+                        key={def.id}
+                        def={def}
+                        definitions={definitions}
+                        parent={definitions.find(d => d.id === def.parentId)}
+                        isDuplicate={isDuplicateName(def.name, def.id)}
+                        aggregateOptions={aggregateOptions}
+                        t={t}
+                        onUpdate={onUpdateDefinition}
+                        onRemove={(id, anchorEl) => setDeleteDefInfo({ id, anchorEl })}
+                        onAddAttribute={handleAddAttribute}
+                        onUpdateAttribute={handleUpdateAttribute}
+                        onSetPII={handleSetPII}
+                        onDeleteAttribute={handleDeleteAttribute}
+                        typeSuggestions={typeSuggestions}
+                    />
+                ))}
 
-                    return (
-                        <details
-                            key={def.id}
-                            className={`hs-accordion group bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg overflow-hidden open:bg-gray-50 dark:open:bg-neutral-700 open:border-white/20 transition-all duration-200 ${def.parentId ? 'ml-6' : ''}`}
-                        >
-                            <summary className="hs-accordion-toggle flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-neutral-800/50 select-none text-sm focus:outline-none">
-                                <ChevronDown className="hs-accordion-active:rotate-180 text-gray-500 transition-transform duration-200" size={16} />
-                                <div className={`w-2.5 h-2.5 rounded-full ${getTypeColor(def.type)} ${def.isRoot ? 'ring-2 ring-emerald-500/50' : ''} shadow-sm`} />
-
-                                <div className="flex flex-col flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium text-gray-800 dark:text-neutral-100">{def.name}</span>
-                                        {def.isRoot && (
-                                            <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold uppercase tracking-tighter">{t('dataDictionary.root')}</span>
-                                        )}
-                                    </div>
-                                    {parent && <span className="text-[10px] text-gray-500 opacity-60">{t('dataDictionary.partOf', { name: parent.name })}</span>}
-                                </div>
-
-                                <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">{def.type}</span>
-                            </summary>
-
-                            <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700">
-                                {/* Aggregate Members Section (Only for Aggregates) */}
-                                {def.type === DefinitionType.Aggregate && (
-                                    <div className="mb-6">
-                                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">{t('dataDictionary.aggregateMembers')}</h4>
-                                        <div className="space-y-1">
-                                            {definitions.filter(d => d.parentId === def.id).map(member => (
-                                                <div key={member.id} className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-neutral-800 rounded border border-gray-100 dark:border-neutral-700 text-xs text-gray-700 dark:text-neutral-200">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${getTypeColor(member.type)}`} />
-                                                    <span className="flex-1 font-medium">{member.name}</span>
-                                                    {member.isRoot ? (
-                                                        <span className="text-[9px] text-emerald-500 font-bold">{t('dataDictionary.root').toUpperCase()}</span>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => {
-                                                                // Unset previous roots for this parent
-                                                                definitions.filter(d => d.parentId === def.id && d.isRoot).forEach(r => {
-                                                                    onUpdateDefinition(r.id, { isRoot: false });
-                                                                });
-                                                                // Set this one
-                                                                onUpdateDefinition(member.id, { isRoot: true });
-                                                            }}
-                                                            className="text-[9px] text-gray-500 hover:text-emerald-500 transition-colors uppercase font-bold"
-                                                        >
-                                                            {t('dataDictionary.makeRoot')}
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            ))}
-                                             {definitions.filter(d => d.parentId === def.id).length === 0 && (
-                                                  <div className="text-[10px] text-gray-500 italic p-2 border border-dashed border-gray-200 dark:border-neutral-700 rounded-lg">
-                                                      {t('dataDictionary.noMembers')}
-                                                  </div>
-                                              )}
-                                        </div>
-                                        <div className="h-px bg-gray-200 dark:bg-neutral-700 mt-6"></div>
-                                    </div>
-                                )}
-
-                                {/* Definition Form */}
-                                <div className="flex flex-col gap-4 mb-6">
-                                    <DebouncedInput
-                                        label={t('dataDictionary.nameLabel')}
-                                        value={def.name || ''}
-                                        onCommit={(val: string) => onUpdateDefinition(def.id, { name: val })}
-                                    />
-
-                                    <div className="flex items-center gap-2">
-                                         <div className={`w-2 h-2 rounded-full ${getTypeColor(def.type)}`} />
-                                         <span className={`text-[11px] font-bold truncate ${isDuplicateName(def.name, def.id) ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-neutral-200'}`}>
-                                             {def.name}
-                                         </span>
-                                         {isDuplicateName(def.name, def.id) && <DuplicateWarning />}
-                                         <span className="ml-auto text-[9px] font-bold text-gray-400 uppercase tracking-tight">{def.type}</span>
-                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <GlassSelect
-                                                label={t('dataDictionary.typeLabel')}
-                                                value={def.type}
-                                                options={[
-                                                    { id: DefinitionType.Aggregate, label: t('modeling.elements.aggregate'), icon: <div className="w-2 h-2 rounded-full bg-emerald-500" /> },
-                                                    { id: DefinitionType.Entity, label: t('modeling.elements.entity'), icon: <div className="w-2 h-2 rounded-full bg-blue-500" /> },
-                                                    { id: DefinitionType.ValueObject, label: t('modeling.elements.valueObject'), icon: <div className="w-2 h-2 rounded-full bg-purple-500" /> },
-                                                    { id: DefinitionType.Enum, label: t('modeling.elements.enum'), icon: <div className="w-2 h-2 rounded-full bg-amber-500" /> },
-                                                ]}
-                                                onChange={(val) => onUpdateDefinition(def.id, { type: val as DefinitionType })}
-                                            />
-                                        </div>
-
-                                        {def.type !== DefinitionType.Aggregate && (
-                                            <div className="flex flex-col gap-1.5">
-                                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('dataDictionary.parentAggregate')}</label>
-                                                <div className="flex gap-2">
-                                                    <div className="flex-1">
-                                                        <SmartSelect
-                                                            options={aggregateOptions}
-                                                            value={def.parentId || '__none__'}
-                                                            onChange={(id) => {
-                                                                const newParentId = (id === '__none__' || !id) ? undefined : id;
-                                                                onUpdateDefinition(def.id, {
-                                                                    parentId: newParentId,
-                                                                    isRoot: newParentId ? def.isRoot : false // Clear root if unlinking
-                                                                });
-                                                            }}
-                                                            placeholder={t('dataDictionary.none')}
-                                                            allowCustomValue={false}
-                                                        />
-                                                    </div>
-                                                    {def.parentId && (
-                                                         <button
-                                                             onClick={() => {
-                                                                 if (!def.isRoot) {
-                                                                     // Unset others
-                                                                     definitions.filter(d => d.parentId === def.parentId && d.isRoot).forEach(r => {
-                                                                         onUpdateDefinition(r.id, { isRoot: false });
-                                                                     });
-                                                                 }
-                                                                 onUpdateDefinition(def.id, { isRoot: !def.isRoot });
-                                                             }}
-                                                             className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all shadow-sm ${def.isRoot ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 dark:border-neutral-700 text-gray-500 bg-white dark:bg-neutral-800 hover:border-emerald-500/50'}`}
-                                                         >
-                                                             {t('dataDictionary.root').toUpperCase()}
-                                                         </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                     <div className="flex flex-col gap-1.5 mt-2">
-                                         <label className="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1">{t('dataDictionary.descriptionLabel')}</label>
-                                         <DebouncedTextarea
-                                             value={def.description || ''}
-                                             onCommit={(val: string) => onUpdateDefinition(def.id, { description: val })}
-                                             className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg px-4 py-2.5 outline-none text-gray-800 dark:text-neutral-100 placeholder-gray-500 min-h-[60px]"
-                                         />
-                                     </div>
-
-                                    <div className="flex justify-end">
-                                        <GlassButton
-                                            variant="danger"
-                                            size="sm"
-                                            onClick={(e) => setDeleteDefInfo({ id: def.id, anchorEl: e.currentTarget })}
-                                        >
-                                            <Trash2 size={16} className="mr-1" /> {t('dataDictionary.deleteAction')}
-                                        </GlassButton>
-                                    </div>
-                                </div>
-
-                                 <div className="h-px bg-gray-200 dark:bg-neutral-700 mb-4"></div>
-
-                                 {/* Attributes */}
-                                  <div>
-                                     <div className="flex items-center justify-between mb-4">
-                                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">{t('dataDictionary.attributesLabel')}</h4>
-                                         <GlassButton variant="ghost" size="sm" onClick={() => handleAddAttribute(def)}>
-                                             <Plus size={14} className="mr-1" /> {t('dataDictionary.addAction')}
-                                         </GlassButton>
-                                     </div>
-
-                                     <div className="space-y-2">
-                                         {(Array.isArray(def.attributes) ? def.attributes : []).map((attr, index) => (
-                                             <div key={index} className="group relative flex flex-col gap-1 bg-white dark:bg-neutral-900 p-2 rounded-lg border border-gray-200 dark:border-neutral-700 hover:border-blue-500/50 transition-colors shadow-sm">
-                                                 <div className="flex items-center gap-2">
-                                                     {/* PII Toggle */}
-                                                     <div className="flex-shrink-0">
-                                                          <button
-                                                              onClick={() => {
-                                                                  const currentAttributes = [...(def.attributes || [])];
-                                                                  if (currentAttributes[index]) {
-                                                                      currentAttributes[index] = { ...currentAttributes[index], isPII: !attr.isPII };
-                                                                       onUpdateDefinition(def.id, { attributes: currentAttributes });
-                                                                   }
-                                                               }}
-                                                               className={`p-1.5 rounded-lg transition-all border ${
-                                                                   attr.isPII 
-                                                                       ? "bg-red-500/10 border-red-500/50 text-red-600 shadow-sm" 
-                                                                       : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-40 hover:opacity-100"
-                                                               }`}
-                                                               title={attr.isPII ? t('dataDictionary.piiSensitive') : t('dataDictionary.piiMark')}
-                                                           >
-                                                              <Lock size={14} />
-                                                          </button>
-                                                     </div>
-
-                                                     <div className="relative w-1/2 flex items-center">
-                                                         <div className="flex-1">
-                                                          <input
-                                                              className="h-8 px-2.5 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-neutral-950 text-gray-700 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 transition-all shadow-sm"
-                                                              value={attr.name}
-                                                              placeholder={t('dataDictionary.attributeNamePlaceholder')}
-                                                              onChange={(e) => handleUpdateAttribute(def, index, 'name', e.target.value)}
-                                                          />
-                                                      </div>
-                                                     </div>
-
-                                                      <div className="relative w-1/3">
-                                                          <GlassSelect
-                                                              value={attr.type}
-                                                              options={[
-                                                                  ...PRIMITIVE_TYPES.map(typeName => ({ id: typeName, label: typeName, group: t('dataDictionary.primitives') })),
-                                                                  ...typeSuggestions.filter(typeName => !PRIMITIVE_TYPES.includes(typeName)).map(typeName => ({ id: typeName, label: typeName, group: t('dataDictionary.domainTypes') })),
-                                                                  ...(!typeSuggestions.includes(attr.type) ? [{ id: attr.type, label: attr.type, group: t('dataDictionary.custom') }] : [])
-                                                              ] as any}
-                                                              onChange={(val) => handleUpdateAttribute(def, index, 'type', val)}
-                                                              buttonClassName="h-8 py-0 px-2.5 text-xs font-mono font-bold"
-                                                          />
-                                                      </div>
-
-                                                      <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-                                                          <button
-                                                              onClick={() => handleDeleteAttribute(def, index)}
-                                                              className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
-                                                          >
-                                                              <X size={14} />
-                                                          </button>
-                                                      </div>
-                                                 </div>
-                                             </div>
-                                          ))}
-                                         {(def.attributes || []).length === 0 && (
-                                             <p className="text-center text-xs text-gray-400 italic py-2">{t('dataDictionary.noAttributes')}</p>
-                                         )}
-                                     </div>
-                                 </div>
-                            </div>
-                        </details>
-                    );
-                })}
-
-                 {definitions.length === 0 && (
-                     <p className="text-center text-gray-400 pt-8 italic">{t('dataDictionary.noDefinitions')}</p>
-                 )}
+                {definitions.length === 0 && (
+                    <p className="text-center text-gray-400 pt-8 italic">{t('dataDictionary.noDefinitions')}</p>
+                )}
             </div>
 
             {/* Confirm Deletion Menu */}

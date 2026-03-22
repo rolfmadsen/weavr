@@ -5,6 +5,7 @@ import { Node, Slice } from '../../modeling';
 import { CrossModelItem } from '../../modeling/store/useCrossModelData';
 import { GlassButton } from '../../../shared/components/GlassButton';
 import SmartSelect from '../../../shared/components/SmartSelect';
+import { Label } from '../../../shared/components/ui/label';
 
 interface MultiNodePropertiesProps {
     nodes: Node[];
@@ -15,7 +16,7 @@ interface MultiNodePropertiesProps {
     crossModelSlices: CrossModelItem[];
     onPinSelection?: () => void;
     onUnpinSelection?: () => void;
-    nameInputRef: React.RefObject<HTMLInputElement | null>;
+    nameInputRef: React.RefObject<any>;
 }
 
 const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
@@ -102,7 +103,7 @@ const MultiNodeProperties: React.FC<MultiNodePropertiesProps> = ({
                 </div>
 
                 <div className="mb-6">
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">{t('properties.assignToSlice')}</label>
+                    <Label className="mb-2 block">{t('properties.assignToSlice')}</Label>
                     <SmartSelect
                         options={sliceOptions}
                         value=""

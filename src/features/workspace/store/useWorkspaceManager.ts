@@ -19,6 +19,8 @@ export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
     const [isSliceManagerOpen, setIsSliceManagerOpen] = useState(false);
     const [sliceManagerInitialId, setSliceManagerInitialId] = useState<string | null>(null);
     const [sidebarView, setSidebarView] = useState<SidebarView>(null);
+    const [isElementFilterOpen, setIsElementFilterOpen] = useState(false);
+    const [isSliceFilterOpen, setIsSliceFilterOpen] = useState(false);
 
     // View state persistence
     const [viewState, setViewState] = useState<ViewState>(() => {
@@ -68,6 +70,8 @@ export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
         isSliceManagerOpen, setIsSliceManagerOpen,
         sliceManagerInitialId, setSliceManagerInitialId,
         sidebarView, setSidebarView,
+        isElementFilterOpen, setIsElementFilterOpen,
+        isSliceFilterOpen, setIsSliceFilterOpen,
         viewState, setViewState,
         models,
         currentModelName,

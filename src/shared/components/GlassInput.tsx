@@ -1,15 +1,12 @@
 import React, { InputHTMLAttributes, forwardRef } from 'react';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../lib/utils';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 interface GlassInputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
     error?: string;
     startIcon?: React.ReactNode;
-}
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
 }
 
 export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(({
@@ -21,11 +18,11 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(({
     ...props
 }, ref) => {
     return (
-        <div className="w-full">
+        <div className="w-full space-y-2">
             {label && (
-                <label htmlFor={id} className="block text-sm font-medium mb-2 dark:text-white">
+                <Label htmlFor={id} className="ml-1">
                     {label}
-                </label>
+                </Label>
             )}
 
             <div className="relative">
@@ -35,11 +32,11 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(({
                     </div>
                 )}
 
-                <input
+                <Input
                     ref={ref}
                     id={id}
                     className={cn(
-                        "py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600",
+                        "glass-input h-10 py-3",
                         !!startIcon && "ps-11",
                         error && "border-red-500 focus:border-red-500 focus:ring-red-500",
                         className

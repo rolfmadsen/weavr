@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { TooltipProvider } from './shared/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
 import { bus } from './shared/events/eventBus';
 import Konva from 'konva';
@@ -47,6 +48,7 @@ import {
 import { usePlausible } from './features/analytics';
 import { ThemeProvider } from './shared/providers/ThemeProvider';
 import { GlassTooltip } from './shared/components/GlassTooltip';
+import { cn } from './shared/lib/utils';
 
 function getModelIdFromUrl(): string {
   const hash = window.location.hash.slice(1);
@@ -75,17 +77,6 @@ function getModelIdFromUrl(): string {
 
 const App: React.FC = () => {
   const { t } = useTranslation();
-  // Preline initialization
-  useEffect(() => {
-    const initPreline = async () => {
-      await import('preline');
-      if (window.HSStaticMethods && typeof window.HSStaticMethods.autoInit === 'function') {
-        window.HSStaticMethods.autoInit();
-      }
-    };
-    initPreline();
-  }, [window.location.hash]); // We use hash-based routing/state
-
   const [modelId, setModelId] = React.useState<string | null>(null);
   const [pendingFitView, setPendingFitView] = React.useState(false);
 
@@ -124,10 +115,22 @@ const App: React.FC = () => {
     isSliceManagerOpen, setIsSliceManagerOpen,
     sliceManagerInitialId, setSliceManagerInitialId,
     sidebarView, setSidebarView,
+    isElementFilterOpen, setIsElementFilterOpen,
+    isSliceFilterOpen, setIsSliceFilterOpen,
     viewState, setViewState,
     currentModelName,
     handleRenameModel
   } = useWorkspaceManager({ modelId });
+
+  const [isSidebarDeferredMounted, setIsSidebarDeferredMounted] = React.useState(false);
+
+  useEffect(() => {
+    // Defer mounting of background panels to break up long hydration task
+    const timer = setTimeout(() => {
+      setIsSidebarDeferredMounted(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // 3. Model Logic
   const [layoutRequestId, setLayoutRequestId] = React.useState(0);
@@ -486,7 +489,10 @@ const App: React.FC = () => {
     onDuplicate: () => pasteNodes(nodes.filter(n => selectedNodeIdsArray.includes(n.id))),
     onZoomIn: () => graphRef.current?.zoomIn(),
     onZoomOut: () => graphRef.current?.zoomOut(),
-    onResetZoom: () => graphRef.current?.resetZoom()
+    onResetZoom: () => graphRef.current?.resetZoom(),
+    onOpenHelp: () => { setIsHelpModalOpen(true); signal("Help.Opened"); },
+    onToggleSearch: () => setIsElementFilterOpen(prev => !prev),
+    onToggleSliceFilter: () => setIsSliceFilterOpen(prev => !prev)
   });
 
   // Sync GunDB name to Local Storage (Bi-directional)
@@ -528,7 +534,8 @@ const App: React.FC = () => {
   return (
     <ModelingProvider store={modelingStore}>
       <ThemeProvider>
-        {/* Glassmorphism Background Layer */}
+        <TooltipProvider>
+          {/* Glassmorphism Background Layer */}
         <div className="fixed inset-0 -z-10 bg-slate-50 dark:bg-slate-950 transition-colors duration-700">
           <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
           <div className="absolute top-0 -right-4 w-96 h-96 bg-cyan-300 dark:bg-cyan-900 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
@@ -593,9 +600,14 @@ const App: React.FC = () => {
           />
 
           <div className="absolute bottom-16 left-8 z-10 flex flex-col items-start pointer-events-none [&>*]:pointer-events-auto">
-            <ElementFilter nodes={nodes} onNodeClick={(n: Node) => {
-              handleFocusNode(n.id);
-            }} />
+            <ElementFilter 
+              nodes={nodes} 
+              onNodeClick={(n: Node) => {
+                handleFocusNode(n.id);
+              }} 
+              isCollapsed={!isElementFilterOpen}
+              onToggle={() => setIsElementFilterOpen(prev => !prev)}
+            />
             <SliceFilter
               slices={slices}
               hiddenSliceIds={hiddenSliceIds}
@@ -605,6 +617,8 @@ const App: React.FC = () => {
               focusModeSteps={focusModeSteps}
               onFocusModeStepsChange={setFocusModeSteps}
               effectiveHiddenSliceIds={effectiveHiddenSliceIds}
+              isCollapsed={!isSliceFilterOpen}
+              onToggle={() => setIsSliceFilterOpen(prev => !prev)}
             />
             <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => {
               graphRef.current?.handleNavigate?.(x, y);
@@ -638,44 +652,52 @@ const App: React.FC = () => {
                 { id: 'actors', label: t('workspace.sidebar.actors'), title: 'Start' }
             ]}
           >
-            {sidebarView === 'properties' && (
-              <PropertiesPanel
-                focusOnRender={focusOnRender}
-                onFocusHandled={() => setFocusOnRender(false)}
-                modelId={modelId}
-              />
-            )}
-            {sidebarView === 'slices' && (
-              <SliceList
-                slices={slicesWithNodes}
-                onAddSlice={handleAddSliceInternal}
-                onUpdateSlice={updateSlice}
-                onDeleteSlice={deleteSlice}
-                onManageSlice={(id: string) => { setSliceManagerInitialId(id); setIsSliceManagerOpen(true); }}
-                modelId={modelId}
-                expandedId={activeSliceId}
-                onAutoLayout={handleRequestAutoLayout}
-              />
-            )}
-            {sidebarView === 'dictionary' && (
-              <DataDictionaryList
-                definitions={definitions}
-                onAddDefinition={(def) => addDefinition(def) || ''}
-                onUpdateDefinition={updateDefinition}
-                onRemoveDefinition={deleteDefinition}
-                modelId={modelId}
-                orphanedFields={orphanedFields}
-                onLinkFieldToDefinition={handleLinkFieldToDefinition}
-              />
-            )}
-            {sidebarView === 'actors' && (
-              <ActorsList
-                actors={actors || []}
-                onAddActor={addActor}
-                onUpdateActor={updateActor}
-                onRemoveActor={deleteActor}
-              />
-            )}
+            <div className={cn(sidebarView !== 'properties' && "hidden")}>
+              {(sidebarView === 'properties' || isSidebarDeferredMounted) && (
+                <PropertiesPanel
+                  focusOnRender={focusOnRender}
+                  onFocusHandled={() => setFocusOnRender(false)}
+                  modelId={modelId}
+                />
+              )}
+            </div>
+            <div className={cn(sidebarView !== 'slices' && "hidden")}>
+              {(sidebarView === 'slices' || isSidebarDeferredMounted) && (
+                <SliceList
+                  slices={slicesWithNodes}
+                  onAddSlice={handleAddSliceInternal}
+                  onUpdateSlice={updateSlice}
+                  onDeleteSlice={deleteSlice}
+                  onManageSlice={(id: string) => { setSliceManagerInitialId(id); setIsSliceManagerOpen(true); }}
+                  modelId={modelId}
+                  expandedId={activeSliceId}
+                  onAutoLayout={handleRequestAutoLayout}
+                />
+              )}
+            </div>
+            <div className={cn(sidebarView !== 'dictionary' && "hidden")}>
+              {(sidebarView === 'dictionary' || isSidebarDeferredMounted) && (
+                <DataDictionaryList
+                  definitions={definitions}
+                  onAddDefinition={(def) => addDefinition(def) || ''}
+                  onUpdateDefinition={updateDefinition}
+                  onRemoveDefinition={deleteDefinition}
+                  modelId={modelId}
+                  orphanedFields={orphanedFields}
+                  onLinkFieldToDefinition={handleLinkFieldToDefinition}
+                />
+              )}
+            </div>
+            <div className={cn(sidebarView !== 'actors' && "hidden")}>
+              {(sidebarView === 'actors' || isSidebarDeferredMounted) && (
+                <ActorsList
+                  actors={actors || []}
+                  onAddActor={addActor}
+                  onUpdateActor={updateActor}
+                  onRemoveActor={deleteActor}
+                />
+              )}
+            </div>
           </Sidebar>
 
 
@@ -696,9 +718,10 @@ const App: React.FC = () => {
           />
           <Footer />
         </div>
-      </ThemeProvider>
-    </ModelingProvider>
-  );
+      </TooltipProvider>
+    </ThemeProvider>
+  </ModelingProvider>
+);
 };
 
 export default App;

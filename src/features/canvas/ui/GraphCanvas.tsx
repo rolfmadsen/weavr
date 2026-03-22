@@ -1114,4 +1114,6 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     );
 });
 
-export default GraphCanvasKonva;
+const MemoizedGraphCanvas = React.memo(GraphCanvasKonva);
+
+export default MemoizedGraphCanvas;

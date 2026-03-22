@@ -103,13 +103,15 @@ const ChapterGroup: React.FC<ChapterGroupProps> = ({
                         align="center"
                     />
                     {/* Pen Icon - Conditioned on Hover or always visible? Slices show always. */}
-                    <Path
-                        data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
-                        fill={isHovered ? "#a855f7" : "#475569"} // Purple on hover, Slate 600 otherwise
-                        scale={{ x: 0.7, y: 0.7 }}
-                        x={(width / 2) + (textWidthEstimate / 2) + 20}
-                        y={-4}
-                    />
+                    <Group 
+                        x={(width / 2) + (textWidthEstimate / 2) + 15} 
+                        y={-4} 
+                        scale={{ x: 0.75, y: 0.75 }} 
+                        opacity={isHovered ? 1 : 0.4}
+                    >
+                        <Path data="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" stroke={isHovered ? "#a855f7" : "#475569"} strokeWidth={2.5} lineCap="round" lineJoin="round" fillEnabled={false} />
+                        <Path data="m15 5 4 4" stroke={isHovered ? "#a855f7" : "#475569"} strokeWidth={2.5} lineCap="round" lineJoin="round" fillEnabled={false} />
+                    </Group>
                 </Group>
             ) : (
                 <Html divProps={{ style: { pointerEvents: 'auto' } }}>

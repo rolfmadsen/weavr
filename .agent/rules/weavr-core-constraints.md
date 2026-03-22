@@ -11,9 +11,9 @@ You MUST NOT deviate from these standards under any circumstances. For deep cont
 ## 🚫 The MUI Ban
 - **MUI BAN (ABSOLUTE)**: Strictly NO MUI (`@mui/*`). You MUST use Tailwind utility classes or custom recipes from the Shared UI components. Do NOT import from `@mui`.
 
-## 🎨 Styling Standards (Tailwind v4 / Preline)
-- **Preline Standardization**: Use official [Preline UI](https://preline.co/) components, markup, and Tailwind classes for all UI elements.
-- **Shared UI**: Favor standard UI primitives over generic HTML equivalents to maintain the Preline design system.
+## 🎨 Styling Standards (Tailwind v4 / Shadcn UI)
+- **Shadcn UI Standardization**: Use official [Shadcn UI](https://ui.shadcn.com/) components, markup, and Tailwind classes for all UI elements.
+- **Shared UI**: Favor standard UI primitives from `@/shared/components/ui` over generic HTML equivalents to maintain the design system.
 - **Micro-Animations**: Use standard Tailwind transitions for hover and active states.
 
 ## 🏗️ Structure & State

@@ -20,7 +20,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const store = useModelingContext();
-  const nameInputRef = React.useRef<HTMLInputElement>(null);
+  const nameInputRef = React.useRef<any>(null);
 
   const {
     crossModelSlices,

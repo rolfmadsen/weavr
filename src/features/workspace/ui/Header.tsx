@@ -1,21 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Wand2,
-  Menu,
-  Edit,
-  Share2,
-  PinOff
-} from 'lucide-react';
-import clsx from 'clsx';
+import { Share2, PinOff, Wand2, Menu, Pencil } from 'lucide-react';
 import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 import { AppMenu } from './AppMenu';
-import { twMerge } from 'tailwind-merge';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from './LanguageSelector';
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { Button } from '../../../shared/components/ui/button';
+import { cn } from '../../../shared/lib/utils';
 
 interface HeaderProps {
   onOpen: (file: File) => void;
@@ -35,17 +25,18 @@ interface HeaderProps {
 
 const IconButton = ({ onClick, disabled, children, title, color = 'neutral' }: any) => (
   <GlassTooltip content={title}>
-    <button
+    <Button
+      variant="ghost"
+      size="icon-sm"
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "p-2 rounded-full transition-all duration-200 outline-none",
-        disabled ? "opacity-30 cursor-not-allowed" : "hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95",
+        "rounded-full transition-[background-color,color] duration-200",
         color === 'error' && !disabled ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10" : "text-slate-600 dark:text-slate-300"
       )}
     >
       {children}
-    </button>
+    </Button>
   </GlassTooltip>
 );
 
@@ -93,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <nav className="relative h-16 shrink-0 z-40 px-4 flex items-center justify-between border-b 
       bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl 
-      border-white/20 dark:border-white/5 text-slate-800 dark:text-slate-100 transition-colors duration-500">
+      border-white/20 dark:border-white/5 text-slate-800 dark:text-slate-100 transition-[background-color,border-color] duration-500">
 
       {/* Left: Logo & Model Name */}
       <div className="flex items-center gap-3 min-w-0 z-50">
@@ -114,10 +105,10 @@ const Header: React.FC<HeaderProps> = ({
         ) : (
           <div
             onClick={() => { setTempName(currentModelName); setIsEditingName(true); }}
-            className="group flex items-center gap-2 cursor-pointer p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+            className="group flex items-center gap-2 cursor-pointer p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
           >
             <span className="text-lg font-bold truncate max-w-[200px] sm:max-w-[400px]">{currentModelName}</span>
-            <Edit className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors w-4 h-4 ml-2" size={16} />
+            <Pencil className="text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors w-4 h-4 ml-2" size={16} />
           </div>
         )}
       </div>
@@ -146,17 +137,28 @@ const Header: React.FC<HeaderProps> = ({
           <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-1"></div>
 
           {/* Share */}
-          <button
-            onClick={handleShareClick}
-            className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold transition-all shadow-lg active:scale-95 border",
-              copied
-                ? "bg-emerald-500 text-white border-emerald-500 shadow-emerald-500/20"
-                : "bg-purple-600 text-white border-purple-600 hover:bg-purple-500 shadow-purple-500/20"
-            )}
-          >
-            {copied ? t('workspace.header.copied') : <><Share2 size={16} /> {t('workspace.header.share')}</>}
-          </button>
+          <GlassTooltip content={t('workspace.header.shareTooltip')}>
+            <Button
+              variant="glass-orange"
+              size="sm"
+              onClick={handleShareClick}
+              className={cn(
+                "rounded-full font-bold transition-all shadow-lg active:scale-95 px-4 h-9",
+                copied && "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-emerald-500/20"
+              )}
+            >
+              {copied ? (
+                <span className="flex items-center gap-2 text-white">
+                  {t('workspace.header.copied')}
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Share2 size={14} className="text-white fill-white" />
+                  {t('workspace.header.share')}
+                </span>
+              )}
+            </Button>
+          </GlassTooltip>
 
           <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-1"></div>
         </div>
@@ -173,9 +175,14 @@ const Header: React.FC<HeaderProps> = ({
           onGenerateDocs={onGenerateDocs}
           onOpenHelp={onOpenHelp}
           trigger={
-            <button className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-600 dark:text-slate-300 outline-none">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-600 dark:text-slate-300 outline-none h-10 w-10 flex items-center justify-center p-0"
+              aria-label={t('common.addElementMenu')}
+            >
               <Menu size={24} />
-            </button>
+            </Button>
           }
         />
       </div>

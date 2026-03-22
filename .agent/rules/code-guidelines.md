@@ -71,8 +71,8 @@ To prevent "spaghetti sync" and circular dependencies, Weavr is organized into v
 ## 🎨 4. UI & Aesthetic Standards
 
 - **MUI BAN**: **Strictly NO MUI (`@mui/*`)**. Use Tailwind utility classes or custom recipes from the Shared UI components.
-- **Preline Standardization**: Use official [Preline UI](https://preline.co/) components, markup, and Tailwind classes for all UI elements (Inputs, Buttons, Cards, Modals, etc.).
-- **Shared UI**: Favor standard UI primitives over generic HTML equivalents to maintain the Preline design system.
+- **Shadcn UI Standardization**: Use official [Shadcn UI](https://ui.shadcn.com/) components, markup, and Tailwind classes for all UI elements (Inputs, Buttons, Cards, Modals, etc.).
+- **Shared UI**: Favor standard UI primitives from `@/shared/components/ui` over generic HTML equivalents to maintain the design system.
 
 ---
 
@@ -105,7 +105,7 @@ Vibe coding is about velocity through AI collaboration. To keep the vibes high:
 3.  **Surgical Edits**: Target specific lines in Handlers or UI over replacing entire files.
 4.  **No Placeholders**: AI should never emit "TODO" or placeholder logic. 
 5.  **Self-Verification**: Run `npm run build` or `vitest` after a session to ensure the loop is closed.
-6.  **Aesthetics Matter**: Maintain the "Preline UI" theme. Use official Preline HTML DOM structures and standard Tailwind utility classes (solid colors, distinct borders, standard shadows) avoiding ad-hoc custom CSS.
+6.  **Aesthetics Matter**: Maintain the "Shadcn UI" theme. Use official Shadcn component structures and standard Tailwind utility classes (solid colors, distinct borders, standard shadows) avoiding ad-hoc custom CSS.
 
 ## 🔐 8. Rule & Skill Hierarchy (The Double-Lock)
 

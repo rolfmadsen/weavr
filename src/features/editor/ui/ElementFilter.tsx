@@ -14,13 +14,29 @@ import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 interface ElementFilterProps {
     nodes: Node[];
     onNodeClick: (node: Node) => void;
+    isCollapsed?: boolean;
+    onToggle?: () => void;
 }
 
-const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => {
+const ElementFilter: React.FC<ElementFilterProps> = ({ 
+    nodes, 
+    onNodeClick,
+    isCollapsed: propIsCollapsed,
+    onToggle
+}) => {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
-    const [isCollapsed, setIsCollapsed] = useState(true);
+    const [internalIsCollapsed, setInternalIsCollapsed] = useState(true);
     const [selectedIndex, setSelectedIndex] = useState(0);
+
+    const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : internalIsCollapsed;
+    const setIsCollapsed = (val: boolean) => {
+        if (onToggle && val !== isCollapsed) {
+            onToggle();
+        } else {
+            setInternalIsCollapsed(val);
+        }
+    };
 
     // Fuzzy search nodes based on name and type
     const displayedNodes = useMemo(() => {
@@ -86,7 +102,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
 
     if (isCollapsed) {
         return (
-            <GlassTooltip content={t('editor.findElement')}>
+            <GlassTooltip content={`${t('editor.findElement')} (/)`}>
                 <button
                     onClick={() => setIsCollapsed(false)}
                     className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:border-purple-400 hover:text-purple-600 transition-all mb-4 text-slate-500 dark:text-slate-400 active:scale-95"
@@ -100,7 +116,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
     return (
         <GlassCard
             variant="panel"
-            className="w-64 max-h-[500px] flex flex-col mb-4 overflow-hidden !p-0 !rounded-xl"
+            className="w-64 max-h-[500px] flex flex-col mb-4 overflow-hidden p-0! rounded-xl!"
         >
             <div className="p-3 border-b border-gray-200/50 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-200 font-semibold text-sm">
@@ -115,7 +131,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({ nodes, onNodeClick }) => 
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleKeyDown}
                     autoFocus
-                    className="!py-1.5 !px-3 !text-sm"
+                    className="py-1.5! px-3! text-sm!"
                 />
             </div>
 

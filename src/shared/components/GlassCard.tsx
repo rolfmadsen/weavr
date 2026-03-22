@@ -20,13 +20,13 @@ export const GlassCard: React.FC<GlassCardProps> = ({
 
     const variants = {
         // Standard Card
-        card: "flex flex-col bg-white border shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70",
+        card: "glass-card flex flex-col p-4",
 
         // Sidebar / Pannel (slightly different borders for layout)
-        sidebar: "bg-white border-r border-gray-200 dark:bg-neutral-800 dark:border-neutral-700",
+        sidebar: "bg-white/50 dark:bg-neutral-900/50 backdrop-blur-xl border-r border-white/20 dark:border-white/5",
 
         // High Contrast Panel (Popovers, Modals)
-        panel: "flex flex-col bg-white border shadow-sm rounded-lg dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70"
+        panel: "glass-card flex flex-col shadow-2xl p-6"
     };
 
     return (

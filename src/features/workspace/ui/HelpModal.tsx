@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { ElementType } from '../../modeling';
 import { ELEMENT_STYLE } from '../../../shared/constants';
 import {
-  X,
   Monitor,
   SquareActivity, // Replacing Command
   Zap,
@@ -17,14 +16,19 @@ import {
   BadgeAlert,
   Layers
 } from 'lucide-react';
-import { GlassCard } from '../../../shared/components/GlassCard';
-import { GlassButton } from '../../../shared/components/GlassButton';
-import { twMerge } from 'tailwind-merge';
-import clsx from 'clsx';
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../../shared/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../../../shared/components/ui/tabs";
+import { Button } from "../../../shared/components/ui/button";
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -57,13 +61,13 @@ const IntroductionContent: React.FC<{ onLoadExample: () => void }> = ({ onLoadEx
             {t('help.loadExampleDescription')}
           </p>
         </div>
-        <button
+        <Button
           onClick={onLoadExample}
-          className="shrink-0 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-purple-500/20"
+          className="shrink-0 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-purple-500/20 border-none"
         >
-          <Upload className="w-5 h-5" />
+          <Upload className="size-4" />
           {t('help.loadExampleButton')}
-        </button>
+        </Button>
       </div>
 
       <p className="text-base text-gray-700 dark:text-gray-300">
@@ -433,37 +437,9 @@ const ControlsContent = () => {
   );
 };
 
-const TabButton: React.FC<{
-  isActive: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}> = ({ isActive, onClick, children }) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-      isActive
-        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
-        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-slate-800'
-    )}
-  >
-    {children}
-  </button>
-);
 
 const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'introduction' | 'semantics' | 'controls'>('introduction');
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   const handleLoadExample = async () => {
     try {
@@ -482,62 +458,53 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onImport }) => {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/20 dark:bg-black/60 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <GlassCard
-        variant="panel"
-        className="w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center p-6 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('help.title')}</h2>
-          <GlassButton variant="ghost" size="sm" onClick={onClose} className="rounded-full !p-2">
-            <X size={20} />
-          </GlassButton>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="glass-card max-w-[95vw] w-full md:max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+        <DialogHeader className="p-6 border-b border-white/10 shrink-0">
+          <DialogTitle className="text-3xl font-bold bg-clip-text text-transparent bg-linear-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">
+            {t('help.title')}
+          </DialogTitle>
+        </DialogHeader>
 
-        <div className="p-6 border-b border-gray-200/50 dark:border-white/10 bg-white/10 dark:bg-black/10">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <TabButton
-              isActive={activeTab === 'introduction'}
-              onClick={() => setActiveTab('introduction')}
-            >
-              {t('help.introduction')}
-            </TabButton>
-            <TabButton
-              isActive={activeTab === 'semantics'}
-              onClick={() => setActiveTab('semantics')}
-            >
-              {t('help.semantics')}
-            </TabButton>
-            <TabButton
-              isActive={activeTab === 'controls'}
-              onClick={() => setActiveTab('controls')}
-            >
-              {t('help.controls')}
-            </TabButton>
+        <Tabs defaultValue="introduction" className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-6 py-2 border-b border-white/5 bg-white/5">
+            <TabsList className="bg-transparent border-none gap-2">
+              <TabsTrigger value="introduction" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20">
+                {t('help.introduction')}
+              </TabsTrigger>
+              <TabsTrigger value="semantics" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20">
+                {t('help.semantics')}
+              </TabsTrigger>
+              <TabsTrigger value="controls" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20">
+                {t('help.controls')}
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </div>
 
-        <div className="p-6 overflow-y-auto text-slate-700 dark:text-slate-300 custom-scrollbar">
-          {activeTab === 'introduction' && <IntroductionContent onLoadExample={handleLoadExample} />}
-          {activeTab === 'semantics' && <SemanticsContent />}
-          {activeTab === 'controls' && <ControlsContent />}
-        </div>
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <TabsContent value="introduction" className="mt-0 focus-visible:outline-none">
+              <IntroductionContent onLoadExample={handleLoadExample} />
+            </TabsContent>
+            <TabsContent value="semantics" className="mt-0 focus-visible:outline-none">
+              <SemanticsContent />
+            </TabsContent>
+            <TabsContent value="controls" className="mt-0 focus-visible:outline-none">
+              <ControlsContent />
+            </TabsContent>
+          </div>
+        </Tabs>
 
-
-        <div className="p-6 mt-auto border-t border-gray-200/50 dark:border-white/10 bg-white/10 dark:bg-black/10 rounded-b-xl text-right">
-          <button
+        <div className="p-6 border-t border-white/10 shrink-0 bg-white/5 rounded-b-xl flex justify-end">
+          <Button
+            size="lg"
             onClick={onClose}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors shadow-lg hover:shadow-purple-500/30"
+            className="rounded-full px-8 font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all"
           >
             {t('help.gotIt')}
-          </button>
+          </Button>
         </div>
-      </GlassCard>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

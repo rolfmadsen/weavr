@@ -24,6 +24,8 @@ interface SliceFilterProps {
     focusModeSteps?: number;
     onFocusModeStepsChange?: (steps: number) => void;
     effectiveHiddenSliceIds?: string[];
+    isCollapsed?: boolean;
+    onToggle?: () => void;
 }
 
 const SliceFilter: React.FC<SliceFilterProps> = ({
@@ -34,12 +36,23 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
     onFocusModeChange,
     focusModeSteps = 1,
     onFocusModeStepsChange,
-    effectiveHiddenSliceIds
+    effectiveHiddenSliceIds,
+    isCollapsed: propIsCollapsed,
+    onToggle
 }) => {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
-    const [isCollapsed, setIsCollapsed] = useState(true);
+    const [internalIsCollapsed, setInternalIsCollapsed] = useState(true);
     const [selectedIndex, setSelectedIndex] = useState(0);
+
+    const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : internalIsCollapsed;
+    const setIsCollapsed = (val: boolean) => {
+        if (onToggle && val !== isCollapsed) {
+            onToggle();
+        } else {
+            setInternalIsCollapsed(val);
+        }
+    };
 
     // Use effective hidden IDs (Focus Mode aware) for display
     const activeHiddenIds = effectiveHiddenSliceIds ?? hiddenSliceIds;
@@ -128,8 +141,9 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
     if (slices.length === 0) return null;
 
     if (isCollapsed) {
+        const tooltipContent = focusModeEnabled ? t('editor.focusModeActive') : t('editor.filterSlices');
         return (
-            <GlassTooltip content={focusModeEnabled ? t('editor.focusModeActive') : t('editor.filterSlices')}>
+            <GlassTooltip content={`${tooltipContent} (S)`}>
                 <button
                     onClick={() => setIsCollapsed(false)}
                     className="w-10 h-10 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:border-purple-400 hover:text-purple-600 transition-all mb-4 text-slate-500 dark:text-slate-400 relative active:scale-95"
@@ -152,7 +166,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
     return (
         <GlassCard
             variant="panel"
-            className="w-64 max-h-[450px] flex flex-col mb-4 overflow-hidden !p-0 !rounded-xl"
+            className="w-64 max-h-[450px] flex flex-col mb-4 overflow-hidden p-0! rounded-xl!"
         >
             {/* Header */}
             <div className="p-3 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md">
@@ -168,7 +182,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleKeyDown}
                     autoFocus
-                    className="!py-1.5 !px-3 !text-sm"
+                    className="py-1.5! px-3! text-sm!"
                     startIcon={null}
                 />
             </div>

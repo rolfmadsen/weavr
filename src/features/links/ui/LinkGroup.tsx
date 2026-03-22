@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../shared/providers/ThemeProvider';
 import { Group, Line, Arrow, Text } from 'react-konva';
 import { Link, Node } from '../../modeling';
@@ -30,12 +31,14 @@ const LinkGroup = React.memo(({
     flowLabel: _flowLabel
 }: LinkGroupProps) => {
     const { resolvedTheme } = useTheme();
+    const { t } = useTranslation();
     const points = customPoints || [0, 0, 0, 0];
     const { x: midX, y: midY } = getPolylineMidpoint(points);
 
     const linkId = safeStr(link.id);
     const manualLabel = safeStr(link.label);
-    const defaultVerb = validationService.getLinkVerb(sourceNode, targetNode);
+    const rawVerb = validationService.getLinkVerb(sourceNode, targetNode);
+    const defaultVerb = rawVerb ? t(`modeling.verbs.${rawVerb}`, rawVerb) : '';
     const flowLabel = validationService.getLinkFlowLabel(sourceNode, targetNode);
     const displayLabel = manualLabel || defaultVerb;
 

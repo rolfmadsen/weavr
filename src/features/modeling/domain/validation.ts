@@ -1,4 +1,5 @@
 import { Node, ElementType, Link } from './types';
+import i18n from '../../../shared/i18n/config';
 
 interface ConnectionRule {
   source: ElementType;
@@ -84,7 +85,11 @@ class ValidationService {
         return {
           isValid: false,
           missingFields: missing.map(f => f.name),
-          message: `${node.name} is missing data from ${sourceNameSummary}: ${missing.map(f => f.name).join(', ')}`
+          message: i18n.t('modeling.validation.missingFrom', { 
+            name: node.name, 
+            source: sourceNameSummary, 
+            fields: missing.map(f => f.name).join(', ') 
+          })
         };
       }
       return { isValid: true, missingFields: [] };
@@ -99,7 +104,7 @@ class ValidationService {
       return {
         isValid: false,
         missingFields: requiredToValidate.map(f => f.name),
-        message: `${node.name} is incomplete: No incoming data source for required fields.`
+        message: i18n.t('modeling.validation.incompleteSource', { name: node.name })
       };
     }
 
@@ -142,16 +147,30 @@ class ValidationService {
         return {
           isValid: false,
           missingFields: globallyMissing,
-          message: `${node.name} is missing data from ${detail.nodeName}: ${detail.missingFields.join(', ')}`
+          message: i18n.t('modeling.validation.missingFrom', {
+            name: node.name,
+            source: detail.nodeName,
+            fields: detail.missingFields.join(', ')
+          })
         };
       }
 
       // Multi-source details
-      const detailLines = sourceDetails.map(d => `${d.nodeName} is missing: ${d.missingFields.join(', ')}`);
+      const detailLines = sourceDetails.map(d => 
+        i18n.t('modeling.validation.missingFrom', { 
+          name: '', // Empty name for sub-details
+          source: d.nodeName, 
+          fields: d.missingFields.join(', ') 
+        }).replace(/^ er /, ' mangler ') // Small hack for Danish sub-lines if needed, or better use a separate key
+      );
+      
       return {
         isValid: false,
         missingFields: globallyMissing,
-        message: `${node.name} lineage gaps:\n${detailLines.join('\n')}`
+        message: i18n.t('modeling.validation.lineageGaps', {
+          name: node.name,
+          details: detailLines.join('\n')
+        })
       };
     }
 
