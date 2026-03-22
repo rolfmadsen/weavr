@@ -118,7 +118,7 @@
     "semantics": "Semantik",
     "controls": "Shortcuts & Bedienung",
     "newToEventModeling": "Neu bei Event Modeling?",
-    "loadExampleDescription": "Klicken Sie unten, um ein Beispielmodell zu laden und zu sehen, wie es funktioniert.",
+    "loadExampleDescription": "Klicken Sie auf die Schaltfläche 'Beispielmodell laden', um ein Beispielmodell zu laden und zu sehen, wie es funktioniert.",
     "loadExampleButton": "Beispielmodell laden",
     "loadExampleError": "Beispielmodell konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
     "introContent": {

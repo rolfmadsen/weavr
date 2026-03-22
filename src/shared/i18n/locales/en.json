@@ -121,7 +121,7 @@
     "semantics": "Semantics",
     "controls": "Shortcuts & Interaction",
     "newToEventModeling": "New to Event Modeling?",
-    "loadExampleDescription": "Click below to load a sample model and see how it works.",
+    "loadExampleDescription": "Click the 'Load Example Model' button to load a sample model and see how it works.",
     "loadExampleButton": "Load Example Model",
     "loadExampleError": "Failed to load example project. Please try again.",
     "introContent": {

@@ -118,7 +118,7 @@
     "semantics": "Sémantique",
     "controls": "Raccourcis & Utilisation",
     "newToEventModeling": "Nouveau sur l'Event Modeling ?",
-    "loadExampleDescription": "Cliquez ci-dessous pour charger un modèle d'exemple et voir comment cela fonctionne.",
+    "loadExampleDescription": "Cliquez sur le bouton 'Charger un modèle d'exemple' pour charger un modèle d'exemple et voir comment cela fonctionne.",
     "loadExampleButton": "Charger un modèle d'exemple",
     "loadExampleError": "Échec du chargement du modèle d'exemple. Veuillez réessayer.",
     "introContent": {
@@ -274,10 +274,10 @@
       "providerName": "Nom du fournisseur externe",
       "componentService": "Composant / Service",
       "tooltip": {
-          "title": "Limite du système",
-          "question": "Où cela se passe-t-il ?",
-          "internalDesc": "Interne : Fait partie de notre système.",
-          "externalDesc": "Externe : Un outil tiers."
+        "title": "Limite du système",
+        "question": "Où cela se passe-t-il ?",
+        "internalDesc": "Interne : Fait partie de notre système.",
+        "externalDesc": "Externe : Un outil tiers."
       }
     },
     "actor": "Acteur",
@@ -286,13 +286,13 @@
     "slice": "Slice",
     "relationships": "Relations",
     "placeholders": {
-        "selectOrCreateActor": "Sélectionner ou créer un acteur...",
-        "selectOrCreateAggregate": "Sélectionner ou créer un agrégat...",
-        "selectOrCreateSlice": "Sélectionner ou créer une slice...",
-        "addType": "+ Ajouter {{type}}...",
-        "externalProvider": "ex: Stripe, Auth0",
-        "componentService": "ex: Service-Ventes",
-        "selectSliceForAll": "Sélectionner la slice pour tous..."
+      "selectOrCreateActor": "Sélectionner ou créer un acteur...",
+      "selectOrCreateAggregate": "Sélectionner ou créer un agrégat...",
+      "selectOrCreateSlice": "Sélectionner ou créer une slice...",
+      "addType": "+ Ajouter {{type}}...",
+      "externalProvider": "ex: Stripe, Auth0",
+      "componentService": "ex: Service-Ventes",
+      "selectSliceForAll": "Sélectionner la slice pour tous..."
     },
     "actions": "Actions",
     "deleteNode": "Supprimer le nœud",
