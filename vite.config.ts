@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from "path"
 
 // 1. The Cleanup Plugin (Fixes the HTML for production)
 const aiStudioCleanup = () => {
@@ -38,6 +39,11 @@ export default defineConfig({
     moduleExclude('text-encoding'),
     aiStudioCleanup(), // <--- Clean HTML on build
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   optimizeDeps: {
     include: [
       'gun',
