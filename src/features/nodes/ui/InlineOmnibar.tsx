@@ -1,500 +1,472 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Search, Plus, ChevronLeft, CheckSquare, Square, ArrowRight } from 'lucide-react';
-import { DataDefinition, DefinitionType, Field } from '../../modeling/domain/types';
-import {
-  useFlattenedDictionary,
-  SearchableAttribute,
-  SearchableEntity,
-  SearchableItem,
-} from '../../dictionary/store/useFlattenedDictionary';
+import { Settings2, Trash2, X } from 'lucide-react';
+import { Node, Link, Slice, ElementType, DataDefinition, DefinitionType } from '../../modeling/domain/types';
+import validationService from '../../modeling/domain/validation';
+import SmartSelect from '../../../shared/components/SmartSelect';
+import { GlassTooltip } from '../../../shared/components/GlassTooltip';
+import { useDebouncedInput } from '../../../shared/hooks/useDebouncedInput';
+import { cn } from '../../../shared/lib/utils';
 
 // ─── Props ───────────────────────────────────────────────────────────
 interface InlineOmnibarProps {
+  // Target
+  targetKind: 'node' | 'link';
+  node?: Node;
+  link?: Link;
+  // Position (screen coordinates)
+  position: { x: number; y: number; nodeY: number; stageY: number; scale: number };
+  // Data
+  slices: Slice[];
+  allNodes: Node[];
+  allLinks: Link[];
   definitions: DataDefinition[];
-  existingFields: Field[];
-  onAddFields: (fields: Field[]) => void;
-  onCreateOrphan: (name: string) => string; // returns new definition id
-  availableFields?: string[]; // ICC: Fields present in incoming Read Models
-  isScreen?: boolean;
+  // Callbacks
+  onUpdateNode: <K extends keyof Node>(id: string, key: K, value: Node[K]) => void;
+  onUpdateLink: <K extends keyof Link>(id: string, key: K, value: Link[K]) => void;
+  onAddLink: (sourceId: string, targetId: string) => void;
+  onDeleteLink: (linkId: string) => void;
+  onAddSlice: (title: string) => string;
+  onSpawnAndLink: (sourceNodeId: string, targetType: ElementType, name: string) => void;
+  onClose: () => void;
+  onOpenSidebar: () => void;
+  initialFocus?: 'name' | 'relation';
 }
 
-// ─── Color helper ────────────────────────────────────────────────────
-const getTypeColor = (type: DefinitionType) => {
-  switch (type) {
-    case DefinitionType.Aggregate:  return 'bg-emerald-500';
-    case DefinitionType.Entity:     return 'bg-blue-500';
-    case DefinitionType.ValueObject: return 'bg-purple-500';
-    case DefinitionType.Enum:       return 'bg-amber-500';
-    default:                        return 'bg-gray-400';
-  }
+// ─── Placeholders by Element Type ────────────────────────────────────
+const NAME_PLACEHOLDER_KEYS: Record<string, string> = {
+  SCREEN: 'InlineOmnibar.namePlaceholder.SCREEN',
+  COMMAND: 'InlineOmnibar.namePlaceholder.COMMAND',
+  DOMAIN_EVENT: 'InlineOmnibar.namePlaceholder.DOMAIN_EVENT',
+  READ_MODEL: 'InlineOmnibar.namePlaceholder.READ_MODEL',
+  INTEGRATION_EVENT: 'InlineOmnibar.namePlaceholder.INTEGRATION_EVENT',
+  AUTOMATION: 'InlineOmnibar.namePlaceholder.AUTOMATION',
 };
 
+// ─── Component ───────────────────────────────────────────────────────
 export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
+  targetKind,
+  node,
+  link,
+  position,
+  slices,
+  allNodes,
+  allLinks,
   definitions,
-  existingFields,
-  onAddFields,
-  onCreateOrphan,
-  availableFields = [],
-  isScreen = false,
+  onUpdateNode,
+  onUpdateLink,
+  onAddLink,
+  onDeleteLink,
+  onAddSlice,
+  onSpawnAndLink,
+  onClose,
+  onOpenSidebar,
+  initialFocus,
 }) => {
   const { t } = useTranslation();
-  // Search state
-  const [query, setQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const [highlightIndex, setHighlightIndex] = useState(-1);
 
-  // Entity drill-down state
-  const [drillEntity, setDrillEntity] = useState<SearchableEntity | null>(null);
-  const [selectedAttrs, setSelectedAttrs] = useState<Set<string>>(new Set());
+  // ─── NODE MODE ──────────────────────────────────────────────────
+  if (targetKind === 'node' && node) {
+    return createPortal(
+      <NodeOmnibar
+        node={node}
+        position={position}
+        slices={slices}
+        allNodes={allNodes}
+        allLinks={allLinks}
+        definitions={definitions}
+        onUpdateNode={onUpdateNode}
+        onAddLink={onAddLink}
+        onDeleteLink={onDeleteLink}
+        onAddSlice={onAddSlice}
+        onSpawnAndLink={onSpawnAndLink}
+        onClose={onClose}
+        onOpenSidebar={onOpenSidebar}
+        t={t}
+        initialFocus={initialFocus}
+      />,
+      document.body
+    );
+  }
 
-  // Refs
-  const inputRef = useRef<HTMLInputElement>(null);
+  // ─── EDGE MODE ──────────────────────────────────────────────────
+  if (targetKind === 'link' && link) {
+    return createPortal(
+      <EdgeOmnibar
+        link={link}
+        position={position}
+        onUpdateLink={onUpdateLink}
+        onClose={onClose}
+        onOpenSidebar={onOpenSidebar}
+        t={t}
+        initialFocus={initialFocus}
+      />,
+      document.body
+    );
+  }
+
+  return null;
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// NODE OMNIBAR SUB-COMPONENT
+// ═══════════════════════════════════════════════════════════════════════
+interface NodeOmnibarProps {
+  node: Node;
+  position: { x: number; y: number; nodeY: number; stageY: number; scale: number };
+  slices: Slice[];
+  allNodes: Node[];
+  allLinks: Link[];
+  onUpdateNode: <K extends keyof Node>(id: string, key: K, value: Node[K]) => void;
+  onAddLink: (sourceId: string, targetId: string) => void;
+  onDeleteLink: (linkId: string) => void;
+  onAddSlice: (title: string) => string;
+  onSpawnAndLink: (sourceNodeId: string, targetType: ElementType, name: string) => void;
+  onClose: () => void;
+  onOpenSidebar: () => void;
+  definitions: DataDefinition[];
+  t: (key: string, options?: any) => string;
+  initialFocus?: 'name' | 'relation';
+}
+
+const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
+  node,
+  position,
+  slices,
+  allNodes,
+  allLinks,
+  onUpdateNode,
+  onAddLink,
+  onDeleteLink,
+  onAddSlice,
+  onSpawnAndLink,
+  onClose,
+  onOpenSidebar,
+  definitions,
+  t,
+  initialFocus,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const sliceTriggerRef = useRef<HTMLButtonElement>(null);
+  const relationTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [hasAutoFilledSlice, setHasAutoFilledSlice] = useState(false);
 
-  // Flattened dictionary
-  const { attributes, entities } = useFlattenedDictionary(definitions, query);
+  // Live Position & Dynamic Height
+  const currentPosition = position;
 
-  // Build the flat option list for keyboard navigation
-  const flatOptions = useMemo((): (SearchableItem & { _id: string })[] => {
-    if (drillEntity) return [];
-    const items: (SearchableItem & { _id: string })[] = [];
-    for (const attr of attributes) {
-      items.push({ ...attr, _id: `attr:${attr.attribute.name}:${attr.parentEntityId ?? 'orphan'}` });
-    }
-    for (const ent of entities) {
-      items.push({ ...ent, _id: `ent:${ent.entityId}` });
-    }
-    return items;
-  }, [attributes, entities, drillEntity]);
 
-  // Close on outside click (checks both input container AND portaled dropdown)
+
+
+  // Name management
+  const nameInputGroup = useDebouncedInput(
+    node.name || '',
+    (val) => onUpdateNode(node.id, 'name', val),
+  );
+
+  // Auto-slice
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const inContainer = containerRef.current?.contains(target);
-      const inDropdown = dropdownRef.current?.contains(target);
-      if (!inContainer && !inDropdown) {
-        closeOmnibar();
+    if (node.type !== ElementType.DomainEvent || hasAutoFilledSlice) return;
+    if (node.sliceId) return;
+    const currentName = nameInputGroup.value;
+    if (!currentName || !currentName.includes(' ')) return;
+    const words = currentName.trim().split(/\s+/);
+    if (words.length < 2) return;
+    const firstWord = words[0];
+    if (!/^[A-Z]/.test(firstWord)) return;
+    const existingSlice = slices.find((s) => (s.title || '').toLowerCase() === firstWord.toLowerCase());
+    if (existingSlice) onUpdateNode(node.id, 'sliceId', existingSlice.id);
+    else { const id = onAddSlice(firstWord); onUpdateNode(node.id, 'sliceId', id); }
+    setHasAutoFilledSlice(true);
+  }, [nameInputGroup.value, node.type, node.sliceId, slices, onUpdateNode, onAddSlice]);
+
+  // Slices
+  const sliceOptions = useMemo(() => slices.map((s) => ({ id: s.id, label: s.title || t('common.untitled'), color: s.color })), [slices, t]);
+  const handleSliceCreate = useCallback((name: string) => {
+    const existing = slices.find((s) => (s.title || '').toLowerCase() === name.toLowerCase());
+    return existing ? existing.id : onAddSlice(name);
+  }, [slices, onAddSlice]);
+  const handleSliceChange = useCallback((id: string) => onUpdateNode(node.id, 'sliceId', id || undefined), [node.id, onUpdateNode]);
+
+  // Relationships
+  const validRules = useMemo(() => validationService.getRules().filter((r) => r.source === node.type), [node.type]);
+
+  // Focus
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      onOpenSidebar();
+    }
+    
+
+    if (e.key === 'Tab') {
+      // Isolate Tab to the Omnibar
+      e.preventDefault();
+      e.stopPropagation();
+
+      const focusables = [
+        nameInputRef.current, 
+        sliceTriggerRef.current, 
+        ...validRules.map(r => relationTriggerRefs.current[`${r.source}-${r.target}`])
+      ].filter(Boolean) as HTMLElement[];
+      const idx = focusables.indexOf(document.activeElement as HTMLElement);
+
+      if (idx !== -1) {
+        const nextIdx = (idx + (e.shiftKey ? -1 : 1) + focusables.length) % focusables.length;
+        focusables[nextIdx].focus();
+      } else {
+        // Fallback to first element if none focused
+        focusables[0]?.focus();
       }
-    };
-    document.addEventListener('mousedown', handler);
+    }
+  }, [onClose, onOpenSidebar]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (containerRef.current && !containerRef.current.contains(e.target as globalThis.Node)) onClose(); };
+    setTimeout(() => document.addEventListener('mousedown', handler), 100);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  }, [onClose]);
 
-  // ─── Handlers ────────────────────────────────────────────────────
-  const closeOmnibar = useCallback(() => {
-    setIsOpen(false);
-    setQuery('');
-    setHighlightIndex(-1);
-    setDrillEntity(null);
-    setSelectedAttrs(new Set());
-  }, []);
-
-  // Stay open but reset query — for rapid continuous input
-  const resetForNextInput = useCallback(() => {
-    setQuery('');
-    setHighlightIndex(-1);
-    setDrillEntity(null);
-    setSelectedAttrs(new Set());
-    inputRef.current?.focus();
-  }, []);
-
-  const handleSelectAttribute = useCallback((attr: SearchableAttribute) => {
-    // Check if already added
-    if (existingFields.some(f => f.definitionId === attr.parentEntityId && f.attributeKey === attr.attribute.name)) {
-      return;
-    }
-    const newField: Field = {
-      name: attr.attribute.name,
-      type: attr.attribute.type,
-      required: true,
-      definitionId: attr.parentEntityId ?? undefined,
-      attributeKey: attr.attribute.name,
-      role: isScreen ? (availableFields.includes(attr.attribute.name) ? 'display' : 'input') : undefined
-    };
-    onAddFields([newField]);
-    resetForNextInput();
-  }, [existingFields, onAddFields, resetForNextInput, isScreen, availableFields]);
-
-  const handleSelectEntity = useCallback((entity: SearchableEntity) => {
-    // Transition to drill-down mode
-    setDrillEntity(entity);
-    setQuery('');
-    setHighlightIndex(-1);
-
-    // Pre-select attributes not already added
-    const attrs = Array.isArray(entity.definition.attributes) ? entity.definition.attributes : [];
-    const toSelect = attrs
-      .filter(a => !existingFields.some(f => f.definitionId === entity.entityId && f.attributeKey === a.name))
-      .map(a => a.name);
-    setSelectedAttrs(new Set(toSelect));
-  }, [existingFields]);
-
-  const handleImportSelected = useCallback(() => {
-    if (!drillEntity || !drillEntity.definition.attributes) return;
-    const attrs = drillEntity.definition.attributes.filter(a => selectedAttrs.has(a.name));
-    const newFields: Field[] = attrs.map(attr => ({
-      name: attr.name,
-      type: attr.type,
-      required: true,
-      definitionId: drillEntity.entityId,
-      attributeKey: attr.name,
-      role: isScreen ? (availableFields.includes(attr.name) ? 'display' : 'input') : undefined
-    }));
-    onAddFields(newFields);
-    resetForNextInput();
-  }, [drillEntity, selectedAttrs, onAddFields, resetForNextInput, isScreen, availableFields]);
-
-  const handleCreateOrphan = useCallback(() => {
-    const name = query.trim();
-    if (!name) return;
-
-    const newId = onCreateOrphan(name);
-    const newField: Field = {
-      name,
-      type: 'String',
-      required: true,
-      definitionId: newId,
-      attributeKey: name,
-      role: isScreen ? (availableFields.includes(name) ? 'display' : 'input') : undefined
-    };
-    onAddFields([newField]);
-    resetForNextInput();
-  }, [query, onCreateOrphan, onAddFields, resetForNextInput, isScreen, availableFields]);
-
-  const toggleAttr = useCallback((name: string) => {
-    setSelectedAttrs(prev => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  }, []);
-
-  // ─── Show "Create" fallback? ─────────────────────────────────────
-  const showCreateFallback = query.trim().length > 0 && flatOptions.length === 0;
-
-  // ─── Keyboard navigation ────────────────────────────────────────
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (drillEntity) {
-      if (e.key === 'Escape') {
-        setDrillEntity(null);
-        setSelectedAttrs(new Set());
-      } else if (e.key === 'Enter') {
-        handleImportSelected();
+  useEffect(() => { 
+    setTimeout(() => {
+      if (initialFocus === 'relation' && validRules.length > 0) {
+        const firstRule = validRules[0];
+        const ref = relationTriggerRefs.current[`${firstRule.source}-${firstRule.target}`];
+        if (ref) {
+          ref.focus();
+          return;
+        }
       }
-      return;
-    }
+      nameInputRef.current?.focus();
+    }, 50); 
+  }, [initialFocus, validRules]);
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightIndex(prev => (prev < flatOptions.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightIndex(prev => (prev > 0 ? prev - 1 : flatOptions.length - 1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (highlightIndex >= 0 && highlightIndex < flatOptions.length) {
-        const item = flatOptions[highlightIndex];
-        if (item.kind === 'attribute') handleSelectAttribute(item as SearchableAttribute);
-        else handleSelectEntity(item as SearchableEntity);
-      } else if (showCreateFallback) {
-        handleCreateOrphan();
-      }
-    } else if (e.key === 'Escape') {
-      closeOmnibar();
-    }
+  // Position & Layout
+  const OMNIBAR_WIDTH = 320;
+  const GAP_ABOVE_NODE = 16;
+  const style: React.CSSProperties = {
+    position: 'fixed',
+    left: currentPosition.x,
+    top: currentPosition.y - GAP_ABOVE_NODE,
+    width: OMNIBAR_WIDTH,
+    zIndex: 100,
+    transform: 'translate(-50%, -100%)',
+    transition: 'none',
   };
 
-  // Scroll highlighted into view
-  useEffect(() => {
-    if (highlightIndex < 0 || !listRef.current) return;
-    const items = listRef.current.querySelectorAll('[data-omni-item]');
-    items[highlightIndex]?.scrollIntoView({ block: 'nearest' });
-  }, [highlightIndex]);
 
-  // ─── Portal position tracking ────────────────────────────────────
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const placeholderKey = NAME_PLACEHOLDER_KEYS[node.type] || 'InlineOmnibar.namePlaceholder.COMMAND';
+  const dynamicPlaceholder = useMemo(() => {
+    if (node.type !== ElementType.DomainEvent) return t(placeholderKey);
+    const aggNames = definitions.filter(d => d.type === DefinitionType.Aggregate).map(d => d.name).filter(Boolean).slice(0, 3);
+    if (aggNames.length > 0) return `${aggNames.map(n => `${n}Created`).join(', ')}...`;
+    return t('InlineOmnibar.namePlaceholder.DOMAIN_EVENT_example');
+  }, [node.type, definitions, t, placeholderKey]);
 
-  useEffect(() => {
-    if (!isOpen || !inputRef.current) return;
-    const updatePosition = () => {
-      const rect = inputRef.current!.getBoundingClientRect();
-      setDropdownStyle({
-        position: 'fixed',
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-        zIndex: 9999,
-      });
-    };
-    updatePosition();
-    // Recalculate on scroll/resize (sidebar might scroll)
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [isOpen]);
-
-  // ─── Render ──────────────────────────────────────────────────────
   return (
-    <div className="relative w-full" ref={containerRef}>
-      {/* Input */}
-      <div className="relative">
-        <div className="absolute inset-y-0 start-0 flex items-center pointer-events-none z-20 ps-3 text-gray-400 dark:text-neutral-500">
-          <Search size={14} />
+    <div
+      ref={containerRef}
+      style={style}
+      className={cn(
+        "glass-card shadow-2xl rounded-[32px] flex flex-col gap-4 animate-in fade-in duration-200 backdrop-blur-3xl bg-white/92 dark:bg-neutral-900/92",
+        "border px-6 py-6 relative ring-1 ring-black/5 dark:ring-white/5",
+        node.type === ElementType.DomainEvent && "border-t-[6px] border-orange-500",
+        node.type === ElementType.Command && "border-t-[6px] border-blue-500",
+        node.type === ElementType.ReadModel && "border-t-[6px] border-green-500",
+        node.type === ElementType.Screen && "border-t-[6px] border-blue-400",
+        node.type === ElementType.IntegrationEvent && "border-t-[6px] border-purple-500",
+        node.type === ElementType.Automation && "border-t-[6px] border-pink-500"
+      )}
+      onKeyDown={handleKeyDown}
+    >
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-3">
+          <div className="text-[10px] font-black text-slate-500 dark:text-neutral-400 uppercase tracking-[0.2em] opacity-60">
+            {t(`modeling.elements.${node.type}`)}
+          </div>
         </div>
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={e => {
-            setQuery(e.target.value);
-            setHighlightIndex(-1);
-            if (!isOpen) setIsOpen(true);
-            if (drillEntity) {
-              setDrillEntity(null);
-              setSelectedAttrs(new Set());
-            }
-          }}
-          onFocus={() => setIsOpen(true)}
-          onKeyDown={handleKeyDown}
-          placeholder={t('omnibar.placeholder')}
-          autoComplete="off"
-          className="py-2 ps-8 pe-3 block w-full border-gray-200 rounded-lg text-xs focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-300 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-        />
+        <div className="flex items-center gap-1">
+          <GlassTooltip content={t('InlineOmnibar.propertiesHint', 'Open Properties (Ctrl + Enter)')}>
+            <button
+              type="button"
+              onClick={() => { onClose(); onOpenSidebar(); }}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <Settings2 size={14} />
+            </button>
+          </GlassTooltip>
+          <GlassTooltip content={t('InlineOmnibar.closeHint', 'Esc or click canvas to close')}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </GlassTooltip>
+        </div>
       </div>
 
-      {/* Portal Dropdown — rendered at document.body to escape overflow:hidden */}
-      {isOpen && createPortal(
-        <div ref={dropdownRef} style={dropdownStyle} className="animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="bg-white border border-gray-200 shadow-lg rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70 p-1 origin-top">
-            <div
-              ref={listRef}
-              className="max-h-60 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500"
-            >
-              {/* ─── Drill-Down Mode ───────────────────────────── */}
-              {drillEntity ? (
-                <DrillDownView
-                  entity={drillEntity}
-                  selectedAttrs={selectedAttrs}
-                  existingFields={existingFields}
-                  onToggle={toggleAttr}
-                  onImport={handleImportSelected}
-                  onBack={() => { setDrillEntity(null); setSelectedAttrs(new Set()); }}
-                />
-              ) : (
-                <>
-                  {/* ─── Attributes Section ──────────────────── */}
-                  {attributes.length > 0 && (
-                    <div>
-                      <div className="px-3 py-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-neutral-400">
-                        {t('omnibar.attributes')}
-                      </div>
-                      {attributes.map((attr, idx) => {
-                        const isAdded = existingFields.some(
-                          f => f.definitionId === attr.parentEntityId && f.attributeKey === attr.attribute.name
-                        );
-                        const itemIndex = idx;
-                        return (
-                          <button
-                            key={`attr-${attr.attribute.name}-${attr.parentEntityId ?? 'orphan'}`}
-                            data-omni-item
-                            type="button"
-                            disabled={isAdded}
-                            onClick={() => !isAdded && handleSelectAttribute(attr)}
-                            className={`w-full text-left py-1.5 px-3 rounded-lg flex items-center gap-2 text-xs transition-colors ${
-                              isAdded
-                                ? 'opacity-30 cursor-not-allowed'
-                                : highlightIndex === itemIndex
-                                  ? 'bg-blue-50 dark:bg-blue-800/30'
-                                  : 'hover:bg-gray-100 dark:hover:bg-neutral-800'
-                            }`}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <input
+            ref={nameInputRef}
+            type="text"
+            {...nameInputGroup}
+            placeholder={dynamicPlaceholder}
+            autoComplete="off"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+                e.preventDefault();
+                sliceTriggerRef.current?.focus();
+              }
+            }}
+            className={cn(
+              'w-full h-11 px-4 rounded-xl text-sm font-bold',
+              'bg-white/80 dark:bg-neutral-800/60 border border-white/40 dark:border-neutral-700/50',
+              'text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-neutral-500 shadow-sm',
+              'focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all',
+            )}
+          />
+          {node.type === ElementType.DomainEvent && !nameInputGroup.value && (
+            <p className="text-[10px] text-slate-500 dark:text-neutral-400 px-2 italic opacity-70 leading-tight">
+              {t('InlineOmnibar.domainEventHint')}
+            </p>
+          )}
+        </div>
+
+        <SmartSelect
+          ref={sliceTriggerRef}
+          key={`slice-select-${node.id}`}
+          options={sliceOptions}
+          value={node.sliceId || ''}
+          onChange={handleSliceChange}
+          onCreate={handleSliceCreate}
+          placeholder={t('InlineOmnibar.slicePlaceholder')}
+          allowCustomValue={false}
+          align="start"
+          className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-neutral-800/60 shadow-sm border border-white/20 dark:border-neutral-700/30 w-full"
+        />
+
+        {validRules.length > 0 && (
+          <div className="flex flex-col gap-4 mt-2 border-t border-slate-200 dark:border-neutral-700 pt-3">
+            {validRules.map((rule) => {
+              const ruleKey = `${rule.source}-${rule.target}`;
+              const ruleConnectedNodes = allNodes.filter(n => 
+                n.type === rule.target && 
+                allLinks.some(l => l.source === node.id && l.target === n.id)
+              );
+              const ruleTargetOptions = allNodes
+                .filter(n => n.type === rule.target && !ruleConnectedNodes.some(cn => cn.id === n.id))
+                .map(n => ({ id: n.id, label: n.name || t('common.untitled') }));
+
+              const rawVerb = rule.verb;
+              const translatedVerb = t(`modeling.verbs.${rawVerb}`, rawVerb);
+              const verb = translatedVerb.charAt(0).toUpperCase() + translatedVerb.slice(1);
+              const targetTitle = t(`modeling.elements.${rule.target.toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`);
+
+              return (
+                <div key={ruleKey} className="flex flex-col gap-2">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400/80 px-1 flex items-center gap-2">
+                    {verb} ({targetTitle})
+                  </div>
+
+                  {ruleConnectedNodes.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 px-0.5">
+                      {ruleConnectedNodes.map((cn) => (
+                        <span key={cn.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-black border border-blue-500/20">
+                          {cn.name || t('common.untitled')}
+                          <button 
+                            type="button" 
+                            onClick={() => { 
+                              const linkToDelete = allLinks.find(l => l.source === node.id && l.target === cn.id); 
+                              if (linkToDelete) onDeleteLink(linkToDelete.id); 
+                            }} 
+                            className="opacity-40 hover:opacity-100 text-red-400 hover:text-red-500 transition-opacity ml-1"
                           >
-                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getTypeColor(attr.entityType)}`} />
-                            <span className="font-mono font-medium text-gray-800 dark:text-neutral-200 truncate">
-                              {attr.attribute.name}
-                            </span>
-                            {attr.parentName ? (
-                              <span className="text-[10px] text-gray-400 dark:text-neutral-500 ml-auto flex-shrink-0">
-                                in {attr.parentName}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-purple-400 dark:text-purple-500 ml-auto flex-shrink-0 italic">
-                                orphan
-                              </span>
-                            )}
+                            <Trash2 size={12} />
                           </button>
-                        );
-                      })}
+                        </span>
+                      ))}
                     </div>
                   )}
 
-                   {/* ─── Definitions Section ────────────────── */}
-                   {entities.length > 0 && (
-                     <div>
-                       <div className="px-3 py-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-neutral-400 mt-1">
-                         {t('omnibar.definitions')}
-                       </div>
-                      {entities.map((ent, idx) => {
-                        const itemIndex = attributes.length + idx;
-                        const attrCount = Array.isArray(ent.definition.attributes) ? ent.definition.attributes.length : 0;
-                        return (
-                          <button
-                            key={`ent-${ent.entityId}`}
-                            data-omni-item
-                            type="button"
-                            onClick={() => handleSelectEntity(ent)}
-                            className={`w-full text-left py-1.5 px-3 rounded-lg flex items-center gap-2 text-xs transition-colors ${
-                              highlightIndex === itemIndex
-                                ? 'bg-blue-50 dark:bg-blue-800/30'
-                                : 'hover:bg-gray-100 dark:hover:bg-neutral-800'
-                            }`}
-                          >
-                             <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getTypeColor(ent.entityType)}`} />
-                             <span className="font-medium text-gray-800 dark:text-neutral-200 truncate">
-                               {ent.name}
-                             </span>
-                             <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-                               <span className={`text-[9px] font-bold px-1 rounded ${getTypeColor(ent.entityType)} text-white opacity-80 uppercase`}>
-                                 {ent.entityType.substring(0, 3)}
-                               </span>
-                               <span className="text-[10px] text-gray-400 dark:text-neutral-500">
-                                 {attrCount} {t('omnibar.field', { count: attrCount })}
-                               </span>
-                               <ArrowRight size={12} className="text-gray-300 dark:text-neutral-600" />
-                             </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* ─── Create Orphan Fallback ──────────────── */}
-                  {showCreateFallback && (
-                    <div className="pt-1 mt-1 border-t border-gray-200 dark:border-neutral-700">
-                      <div className="px-4 py-2 border-b border-gray-100 dark:border-neutral-800">
-                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('common.suggestions')}</h4>
-                      </div>
-                      <button
-                        type="button"
-                        data-omni-item
-                        onClick={handleCreateOrphan}
-                        className="w-full text-left py-2 px-3 rounded-lg flex items-center gap-2 text-xs text-blue-600 font-medium hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-800/30 transition-colors"
-                      >
-                        <Plus size={14} />
-                        {t('omnibar.create', { name: query.trim() })}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* ─── Empty Hint ──────────────────────────── */}
-                  {!showCreateFallback && flatOptions.length === 0 && !query.trim() && (
-                    <div className="p-3 text-center text-xs text-gray-400 dark:text-neutral-500 italic">
-                      {t('omnibar.emptyHint')}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                  <SmartSelect
+                    ref={(el) => { relationTriggerRefs.current[ruleKey] = el; }}
+                    key={`relation-select-${node.id}-${rule.target}`}
+                    options={ruleTargetOptions}
+                    value=""
+                    onChange={(id: string) => { if (id) onAddLink(node.id, id); }}
+                    onCreate={(name: string) => onSpawnAndLink(node.id, rule.target, name)}
+                    placeholder={t('InlineOmnibar.linkTarget', { type: targetTitle })}
+                    allowCustomValue={false}
+                    align="start"
+                    className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-neutral-800/60 shadow-sm border border-white/20 dark:border-neutral-700/30 w-full"
+                  />
+                </div>
+              );
+            })}
           </div>
-        </div>,
-        document.body
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
-// ─── Drill-Down Sub-Component ────────────────────────────────────────
-interface DrillDownViewProps {
-  entity: SearchableEntity;
-  selectedAttrs: Set<string>;
-  existingFields: Field[];
-  onToggle: (name: string) => void;
-  onImport: () => void;
-  onBack: () => void;
-}
+// ═══════════════════════════════════════════════════════════════════════
+// EDGE OMNIBAR
+// ═══════════════════════════════════════════════════════════════════════
+interface EdgeOmnibarProps { link: Link; position: { x: number; y: number; nodeY: number; stageY: number; scale: number }; onUpdateLink: <K extends keyof Link>(id: string, key: K, value: Link[K]) => void; onClose: () => void; onOpenSidebar: () => void; t: (key: string, options?: any) => string; initialFocus?: 'name' | 'relation'; }
+const EdgeOmnibar: React.FC<EdgeOmnibarProps> = ({ link, position, onUpdateLink, onClose, onOpenSidebar, t }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const settingsBtnRef = useRef<HTMLButtonElement>(null);
+  const labelInputGroup = useDebouncedInput(link.label || '', (val) => onUpdateLink(link.id, 'label', val));
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { onClose(); onOpenSidebar(); }
+    if (e.key === 'Tab') {
+      const focusables = [inputRef.current, settingsBtnRef.current].filter(Boolean) as HTMLElement[];
+      const idx = focusables.indexOf(document.activeElement as HTMLElement);
+      if (idx !== -1) { e.preventDefault(); focusables[(idx + (e.shiftKey ? -1 : 1) + focusables.length) % focusables.length].focus(); }
+    }
+  }, [onClose, onOpenSidebar]);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (containerRef.current && !containerRef.current.contains(e.target as globalThis.Node)) onClose(); };
+    setTimeout(() => document.addEventListener('mousedown', handler), 100);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+  const [contentHeight, setContentHeight] = useState(50);
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) { setContentHeight(entry.contentRect.height); }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
-const DrillDownView: React.FC<DrillDownViewProps> = ({
-  entity,
-  selectedAttrs,
-  existingFields,
-  onToggle,
-  onImport,
-  onBack,
-}) => {
-  const { t } = useTranslation();
-  const attrs = Array.isArray(entity.definition.attributes) ? entity.definition.attributes : [];
-
-  return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-neutral-700">
-        <button
-          type="button"
-          onClick={onBack}
-          className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 transition-colors"
-        >
-          <ChevronLeft size={14} />
-        </button>
-        <div className={`w-2 h-2 rounded-full ${getTypeColor(entity.entityType)}`} />
-        <span className="text-xs font-bold text-gray-800 dark:text-neutral-200">{entity.name}</span>
-        <span className="text-[10px] text-gray-400 uppercase">{entity.entityType}</span>
-      </div>
-
-      {/* Attribute List */}
-      <div className="flex flex-col gap-0.5 p-1 max-h-[180px] overflow-y-auto">
-        {attrs.map(attr => {
-          const isAlreadyAdded = existingFields.some(
-            f => f.definitionId === entity.entityId && f.attributeKey === attr.name
-          );
-          const isSelected = selectedAttrs.has(attr.name);
-
-          return (
-            <button
-              key={attr.name}
-              type="button"
-              onClick={() => !isAlreadyAdded && onToggle(attr.name)}
-              disabled={isAlreadyAdded}
-              className={`flex items-center gap-2 w-full text-left px-2 py-1 rounded text-xs transition-colors ${
-                isAlreadyAdded
-                  ? 'opacity-30 cursor-not-allowed'
-                  : 'hover:bg-gray-100 dark:hover:bg-neutral-800'
-              }`}
-            >
-              {isAlreadyAdded || isSelected
-                ? <CheckSquare size={13} className={isAlreadyAdded ? 'text-gray-400' : 'text-blue-500'} />
-                : <Square size={13} className="text-gray-300 dark:text-neutral-600" />
-              }
-              <span className="font-mono text-[11px] flex-1 text-gray-700 dark:text-neutral-300">{attr.name}</span>
-              <span className="text-[9px] text-gray-400 uppercase">{attr.type}</span>
-            </button>
-          );
-        })}
-        {attrs.length === 0 && (
-          <p className="text-xs text-gray-400 italic p-2 text-center">{t('omnibar.noAttributes')}</p>
-        )}
-      </div>
-
-      {/* Import Button */}
-      {attrs.length > 0 && (
-        <div className="px-2 py-1.5 border-t border-gray-200 dark:border-neutral-700">
-          <button
-            type="button"
-            onClick={onImport}
-            disabled={selectedAttrs.size === 0}
-            className="w-full py-1.5 px-3 inline-flex items-center justify-center gap-x-2 text-[11px] font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-colors shadow-sm"
-          >
-            {t('omnibar.import', { count: selectedAttrs.size })}
-          </button>
-        </div>
-      )}
-    </div>
+  const OMNIBAR_WIDTH = 260;
+  const style: React.CSSProperties = { 
+    position: 'fixed', 
+    left: position.x, 
+    top: Math.max(80, position.y - contentHeight + 10), 
+    width: OMNIBAR_WIDTH, 
+    zIndex: 100,
+    transform: 'translateX(-50%)',
+  };
+  return createPortal(
+    <div ref={containerRef} style={style} onKeyDown={handleKeyDown} className="glass-card shadow-2xl rounded-[24px] p-3.5 flex items-center gap-3 animate-in fade-in duration-150 backdrop-blur-3xl bg-white/90 dark:bg-neutral-900/90 border ring-1 ring-black/5">
+      <input ref={inputRef} type="text" {...labelInputGroup} placeholder={t('InlineOmnibar.edgeLabelPlaceholder')} autoComplete="off" className="flex-1 h-11 px-4 rounded-xl text-sm font-bold bg-white/80 dark:bg-neutral-800/60 border border-white/40 dark:border-neutral-700/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-neutral-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"/>
+      <button ref={settingsBtnRef} type="button" onClick={() => { onClose(); onOpenSidebar(); }} className="h-11 w-11 flex-shrink-0 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-neutral-700/50 transition-all shadow-sm border border-white/40 dark:border-neutral-700/50"><Settings2 size={18}/></button>
+    </div>,
+    document.body
   );
 };

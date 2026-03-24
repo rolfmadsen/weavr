@@ -158,7 +158,7 @@ export function useGraphSync(modelId: string | null) {
                 } else if (nodeData && typeof nodeData === 'object') {
                     const existingNode = tempNodesRef.current.get(nodeId) || nodesRef.current.find(n => n.id === nodeId);
 
-                    if (existingNode || (nodeData.type && nodeData.name)) {
+                    if (existingNode || nodeData.type) {
                         const newNode: Node = {
                             id: nodeId,
                             type: (nodeData.type || existingNode?.type) as ElementType,
@@ -182,7 +182,7 @@ export function useGraphSync(modelId: string | null) {
                             fields: nodeData.fields ? (typeof nodeData.fields === 'string' ? JSON.parse(nodeData.fields) : nodeData.fields) : (existingNode?.fields || []),
                         };
 
-                        if (newNode.type && newNode.name) {
+                        if (newNode.type) {
                             if (newNode.fx != null && newNode.fy != null) {
                                 manualPositionsRef.current.set(nodeId, { x: newNode.fx!, y: newNode.fy! });
                             }
@@ -456,8 +456,10 @@ export function useGraphSync(modelId: string | null) {
             lastLocalUpdateRef.current.set(nodeId, Date.now());
             if (changes) {
                 const existing = tempNodesRef.current.get(nodeId) || nodesRef.current.find(n => n.id === nodeId);
-                if (existing) {
-                    const updated = { ...existing, ...changes };
+                // If it's a new node (no existing), we use changes as the base
+                const updated = existing ? { ...existing, ...changes } : (changes as Node);
+                
+                if (updated.id && updated.type) {
                     tempNodesRef.current.set(nodeId, updated);
                     
                     // Trigger state update immediately for local responsiveness
@@ -466,6 +468,6 @@ export function useGraphSync(modelId: string | null) {
                     useModelingData.getState().setNodes(allNodes);
                 }
             }
-        }, []),
+        }, [nodesRef]),
     };
 }

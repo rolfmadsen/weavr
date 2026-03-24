@@ -27,6 +27,7 @@ interface UseKeyboardShortcutsProps {
     onOpenHelp: () => void;
     onToggleSearch: () => void;
     onToggleSliceFilter: () => void;
+    onShowOmnibar?: (targetId: string, kind: 'node' | 'link') => void;
 }
 
 export function useKeyboardShortcuts({
@@ -58,7 +59,8 @@ export function useKeyboardShortcuts({
     onResetZoom,
     onOpenHelp,
     onToggleSearch,
-    onToggleSliceFilter
+    onToggleSliceFilter,
+    onShowOmnibar
 }: UseKeyboardShortcutsProps & {
     onSelectAll?: () => void;
     onDuplicate?: () => void;
@@ -79,6 +81,7 @@ export function useKeyboardShortcuts({
             const isInput =
                 event.target instanceof HTMLInputElement ||
                 event.target instanceof HTMLTextAreaElement ||
+                event.target instanceof HTMLButtonElement ||
                 (event.target instanceof HTMLElement && (event.target as any).isContentEditable);
 
             if (isInput) {
@@ -172,14 +175,21 @@ export function useKeyboardShortcuts({
                 // Single keystrokes without Ctrl/Cmd
                 switch (event.key) {
                     case 'Enter':
-                        // Don't trigger if the user is focused on an interactive element
-                        if (event.target instanceof HTMLElement && event.target.matches('button, a, summary, [role="button"], [role="link"], [role="tab"], input, textarea, select')) {
+                        // Don't trigger if the user is focused on an input/textarea
+                        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
                             break;
                         }
 
-                        if (selectedNodeIds.length === 1 || selectedLinkId) {
-                            onOpenPropertiesPanel();
-                            // Only prevent default if we actually handled it (i.e., we are not on an interactive element)
+                        // PRIORITIZE Omnibar over Properties Panel
+                        // Shift+Enter OR Ctrl+Enter opens properties
+                        if (onOpenPropertiesPanel && (event.shiftKey || event.ctrlKey || event.metaKey)) {
+                             onOpenPropertiesPanel();
+                             shouldPreventDefault = true;
+                        } else if (selectedNodeIds.length === 1 && onShowOmnibar) {
+                            onShowOmnibar(selectedNodeIds[0], 'node');
+                            shouldPreventDefault = true;
+                        } else if (selectedLinkId && onShowOmnibar) {
+                            onShowOmnibar(selectedLinkId, 'link');
                             shouldPreventDefault = true;
                         }
                         break;
@@ -280,42 +290,34 @@ export function useKeyboardShortcuts({
                         }
                         break;
                     
-                    case '1':
+                    case '1': case '2': case '3': case '4': case '5': case '6':
                         if (event.altKey) {
-                            onOpenPropertiesPanel();
+                            if (event.key === '1') onOpenPropertiesPanel();
+                            if (event.key === '2') onOpenDictionary?.();
+                            if (event.key === '3') onOpenSlices?.();
+                            if (event.key === '4') (onOpenActors as any)?.();
                             shouldPreventDefault = true;
-                        }
-                        break;
-                    case '2':
-                        if (event.altKey) {
-                            onOpenDictionary?.();
-                            shouldPreventDefault = true;
-                        }
-                        break;
-                    case '3':
-                        if (event.altKey) {
-                            onOpenSlices?.();
-                            shouldPreventDefault = true;
-                        }
-                        break;
-                    case '4':
-                        if (event.altKey) {
-                            (onOpenActors as any)?.();
-                            shouldPreventDefault = true;
+                        } else if (isToolbarOpen) {
+                            const tools = [
+                                ElementType.Screen, 
+                                ElementType.Command, 
+                                ElementType.DomainEvent, 
+                                ElementType.ReadModel, 
+                                ElementType.IntegrationEvent, 
+                                ElementType.Automation
+                            ];
+                            const keyIndex = parseInt(event.key, 10) - 1;
+                            if (keyIndex >= 0 && keyIndex < tools.length) {
+                                onAddNode(tools[keyIndex]);
+                                shouldPreventDefault = true;
+                            }
                         }
                         break;
                 }
             }
 
-
-            if (isToolbarOpen) {
-                const tools = [ElementType.Screen, ElementType.Command, ElementType.DomainEvent, ElementType.ReadModel, ElementType.IntegrationEvent, ElementType.Automation];
-                const keyIndex = parseInt(event.key, 10) - 1;
-                if (keyIndex >= 0 && keyIndex < tools.length) {
-                    onAddNode(tools[keyIndex]);
-                    shouldPreventDefault = true;
-                }
-            }
+            // [REMOVED] moved into switch above
+            // if (isToolbarOpen) { ... }
 
 
             if (shouldPreventDefault) {
@@ -330,6 +332,6 @@ export function useKeyboardShortcuts({
         nodes, selectedNodeIds, selectedLinkId, isPanelOpen, isToolbarOpen, isReady,
         showSlices, swimlanePositions, onDeleteSelection, onClosePanel, onToggleToolbar,
         onOpenPropertiesPanel, onOpenSlices, onOpenDictionary, onSelectNode, onAddNode, onMoveNodes, onFocusNode,
-        onAutoLayout, onPaste, onSelectAll, onDuplicate, onZoomIn, onZoomOut, onResetZoom
+        onAutoLayout, onPaste, onSelectAll, onDuplicate, onZoomIn, onZoomOut, onResetZoom, onShowOmnibar
     ]);
 }

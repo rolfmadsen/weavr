@@ -26,6 +26,7 @@ interface UseModelManagerProps {
     graphRef: React.RefObject<GraphCanvasKonvaRef | null>;
     setIsToolbarOpen: (open: boolean) => void;
     onRequestAutoLayout: () => void;
+    onShowOmnibar?: (targetId: string, kind: 'node' | 'link', initialFocus?: 'name' | 'relation', initialPos?: { x: number, y: number }) => void;
 }
 
 export const useModelManager = ({
@@ -36,7 +37,8 @@ export const useModelManager = ({
     focusOnRender,
     setFocusOnRender,
     graphRef,
-    onRequestAutoLayout
+    onRequestAutoLayout,
+    onShowOmnibar
 }: UseModelManagerProps) => {
     const {
         nodes,
@@ -106,6 +108,22 @@ export const useModelManager = ({
             y: Math.round(((-viewState.y + window.innerHeight / 2) / viewState.scale) / GRID_SIZE) * GRID_SIZE
         };
 
+        const newNode: Node = {
+            id,
+            type,
+            name: '',
+            description: '',
+            x: viewportCenter.x,
+            y: viewportCenter.y,
+            computedHeight: 40, // default
+            pinned: true
+        };
+
+        // Optimistic UI Update: Inject the node locally before GunDB sync completes
+        if (markLocalUpdate) {
+            markLocalUpdate(id, newNode);
+        }
+
         // EDA: Dispatch Command
         bus.emit('command:createNode', {
             id,
@@ -114,12 +132,22 @@ export const useModelManager = ({
             y: viewportCenter.y,
             pinned: true
         });
-        // Auto-select and focus
+
+        // Auto-select and show InlineOmnibar (fallback to sidebar)
         selectNode(id);
-        setSidebarView('properties');
-        setFocusOnRender(true);
+        
+        if (onShowOmnibar) {
+            // Calculate screen position for immediate display (race condition mitigation)
+            const NODE_WIDTH = 160;
+            const screenX = (viewportCenter.x + NODE_WIDTH / 2) * viewState.scale + viewState.x;
+            const screenY = viewportCenter.y * viewState.scale + viewState.y;
+            onShowOmnibar(id, 'node', 'name', { x: screenX, y: screenY });
+        } else {
+            setSidebarView('properties');
+            setFocusOnRender(true);
+        }
         signal("Node.Added", { type, id });
-    }, [modelId, viewState, selectNode, setSidebarView, setFocusOnRender, signal]);
+    }, [modelId, viewState, selectNode, setSidebarView, setFocusOnRender, signal, onShowOmnibar]);
 
     const handleLinkFieldToDefinition = useCallback((fieldName: string, fieldType: string, definitionId: string) => {
         // Find all nodes that have this orphaned field and update them
@@ -156,6 +184,11 @@ export const useModelManager = ({
         const updates: Partial<Node> = { [key]: value };
         if (key === 'name') {
             updates.computedHeight = calculateNodeHeight(value as string);
+        }
+
+        // Auto-unpin when assigning to a slice
+        if (key === 'sliceId' && value) {
+            updates.pinned = false;
         }
 
         if (markLocalUpdate) {
@@ -262,15 +295,23 @@ export const useModelManager = ({
 
     const handleNodeDoubleClick = useCallback((nodeId: string) => {
         selectNode(nodeId);
-        setSidebarView('properties');
-        setFocusOnRender(true);
-    }, [selectNode, setSidebarView, setFocusOnRender]);
+        if (onShowOmnibar) {
+            onShowOmnibar(nodeId, 'node');
+        } else {
+            setSidebarView('properties');
+            setFocusOnRender(true);
+        }
+    }, [selectNode, setSidebarView, setFocusOnRender, onShowOmnibar]);
 
     const handleLinkDoubleClick = useCallback((linkId: string) => {
         selectLink(linkId);
-        setSidebarView('properties');
-        setFocusOnRender(true);
-    }, [selectLink, setSidebarView, setFocusOnRender]);
+        if (onShowOmnibar) {
+            onShowOmnibar(linkId, 'link');
+        } else {
+            setSidebarView('properties');
+            setFocusOnRender(true);
+        }
+    }, [selectLink, setSidebarView, setFocusOnRender, onShowOmnibar]);
 
     const handleMarqueeSelect = useCallback((nodeIds: string[]) => {
         setSelection(nodeIds);
@@ -331,10 +372,14 @@ export const useModelManager = ({
         // Link them
         bus.emit('command:createLink', { sourceId: sourceNodeId, targetId: newId });
 
-        // Select and Focus
+        // Auto-select and show InlineOmnibar
         selectNode(newId);
-        setSidebarView('properties');
-        setFocusOnRender(true);
+        if (onShowOmnibar) {
+            onShowOmnibar(newId, 'node');
+        } else {
+            setSidebarView('properties');
+            setFocusOnRender(true);
+        }
 
         // Pan to the new node
         setTimeout(() => {
@@ -487,6 +532,7 @@ export const useModelManager = ({
         deleteActor,
         handleSpawnAndLink,
         focusOnRender,
-        setFocusOnRender
+        setFocusOnRender,
+        onShowOmnibar
     };
 }

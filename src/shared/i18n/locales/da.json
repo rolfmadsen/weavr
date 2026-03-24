@@ -20,6 +20,8 @@
     "close": "Luk",
     "confirmDelete": "Bekræft sletning",
     "confirm": "Bekræft",
+    "properties": "Egenskaber",
+    "untitled": "Unavngivet",
     "selectItemToViewProperties": "Vælg et element for at se egenskaber"
   },
   "workspace": {
@@ -244,8 +246,8 @@
     "gotIt": "Forstået!"
   },
   "canvas": {
-    "editHint": "Rediger (Dobbeltklik / Alt + P)",
-    "linkHint": "Relation (Klik+Træk / C)",
+    "editHint": "Egenskaber (Dobbeltklik / Enter)",
+    "linkHint": "Administrer relationer (Klik / C)",
     "unpinHint": "Fjern pin (Klik)",
     "zoomIn": "Zoom ind",
     "zoomOut": "Zoom ud",
@@ -295,7 +297,7 @@
       "selectOrCreateActor": "Vælg eller opret aktør...",
       "selectOrCreateAggregate": "Vælg eller opret aggregat...",
       "selectOrCreateSlice": "Vælg eller opret slice...",
-      "addType": "+ Tilføj {{type}}...",
+      "addType": "+ Tilføj {{type}} og relation...",
       "externalProvider": "f.eks. Stripe, Auth0",
       "componentService": "f.eks. Salgs-tjeneste",
       "selectSliceForAll": "Vælg slice til alle..."
@@ -363,7 +365,7 @@
     "specPlaceholder": "Specifikations Titel",
     "deleteSpec": "Slet specifikation",
     "confirmDeleteSpec": "Slet denne specifikation?",
-    "addStep": "Tilføj {{step}}",
+    "addStep": "Tilføj {{step}} relation",
     "given": "Givet",
     "when": "Når",
     "then": "Så",
@@ -427,7 +429,7 @@
     "yes": "Ja",
     "no": "Nej"
   },
-  "omnibar": {
+  "dataDefinitionPicker": {
     "placeholder": "Søg i attributter og definitioner...",
     "attributes": "Attributter",
     "definitions": "Definitioner",
@@ -473,5 +475,23 @@
     "delete": "Slet aktør",
     "deleteConfirm": "Er du sikker på, at du vil slette denne aktør?",
     "noActors": "Ingen aktører oprettet endnu."
+  },
+  "InlineOmnibar": {
+    "namePlaceholder": {
+      "SCREEN": "Navngiv denne Screen...",
+      "COMMAND": "Navngiv denne Command...",
+      "DOMAIN_EVENT": "Hvad skete der?",
+      "DOMAIN_EVENT_example": "OrdreSendt, PersonOprettet...",
+      "READ_MODEL": "Navngiv denne Read Model...",
+      "INTEGRATION_EVENT": "Navngiv denne Integration Event...",
+      "AUTOMATION": "Navngiv denne Automation..."
+    },
+    "slicePlaceholder": "Slice...",
+    "relationsPlaceholder": "Link til...",
+    "linkTarget": "→ Tilføj {{type}} og relation",
+    "edgeLabelPlaceholder": "Etiket...",
+    "openSidebar": "Åbn fuld editor",
+    "closeHint": "Esc eller klik på canvas for at lukke",
+    "propertiesHint": "Åbn Egenskaber (Ctrl + Enter)"
   }
 }

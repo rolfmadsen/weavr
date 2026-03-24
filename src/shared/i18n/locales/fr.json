@@ -18,6 +18,8 @@
     "close": "Fermer",
     "confirmDelete": "Confirmer la suppression",
     "confirm": "Confirmer",
+    "properties": "Propriétés",
+    "untitled": "Sans titre",
     "selectItemToViewProperties": "Sélectionnez un élément pour voir les propriétés"
   },
   "workspace": {
@@ -240,6 +242,9 @@
     "gotIt": "D'accord !"
   },
   "canvas": {
+    "editHint": "Modifier (Double-clic / Entrée)",
+    "linkHint": "Gérer les relations (Clic / C / Glisser)",
+    "unpinHint": "Détacher le nœud (Clic)",
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière",
     "resetZoom": "Réinitialiser le zoom à {{zoom}}%"
@@ -464,5 +469,9 @@
     "generatedOn": "Documentation générée le {{date}}",
     "yes": "Oui",
     "no": "Non"
+  },
+  "InlineOmnibar": {
+    "closeHint": "Echap ou clic sur le canevas pour fermer",
+    "propertiesHint": "Ouvrir les propriétés (Ctrl + Entrée)"
   }
 }

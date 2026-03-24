@@ -40,6 +40,8 @@ interface SmartSelectProps {
     className?: string;
     disabled?: boolean;
     autoFocus?: boolean;
+    align?: "start" | "center" | "end";
+    dropdownWidth?: string;
     [key: string]: any;
 }
 
@@ -54,6 +56,8 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
     className,
     disabled,
     autoFocus,
+    align = "start",
+    dropdownWidth,
     ...props
 }, ref) => {
     const [open, setOpen] = React.useState(false)
@@ -64,15 +68,26 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
         [options, value]
     )
 
+    // Manual filtering to avoid cmdk flickering while shouldFilter={false}
+    const filteredOptions = React.useMemo(() => {
+        if (!search.trim()) return options;
+        const lowSearch = search.toLowerCase().trim();
+        return options.filter((opt: Option) => 
+            opt.label.toLowerCase().includes(lowSearch) || 
+            (opt.subLabel && opt.subLabel.toLowerCase().includes(lowSearch)) ||
+            (opt.group && opt.group.toLowerCase().includes(lowSearch))
+        );
+    }, [options, search]);
+
     const groupedOptions = React.useMemo(() => {
         const groups: Record<string, Option[]> = {}
-        options.forEach((opt: Option) => {
+        filteredOptions.forEach((opt: Option) => {
             const group = opt.group || 'Other'
             if (!groups[group]) groups[group] = []
             groups[group].push(opt)
         });
         return groups
-    }, [options])
+    }, [filteredOptions])
 
     const showCreateOption = React.useMemo(() => {
         return search.trim() &&
@@ -92,6 +107,12 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
                         disabled={disabled}
                         autoFocus={autoFocus}
                         {...props}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setOpen(true);
+                            }
+                        }}
                         className={cn(
                             "w-full justify-between font-normal glass-input h-10 px-4 py-2",
                             !value && "text-muted-foreground",
@@ -105,24 +126,34 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
                     </Button>
                 }
             />
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0 glass-card border-none" align="start">
-                <Command shouldFilter={true}>
+            <PopoverContent 
+                className="p-0 glass-card border-none ring-0 shadow-2xl z-[200]" 
+                align={align} 
+                sideOffset={8}
+                style={{ width: dropdownWidth || 'var(--anchor-width)' }}
+            >
+                <Command shouldFilter={false} className="bg-transparent">
                     <CommandInput 
                         placeholder={placeholder || "Search..."} 
+                        value={search}
                         onValueChange={(val: string) => {
                             setSearch(val);
                             onSearchChange?.(val);
                         }}
                     />
                     <CommandList className="custom-scrollbar max-h-60 overflow-y-auto">
-                        <CommandEmpty>{search.trim() ? "No results found." : "No options available."}</CommandEmpty>
+                        {filteredOptions.length === 0 && !showCreateOption && (
+                            <CommandEmpty className="py-6 text-center text-sm text-muted-foreground italic">
+                                {search.trim() ? "No results found." : "Type to create or search..."}
+                            </CommandEmpty>
+                        )}
+                        
                         {Object.entries(groupedOptions).map(([group, opts]) => (
                             <CommandGroup key={group} heading={Object.keys(groupedOptions).length > 1 ? group : undefined}>
                                 {opts.map((opt) => (
                                     <CommandItem
                                         key={opt.id}
                                         value={opt.id}
-                                        keywords={[opt.label, opt.subLabel || '', group].filter(Boolean)}
                                         onSelect={() => {
                                             onChange(opt.id, opt)
                                             setOpen(false)
@@ -133,7 +164,7 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
                                         <div className="flex items-center justify-between w-full">
                                             <div className="flex items-center gap-2">
                                                 {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
-                                                <span>{opt.label}</span>
+                                                <span className="font-medium">{opt.label}</span>
                                             </div>
                                             {value === opt.id && <Check className="h-4 w-4 text-primary" />}
                                         </div>
@@ -149,7 +180,6 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
                                 <CommandGroup>
                                     <CommandItem
                                         value={`--create--${search}`}
-                                        keywords={[search]}
                                         onSelect={() => {
                                             if (onCreate) {
                                                 const id = onCreate(search)
@@ -160,7 +190,7 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
                                             setOpen(false)
                                             setSearch("")
                                         }}
-                                        className="text-primary font-medium cursor-pointer"
+                                        className="text-primary font-semibold cursor-pointer py-3"
                                     >
                                         <Plus className="mr-2 h-4 w-4" />
                                         Add "{search}"

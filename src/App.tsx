@@ -4,6 +4,8 @@ import { TooltipProvider } from './shared/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
 import { bus } from './shared/events/eventBus';
 import Konva from 'konva';
+import { InlineOmnibar } from './features/nodes/ui/InlineOmnibar';
+import { useOmnibarState } from './features/nodes/ui/useOmnibarState';
 
 
 // Features
@@ -139,6 +141,19 @@ const App: React.FC = () => {
     signal("Layout.Requested", { method: 'MANUAL' });
   }, [signal]);
 
+  // ─── InlineOmnibar State ───────────────────────────────────────
+  const omnibar = useOmnibarState();
+  const nodesRef = React.useRef<Node[]>([]);
+
+  const handleShowOmnibar = useCallback((targetId: string, kind: 'node' | 'link', initialFocus: 'name' | 'relation' = 'name', initialPos?: { x: number, y: number }) => {
+    // Note: Position is now calculated live in useMemo below, but initialPos helps during sync races
+    if (kind === 'node') {
+      omnibar.openForNode(targetId, initialPos || { x: 0, y: 0 }, initialFocus); 
+    } else {
+      omnibar.openForLink(targetId, initialPos || { x: 0, y: 0 });
+    }
+  }, [omnibar]);
+
   const modelingStore = useModelingStore({
     modelId,
     viewState,
@@ -148,7 +163,8 @@ const App: React.FC = () => {
     setFocusOnRender,
     graphRef,
     setIsToolbarOpen,
-    onRequestAutoLayout: handleRequestAutoLayout
+    onRequestAutoLayout: handleRequestAutoLayout,
+    onShowOmnibar: handleShowOmnibar
   });
 
   const {
@@ -185,6 +201,11 @@ const App: React.FC = () => {
     updateModelName: syncUpdateModelName,
 
     pasteNodes,
+    handleDeleteLink,
+    handleUpdateNode,
+    handleUpdateLink,
+    handleAddSlice,
+    handleSpawnAndLink,
     updateSliceBounds,
     sliceBoundsMap,
     actors,
@@ -192,6 +213,47 @@ const App: React.FC = () => {
     updateActor,
     deleteActor
   } = modelingStore;
+
+  const liveOmnibarPos = useMemo(() => {
+    if (!omnibar.isOpen || !omnibar.targetId) return { x: 0, y: 0, nodeY: 0, stageY: 0, scale: 1 };
+    const NODE_W = 160; // matches shared/constants NODE_WIDTH
+    if (omnibar.targetKind === 'node') {
+      const n = nodes.find(nd => nd.id === omnibar.targetId);
+      const scale = viewState.scale;
+      
+      if (!n) {
+        // Fallback to the position provided when the omnibar was opened
+        // (Crucial for nodes that are added but not yet synced into the nodes array)
+        return { 
+          x: omnibar.position.x, 
+          y: omnibar.position.y, 
+          nodeY: 0, 
+          stageY: viewState.y, 
+          scale 
+        };
+      }
+
+      const nx = n.fx ?? n.x ?? 0;
+      const ny = n.fy ?? n.y ?? 0;
+      
+      // Map Konva model coords -> screen coords:
+      // screenPos = (modelPos * scale) + stageOffset
+      const screenX = (nx + NODE_W / 2) * scale + viewState.x;
+      const screenY = ny * scale + viewState.y;
+      return { 
+        x: screenX, 
+        y: screenY, 
+        nodeY: ny, 
+        stageY: viewState.y, 
+        scale 
+      };
+    }
+    // Link mode: center in viewport
+    return { x: window.innerWidth / 2, y: window.innerHeight / 3, nodeY: 0, stageY: 0, scale: 1 };
+  }, [omnibar.isOpen, omnibar.targetId, omnibar.targetKind, nodes, viewState]);
+
+  // Keep nodesRef in sync for handleShowOmnibar
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
   // Fit View Effect whenever pendingFitView is true and nodes are present
   useEffect(() => {
@@ -433,18 +495,9 @@ const App: React.FC = () => {
   const handleJumpToRelationship = useCallback((node?: Node) => {
     if (node) {
       handleNodeClick(node.id);
+      handleShowOmnibar(node.id, 'node', 'relation');
     }
-    setSidebarView('properties');
-    
-    // Focus the first relationship select in the sidebar
-    // Increased delay to ensure sidebar transition and NodeProperties rendering
-    setTimeout(() => {
-      const relInput = document.querySelector('.relationship-smart-select') as HTMLInputElement;
-      if (relInput) {
-        relInput.focus();
-      }
-    }, 250);
-  }, [handleNodeClick, setSidebarView]);
+  }, [handleNodeClick, handleShowOmnibar]);
 
   const handleSliceClick = useCallback((slice: Slice) => {
     setSidebarView('slices');
@@ -492,7 +545,8 @@ const App: React.FC = () => {
     onResetZoom: () => graphRef.current?.resetZoom(),
     onOpenHelp: () => { setIsHelpModalOpen(true); signal("Help.Opened"); },
     onToggleSearch: () => setIsElementFilterOpen(prev => !prev),
-    onToggleSliceFilter: () => setIsSliceFilterOpen(prev => !prev)
+    onToggleSliceFilter: () => setIsSliceFilterOpen(prev => !prev),
+    onShowOmnibar: handleShowOmnibar
   });
 
   // Sync GunDB name to Local Storage (Bi-directional)
@@ -580,6 +634,7 @@ const App: React.FC = () => {
             onCanvasClick={() => {
               handleClosePanel();
               setIsToolbarOpen(false);
+              omnibar.close();
             }}
             onMarqueeSelect={(ids: string[]) => {
               handleMarqueeSelect(ids);
@@ -598,6 +653,38 @@ const App: React.FC = () => {
             initialViewState={viewState}
             ref={graphRef}
           />
+
+          {/* ─── InlineOmnibar Portal ─────────────────────────── */}
+          {omnibar.isOpen && omnibar.targetId && (
+            <InlineOmnibar
+              key={omnibar.targetId}
+              targetKind={omnibar.targetKind!}
+              node={omnibar.targetKind === 'node' ? nodes.find(n => n.id === omnibar.targetId) : undefined}
+              link={omnibar.targetKind === 'link' ? links.find(l => l.id === omnibar.targetId) : undefined}
+              position={liveOmnibarPos}
+              slices={slices}
+              allNodes={nodes}
+              allLinks={links}
+              definitions={definitions}
+              onUpdateNode={handleUpdateNode}
+              onUpdateLink={handleUpdateLink}
+              onAddLink={handleAddLink}
+              onDeleteLink={handleDeleteLink}
+              onAddSlice={handleAddSlice}
+              onSpawnAndLink={handleSpawnAndLink}
+              onClose={() => {
+                omnibar.close();
+                // Return focus to canvas
+                setTimeout(() => graphRef.current?.focus(), 50);
+              }}
+              onOpenSidebar={() => {
+                omnibar.close();
+                setSidebarView('properties');
+                setFocusOnRender(true);
+              }}
+              initialFocus={omnibar.initialFocus}
+            />
+          )}
 
           <div className="absolute bottom-16 left-8 z-10 flex flex-col items-start pointer-events-none [&>*]:pointer-events-auto">
             <ElementFilter 

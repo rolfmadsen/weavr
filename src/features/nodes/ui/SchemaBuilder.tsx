@@ -6,7 +6,7 @@ import { Node, Field, DataDefinition, DefinitionType, ElementType, Link } from '
 import { GlassButton } from '../../../shared/components/GlassButton';
 import { GlassTooltip } from '../../../shared/components/GlassTooltip';
 import { GlassSelect } from '../../../shared/components/GlassSelect';
-import { InlineOmnibar } from './InlineOmnibar';
+import { DataDefinitionPicker } from './DataDefinitionPicker';
 import { useFlattenedDictionary, SearchableAttribute } from '../../dictionary/store/useFlattenedDictionary';
 import { PRIMITIVE_TYPES } from '../../modeling/domain/constants';
 
@@ -193,8 +193,8 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                 </GlassButton>
             </div>
 
-            {/* Inline Omnibar — replaces old Import Modal */}
-            <InlineOmnibar
+            {/* Data Definition Picker — replaces old Import Modal */}
+            <DataDefinitionPicker
                 definitions={definitions}
                 existingFields={fields}
                 onAddFields={handleOmnibarAddFields}

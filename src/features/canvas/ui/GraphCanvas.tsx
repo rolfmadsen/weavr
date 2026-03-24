@@ -476,6 +476,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     setStagePos({ x: newX, y: newY });
                     setStageScale(currentScale);
                     updateVisibleNodes();
+                    onViewChange?.({ x: newX, y: newY, scale: currentScale, width: stage.width(), height: stage.height() });
                     if (gridRectRef.current) {
                         const sx = -newX / currentScale;
                         const sy = -newY / currentScale;
@@ -501,9 +502,10 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                 setStagePos({ x: newX, y: newY });
                 setStageScale(newScale);
                 updateVisibleNodes();
+                onViewChange?.({ x: newX, y: newY, scale: newScale, width: stage.width(), height: stage.height() });
             }
         });
-    }, [safeNodes, updateVisibleNodes, setStagePos, setStageScale]);
+    }, [safeNodes, updateVisibleNodes, setStagePos, setStageScale, onViewChange]);
 
     useImperativeHandle(ref, () => ({
         panToNode: (nodeId: string) => panToNodeInternal(nodeId),
@@ -832,11 +834,8 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
 
                 let nextIndex = 0;
                 const currentId = selectedIds[0];
-                console.log(`[Tab Debug] currentId="${currentId}", sortedNodes=${sortedNavigationNodes.length}`);
-
                 if (currentId) {
                     const currentIndex = sortedNavigationNodes.findIndex(n => n.id === currentId);
-                    console.log(`[Tab Debug] Found currentIndex=${currentIndex}`);
 
                     if (currentIndex !== -1) {
                         nextIndex = currentIndex + direction;

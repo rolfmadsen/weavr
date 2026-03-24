@@ -18,6 +18,8 @@
     "close": "Schließen",
     "confirmDelete": "Löschen bestätigen",
     "confirm": "Bestätigen",
+    "properties": "Eigenschaften",
+    "untitled": "Unbenannt",
     "selectItemToViewProperties": "Element auswählen, um Eigenschaften anzuzeigen"
   },
   "workspace": {
@@ -240,6 +242,9 @@
     "gotIt": "Verstanden!"
   },
   "canvas": {
+    "editHint": "Bearbeiten (Doppelklick / Enter)",
+    "linkHint": "Beziehungen verwalten (Klick / C / Ziehen)",
+    "unpinHint": "Knoten lösen (Klick)",
     "zoomIn": "Vergrößern",
     "zoomOut": "Verkleinern",
     "resetZoom": "Zoom auf {{zoom}}% zurücksetzen"
@@ -464,5 +469,9 @@
     "generatedOn": "Dokumentation generiert am {{date}}",
     "yes": "Ja",
     "no": "Nein"
+  },
+  "InlineOmnibar": {
+    "closeHint": "Esc oder Klick auf Leinwand zum Schließen",
+    "propertiesHint": "Eigenschaften öffnen (Strg + Enter)"
   }
 }

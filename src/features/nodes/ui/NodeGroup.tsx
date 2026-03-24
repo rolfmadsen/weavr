@@ -213,6 +213,8 @@ const NodeGroup = React.memo(({
                         y={-5}
                         onClick={(e) => {
                             e.cancelBubble = true;
+                            setCanvasCursor(e, '');
+                            setHoveredIcon(null);
                             onUnpin(node.id);
                         }}
                         onMouseEnter={(e) => {
@@ -366,6 +368,8 @@ const NodeGroup = React.memo(({
                         y={height / 2}
                         onClick={(e) => {
                             e.cancelBubble = true;
+                            setCanvasCursor(e, '');
+                            setHoveredIcon(null);
                             // Ensure node is selected for the jump to work
                             onNodeClick(node);
                             onRelationalAuraClick?.(node);
@@ -407,6 +411,8 @@ const NodeGroup = React.memo(({
                         y={-5}
                         onClick={(e) => {
                             e.cancelBubble = true;
+                            setCanvasCursor(e, '');
+                            setHoveredIcon(null);
                             onNodeDoubleClick(node);
                         }}
                         onMouseEnter={(e) => {
