@@ -21,7 +21,7 @@ export const initNodeCommands = () => {
             type: cmd.type,
             x: cmd.x,
             y: cmd.y,
-            name: '', // Start empty to show placeholder in Omnibar
+            name: '',
             description: '',
             sliceId: cmd.sliceId,
             pinned: cmd.pinned ?? false,

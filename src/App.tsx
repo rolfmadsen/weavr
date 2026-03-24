@@ -665,7 +665,6 @@ const App: React.FC = () => {
               slices={slices}
               allNodes={nodes}
               allLinks={links}
-              definitions={definitions}
               onUpdateNode={handleUpdateNode}
               onUpdateLink={handleUpdateLink}
               onAddLink={handleAddLink}

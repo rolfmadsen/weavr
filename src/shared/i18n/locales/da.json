@@ -477,18 +477,23 @@
     "noActors": "Ingen aktører oprettet endnu."
   },
   "InlineOmnibar": {
+    "nameLabel": "NAVN PÅ {{type}}",
     "namePlaceholder": {
       "SCREEN": "Navngiv denne Screen...",
       "COMMAND": "Navngiv denne Command...",
       "DOMAIN_EVENT": "Hvad skete der?",
-      "DOMAIN_EVENT_example": "OrdreSendt, PersonOprettet...",
+      "DOMAIN_EVENT_example": "OrdrePlaceret, BetalingModtaget, VareAfsendt...",
       "READ_MODEL": "Navngiv denne Read Model...",
       "INTEGRATION_EVENT": "Navngiv denne Integration Event...",
       "AUTOMATION": "Navngiv denne Automation..."
     },
-    "slicePlaceholder": "Slice...",
+    "domainEventHint": "Tip: Start med aggregatnavnet, f.eks. OrdreOprettet, PersonOpdateret",
+    "sliceLabel": "SLICE (KONTEKST)",
+    "slicePlaceholder": "Søg eller opret ny...",
     "relationsPlaceholder": "Link til...",
-    "linkTarget": "→ Tilføj {{type}} og relation",
+    "linkLabel": "FORBIND TIL {{type}}",
+    "linkPlaceholder": "Søg eller opret ny...",
+    "linkTarget": "→ Tilføj {{type}}",
     "edgeLabelPlaceholder": "Etiket...",
     "openSidebar": "Åbn fuld editor",
     "closeHint": "Esc eller klik på canvas for at lukke",

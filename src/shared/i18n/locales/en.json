@@ -485,18 +485,22 @@
     "noActors": "No actors created yet."
   },
   "InlineOmnibar": {
+    "nameLabel": "NAME OF {{type}}",
     "namePlaceholder": {
       "SCREEN": "Name this screen...",
       "COMMAND": "Name this command...",
       "DOMAIN_EVENT": "What happened?",
-      "DOMAIN_EVENT_example": "OrderCreated, PersonUpdated...",
+      "DOMAIN_EVENT_example": "OrderPlaced, PaymentReceived, ItemShipped...",
       "READ_MODEL": "Name this view...",
       "INTEGRATION_EVENT": "Name this integration...",
       "AUTOMATION": "Name this automation..."
     },
     "domainEventHint": "Tip: Start with the Aggregate name, e.g. OrderCreated, PersonUpdated",
-    "slicePlaceholder": "Slice...",
+    "sliceLabel": "SLICE (CONTEXT / GROUP)",
+    "slicePlaceholder": "Search or create new...",
     "relationsPlaceholder": "Link to...",
+    "linkLabel": "CONNECT TO {{type}}",
+    "linkPlaceholder": "Search or create new...",
     "linkTarget": "→ Add {{type}}",
     "edgeLabelPlaceholder": "Label...",
     "openSidebar": "Open full editor",

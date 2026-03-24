@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallba
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Settings2, Trash2, X } from 'lucide-react';
-import { Node, Link, Slice, ElementType, DataDefinition, DefinitionType } from '../../modeling/domain/types';
+import { Node, Link, Slice, ElementType } from '../../modeling/domain/types';
 import validationService from '../../modeling/domain/validation';
 import SmartSelect from '../../../shared/components/SmartSelect';
 import { GlassTooltip } from '../../../shared/components/GlassTooltip';
@@ -21,7 +21,6 @@ interface InlineOmnibarProps {
   slices: Slice[];
   allNodes: Node[];
   allLinks: Link[];
-  definitions: DataDefinition[];
   // Callbacks
   onUpdateNode: <K extends keyof Node>(id: string, key: K, value: Node[K]) => void;
   onUpdateLink: <K extends keyof Link>(id: string, key: K, value: Link[K]) => void;
@@ -53,7 +52,6 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
   slices,
   allNodes,
   allLinks,
-  definitions,
   onUpdateNode,
   onUpdateLink,
   onAddLink,
@@ -75,7 +73,6 @@ export const InlineOmnibar: React.FC<InlineOmnibarProps> = ({
         slices={slices}
         allNodes={allNodes}
         allLinks={allLinks}
-        definitions={definitions}
         onUpdateNode={onUpdateNode}
         onAddLink={onAddLink}
         onDeleteLink={onDeleteLink}
@@ -125,7 +122,6 @@ interface NodeOmnibarProps {
   onSpawnAndLink: (sourceNodeId: string, targetType: ElementType, name: string) => void;
   onClose: () => void;
   onOpenSidebar: () => void;
-  definitions: DataDefinition[];
   t: (key: string, options?: any) => string;
   initialFocus?: 'name' | 'relation';
 }
@@ -143,7 +139,6 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
   onSpawnAndLink,
   onClose,
   onOpenSidebar,
-  definitions,
   t,
   initialFocus,
 }) => {
@@ -264,11 +259,11 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
 
   const placeholderKey = NAME_PLACEHOLDER_KEYS[node.type] || 'InlineOmnibar.namePlaceholder.COMMAND';
   const dynamicPlaceholder = useMemo(() => {
-    if (node.type !== ElementType.DomainEvent) return t(placeholderKey);
-    const aggNames = definitions.filter(d => d.type === DefinitionType.Aggregate).map(d => d.name).filter(Boolean).slice(0, 3);
-    if (aggNames.length > 0) return `${aggNames.map(n => `${n}Created`).join(', ')}...`;
-    return t('InlineOmnibar.namePlaceholder.DOMAIN_EVENT_example');
-  }, [node.type, definitions, t, placeholderKey]);
+    if (node.type === ElementType.DomainEvent) {
+      return t('InlineOmnibar.namePlaceholder.DOMAIN_EVENT_example');
+    }
+    return t(placeholderKey);
+  }, [node.type, t, placeholderKey]);
 
   return (
     <div
@@ -316,6 +311,9 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400/80 px-1">
+            {t('InlineOmnibar.nameLabel', { type: t(`modeling.elements.${node.type}`) })}
+          </div>
           <input
             ref={nameInputRef}
             type="text"
@@ -335,28 +333,31 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
               'focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all',
             )}
           />
-          {node.type === ElementType.DomainEvent && !nameInputGroup.value && (
-            <p className="text-[10px] text-slate-500 dark:text-neutral-400 px-2 italic opacity-70 leading-tight">
-              {t('InlineOmnibar.domainEventHint')}
-            </p>
-          )}
         </div>
 
-        <SmartSelect
-          ref={sliceTriggerRef}
-          key={`slice-select-${node.id}`}
-          options={sliceOptions}
-          value={node.sliceId || ''}
-          onChange={handleSliceChange}
-          onCreate={handleSliceCreate}
-          placeholder={t('InlineOmnibar.slicePlaceholder')}
-          allowCustomValue={false}
-          align="start"
-          className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-neutral-800/60 shadow-sm border border-white/20 dark:border-neutral-700/30 w-full"
-        />
+        <div className="flex flex-col gap-1.5">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400/80 px-1">
+            {t('InlineOmnibar.sliceLabel')}
+          </div>
+          <SmartSelect
+            ref={sliceTriggerRef}
+            key={`slice-select-${node.id}`}
+            options={sliceOptions}
+            value={node.sliceId || ''}
+            onChange={handleSliceChange}
+            onCreate={handleSliceCreate}
+            placeholder={t('InlineOmnibar.slicePlaceholder')}
+            allowCustomValue={false}
+            align="start"
+            className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-neutral-800/60 shadow-sm border border-white/20 dark:border-neutral-700/30 w-full"
+          />
+        </div>
 
         {validRules.length > 0 && (
           <div className="flex flex-col gap-4 mt-2 border-t border-slate-200 dark:border-neutral-700 pt-3">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-neutral-500 px-1 opacity-60">
+              {t('properties.relationships')}
+            </div>
             {validRules.map((rule) => {
               const ruleKey = `${rule.source}-${rule.target}`;
               const ruleConnectedNodes = allNodes.filter(n => 
@@ -367,15 +368,12 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
                 .filter(n => n.type === rule.target && !ruleConnectedNodes.some(cn => cn.id === n.id))
                 .map(n => ({ id: n.id, label: n.name || t('common.untitled') }));
 
-              const rawVerb = rule.verb;
-              const translatedVerb = t(`modeling.verbs.${rawVerb}`, rawVerb);
-              const verb = translatedVerb.charAt(0).toUpperCase() + translatedVerb.slice(1);
               const targetTitle = t(`modeling.elements.${rule.target.toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`);
 
               return (
                 <div key={ruleKey} className="flex flex-col gap-2">
                   <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400/80 px-1 flex items-center gap-2">
-                    {verb} ({targetTitle})
+                    {t('InlineOmnibar.linkLabel', { type: targetTitle })}
                   </div>
 
                   {ruleConnectedNodes.length > 0 && (
@@ -405,7 +403,7 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
                     value=""
                     onChange={(id: string) => { if (id) onAddLink(node.id, id); }}
                     onCreate={(name: string) => onSpawnAndLink(node.id, rule.target, name)}
-                    placeholder={t('InlineOmnibar.linkTarget', { type: targetTitle })}
+                    placeholder={t('InlineOmnibar.linkPlaceholder')}
                     allowCustomValue={false}
                     align="start"
                     className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-neutral-800/60 shadow-sm border border-white/20 dark:border-neutral-700/30 w-full"

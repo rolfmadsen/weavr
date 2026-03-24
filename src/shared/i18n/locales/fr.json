@@ -471,6 +471,25 @@
     "no": "Non"
   },
   "InlineOmnibar": {
+    "nameLabel": "NOM DE {{type}}",
+    "namePlaceholder": {
+      "SCREEN": "Nommer cet écran...",
+      "COMMAND": "Nommer cette commande...",
+      "DOMAIN_EVENT": "Que s'est-il passé ?",
+      "DOMAIN_EVENT_example": "CommandePassée, PaiementReçu, ArticleExpédié...",
+      "READ_MODEL": "Nommer cette vue...",
+      "INTEGRATION_EVENT": "Nommer cette intégration...",
+      "AUTOMATION": "Nommer cette automatisation..."
+    },
+    "domainEventHint": "Conseil : Commencez par le nom de l'agrégat, ex: CommandeCréée, PersonneMiseÀJour",
+    "sliceLabel": "SLICE (CONTEXTE / GROUPE)",
+    "slicePlaceholder": "Rechercher ou créer nouveau...",
+    "relationsPlaceholder": "Lien vers...",
+    "linkLabel": "CONNECTER À {{type}}",
+    "linkPlaceholder": "Rechercher ou créer nouveau...",
+    "linkTarget": "→ Ajouter {{type}}",
+    "edgeLabelPlaceholder": "Étiquette...",
+    "openSidebar": "Ouvrir l'éditeur",
     "closeHint": "Echap ou clic sur le canevas pour fermer",
     "propertiesHint": "Ouvrir les propriétés (Ctrl + Entrée)"
   }

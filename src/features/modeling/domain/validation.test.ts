@@ -247,7 +247,7 @@ describe('ValidationService', () => {
 
             const result = validationService.validateCompleteness(cmdNode, [], []);
             expect(result.isValid).toBe(false);
-            expect(result.message).toContain('No incoming data source for required fields');
+            expect(result.message).toContain('is missing a data source');
         });
 
         it('should pass for Integration Event as root source (no incoming links)', () => {

@@ -144,7 +144,7 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
                     <CommandList className="custom-scrollbar max-h-60 overflow-y-auto">
                         {filteredOptions.length === 0 && !showCreateOption && (
                             <CommandEmpty className="py-6 text-center text-sm text-muted-foreground italic">
-                                {search.trim() ? "No results found." : "Type to create or search..."}
+                                {search.trim() ? "No results found." : ""}
                             </CommandEmpty>
                         )}
                         

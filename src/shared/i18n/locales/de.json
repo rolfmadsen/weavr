@@ -471,6 +471,25 @@
     "no": "Nein"
   },
   "InlineOmnibar": {
+    "nameLabel": "NAME VON {{type}}",
+    "namePlaceholder": {
+      "SCREEN": "Benennen Sie diesen Bildschirm...",
+      "COMMAND": "Benennen Sie diesen Befehl...",
+      "DOMAIN_EVENT": "Was ist passiert?",
+      "DOMAIN_EVENT_example": "AuftragPlatziert, ZahlungErhalten, ArtikelVersandt...",
+      "READ_MODEL": "Benennen Sie diese Ansicht...",
+      "INTEGRATION_EVENT": "Benennen Sie diese Integration...",
+      "AUTOMATION": "Benennen Sie diese Automatisierung..."
+    },
+    "domainEventHint": "Tipp: Beginnen Sie mit dem Aggregatnamen, z. B. AuftragErstellt, PersonAktualisiert",
+    "sliceLabel": "SLICE (KONTEXT / GRUPPE)",
+    "slicePlaceholder": "Suchen oder neu erstellen...",
+    "relationsPlaceholder": "Link zu...",
+    "linkLabel": "VERBINDEN MIT {{type}}",
+    "linkPlaceholder": "Suchen oder neu erstellen...",
+    "linkTarget": "→ {{type}} hinzufügen",
+    "edgeLabelPlaceholder": "Bezeichnung...",
+    "openSidebar": "Editor öffnen",
     "closeHint": "Esc oder Klick auf Leinwand zum Schließen",
     "propertiesHint": "Eigenschaften öffnen (Strg + Enter)"
   }
