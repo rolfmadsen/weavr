@@ -59,53 +59,79 @@ export function useLayoutManager({
             // 1. Calculate Layout
             const { positions: newPositionsMap, edgeRoutes, containerBounds } = await calculateLayout(currentNodes, currentLinks, currentSlices);
 
-            // 1.5. Anchor Preservation (Center of Mass Shift)
-            // If the user has ZERO pinned nodes, ELK will force the layout to the origin (0,0).
-            // This causes the graph to "fly away" from the camera if they are panned out.
-            // We fix this by shifting the new layout back to the original center of mass.
-            const hasPinnedNodes = currentNodes.some(n => n.pinned);
-            if (!hasPinnedNodes && currentNodes.length > 0 && newPositionsMap.size > 0) {
-                // Find original Center of Mass
+            // 1.5. Anchor Preservation (Stability Shift)
+            // If the layout origin shifted (e.g. because ELK / Custom Algorithm resets to 0,0),
+            // we shift it back to keep the "average" position of our nodes stable.
+            // We specifically use UNPINNED nodes for this calculation, because they are the ones
+            // that actually "move" during layout, while pinned nodes are already at their target coords.
+            const unpinnedNodes = currentNodes.filter(n => !n.pinned);
+            if (unpinnedNodes.length > 0 && newPositionsMap.size > 0) {
+                // Find original Center of Mass of unpinned nodes
                 let origSumX = 0, origSumY = 0;
-                currentNodes.forEach(n => {
+                unpinnedNodes.forEach(n => {
                     origSumX += (n.x || 0);
                     origSumY += (n.y || 0);
                 });
-                const origCenter = { x: origSumX / currentNodes.length, y: origSumY / currentNodes.length };
+                const origCenter = { x: origSumX / unpinnedNodes.length, y: origSumY / unpinnedNodes.length };
 
-                // Find new Center of Mass
+                // Find new Center of Mass of the same nodes
                 let newSumX = 0, newSumY = 0;
-                newPositionsMap.forEach(pos => {
-                    newSumX += pos.x;
-                    newSumY += pos.y;
-                });
-                const newCenter = { x: newSumX / newPositionsMap.size, y: newSumY / newPositionsMap.size };
-
-                // Calculate Vector Delta
-                const dx = origCenter.x - newCenter.x;
-                const dy = origCenter.y - newCenter.y;
-
-                // Shift everything by the Delta
-                newPositionsMap.forEach(pos => {
-                    pos.x += dx;
-                    pos.y += dy;
+                let validCount = 0;
+                unpinnedNodes.forEach(n => {
+                    const pos = newPositionsMap.get(n.id);
+                    if (pos) {
+                        newSumX += pos.x;
+                        newSumY += pos.y;
+                        validCount++;
+                    }
                 });
 
-                if (containerBounds) {
-                    containerBounds.forEach(bounds => {
-                        bounds.x += dx;
-                        bounds.y += dy;
+                if (validCount > 0) {
+                    const newCenter = { x: newSumX / validCount, y: newSumY / validCount };
+
+                    // Calculate Vector Delta
+                    const dx = origCenter.x - newCenter.x;
+                    const dy = origCenter.y - newCenter.y;
+
+                    // Shift EVERYTHING by the Delta (to keep relative distances stable)
+                    newPositionsMap.forEach(pos => {
+                        pos.x += dx;
+                        pos.y += dy;
                     });
-                }
 
-                if (edgeRoutes) {
-                    edgeRoutes.forEach(route => {
-                        for (let i = 0; i < route.length; i += 2) {
-                            route[i] += dx;
-                            route[i + 1] += dy;
+                    if (containerBounds) {
+                        containerBounds.forEach(bounds => {
+                            bounds.x += dx;
+                            bounds.y += dy;
+                        });
+                    }
+
+                    if (edgeRoutes) {
+                        edgeRoutes.forEach(route => {
+                            for (let i = 0; i < route.length; i += 2) {
+                                route[i] += dx;
+                                route[i + 1] += dy;
+                            }
+                        });
+                    }
+
+                    // CRITICAL: Re-assert pinned nodes to their fixed positions.
+                    // Since we shifted the whole layout including the layout's version of pinned nodes,
+                    // we must snap them back to their absolute workspace coordinates.
+                    currentNodes.forEach(n => {
+                        if (n.pinned) {
+                            newPositionsMap.set(n.id, { x: n.x || 0, y: n.y || 0 });
                         }
                     });
                 }
+            }
+            else if (currentNodes.length > 0 && newPositionsMap.size > 0) {
+                // Fallback: If ALL nodes are pinned, just ensure they are at their fixed spots
+                currentNodes.forEach(n => {
+                    if (n.pinned) {
+                        newPositionsMap.set(n.id, { x: n.x || 0, y: n.y || 0 });
+                    }
+                });
             }
 
             // 2. Update Metadata (visual only)

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
     ElementType,
@@ -63,6 +63,50 @@ export const useModelManager = ({
             nodeIds: new Set(nodes.filter(n => n.sliceId === slice.id).map(n => n.id))
         }));
     }, [slices, nodes]);
+
+    // Track a node that was recently moved to a slice to ensure we pan to it after layout
+    const [pendingFocalNodeId, setPendingFocalNodeId] = React.useState<string | null>(null);
+    const lastPosRef = React.useRef<{x: number, y: number} | null>(null);
+
+    // Focal Panning Effect: Whenever nodes change, check if our focal node has actually moved
+    useEffect(() => {
+        if (!pendingFocalNodeId) {
+            lastPosRef.current = null;
+            return;
+        }
+        
+        const node = nodes.find(n => n.id === pendingFocalNodeId);
+        if (!node) return;
+
+        // Capture initial position when focal ID is first set
+        if (!lastPosRef.current) {
+            lastPosRef.current = { x: node.x || 0, y: node.y || 0 };
+            return;
+        }
+
+        // Check if layout has actually updated the position
+        const hasMoved = Math.abs((node.x || 0) - lastPosRef.current.x) > 1 || 
+                         Math.abs((node.y || 0) - lastPosRef.current.y) > 1;
+
+        if (hasMoved && node.sliceId) {
+            graphRef.current?.panToNode?.(pendingFocalNodeId);
+            setPendingFocalNodeId(null);
+            lastPosRef.current = null;
+        }
+    }, [nodes, pendingFocalNodeId, graphRef]);
+
+    // Safety Fallback: If layout doesn't move the node (already optimal), pan anyway after a timeout
+    useEffect(() => {
+        if (!pendingFocalNodeId) return;
+        const timer = setTimeout(() => {
+            if (pendingFocalNodeId) {
+                console.log(`[FocalPan] Safety timeout for ${pendingFocalNodeId}`);
+                graphRef.current?.panToNode?.(pendingFocalNodeId);
+                setPendingFocalNodeId(null);
+            }
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, [pendingFocalNodeId, graphRef]);
 
     // Derived State: Orphaned Fields (fields in nodes not linked to any definition)
     const orphanedFields = useMemo(() => {
@@ -186,9 +230,10 @@ export const useModelManager = ({
             updates.computedHeight = calculateNodeHeight(value as string);
         }
 
-        // Auto-unpin when assigning to a slice
+        // Auto-unpin and set focal target when assigning to a slice
         if (key === 'sliceId' && value) {
             updates.pinned = false;
+            setPendingFocalNodeId(nodeId);
         }
 
         if (markLocalUpdate) {
@@ -381,10 +426,8 @@ export const useModelManager = ({
             setFocusOnRender(true);
         }
 
-        // Pan to the new node
-        setTimeout(() => {
-            graphRef.current?.panToNode?.(newId);
-        }, 50);
+        // Pan to the new node after layout
+        setPendingFocalNodeId(newId);
 
         signal("Node.Spawned", { type: targetType, id: newId });
     }, [nodes, selectNode, setSidebarView, setFocusOnRender, graphRef, signal]);

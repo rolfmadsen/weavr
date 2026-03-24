@@ -246,7 +246,7 @@
   },
   "canvas": {
     "editHint": "Properties (Double-click)",
-    "linkHint": "Manage Relationships & Links (Click)",
+    "linkHint": "Create relationship (Click / Drag & Drop)",
     "unpinHint": "Unpin node (Click)",
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
@@ -496,7 +496,7 @@
       "AUTOMATION": "Name this automation..."
     },
     "domainEventHint": "Tip: Start with the Aggregate name, e.g. OrderCreated, PersonUpdated",
-    "sliceLabel": "SLICE (CONTEXT / GROUP)",
+    "sliceLabel": "SLICE (CONTEXT)",
     "slicePlaceholder": "Search or create new...",
     "relationsPlaceholder": "Link to...",
     "linkLabel": "CONNECT TO {{type}}",

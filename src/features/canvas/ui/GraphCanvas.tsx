@@ -461,7 +461,14 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
         if (nodeGroup) {
             const box = nodeGroup.getClientRect({ skipTransform: false });
             const absCenter = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-            const screenCenter = { x: stage.width() / 2, y: stage.height() / 2 };
+
+            // USABILITY: Center the node horizontally, but vertically place it 
+            // at 55% (slightly below middle) of the viewport height to leave room for the Omnibar above it.
+            const screenCenter = {
+                x: stage.width() / 2,
+                y: stage.height() * 0.55
+            };
+
             const dx = screenCenter.x - absCenter.x;
             const dy = screenCenter.y - absCenter.y;
 
@@ -813,9 +820,9 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
             // Ignore if typing in an input
             const target = e.target as HTMLElement;
             if (
-                target.tagName === 'INPUT' || 
-                target.tagName === 'TEXTAREA' || 
-                target.isContentEditable || 
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.isContentEditable ||
                 isSidebarOpen ||
                 target.closest('#sidebar') ||
                 target.closest('.sidebar-container')
