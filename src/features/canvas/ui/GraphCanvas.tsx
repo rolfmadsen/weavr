@@ -921,7 +921,7 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
     return (
         <div
             ref={containerRef}
-            className={`w-full flex-1 bg-gray-50 dark:bg-slate-950 overflow-hidden relative outline-none ${isShiftPressed ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
+            className={`w-full flex-1 bg-slate-50 dark:bg-slate-950 overflow-hidden relative outline-none ${isShiftPressed ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
             tabIndex={-1} // Required to receive focus (and blur sidebar inputs)
             // onKeyDown={handleKeyDown} // Removed, using global listener
             onContextMenu={(e) => e.preventDefault()}

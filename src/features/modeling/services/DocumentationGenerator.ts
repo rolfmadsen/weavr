@@ -243,7 +243,7 @@ export class DocumentationGenerator {
         `;
 
         // 2. Iterate Slices with Chapter Grouping
-        htmlBody += `<h1 style="margin-top: 4rem; margin-bottom: 2rem; border-bottom: 2px solid #333; padding-bottom: 0.5rem;">${t('docs.slices')}</h1>`;
+        htmlBody += `<h1 style="margin-top: 4rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">${t('docs.slices')}</h1>`;
 
         // Group slices by chapter
         const slicesByChapter: Record<string, Slice[]> = {};

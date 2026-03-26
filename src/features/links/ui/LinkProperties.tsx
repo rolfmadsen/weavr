@@ -24,7 +24,7 @@ const LinkProperties: React.FC<LinkPropertiesProps> = ({ link, onUpdateLink, onD
     return (
         <div className="flex flex-col gap-6">
             <section>
-                <Label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <Label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-slate-400">
                     {t('properties.relationship')}
                 </Label>
                 <GlassInput
@@ -37,7 +37,7 @@ const LinkProperties: React.FC<LinkPropertiesProps> = ({ link, onUpdateLink, onD
             <div className="h-px bg-slate-200 dark:bg-white/10"></div>
 
             <section>
-                <Label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <Label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-slate-400">
                     {t('properties.actions')}
                 </Label>
                 <GlassButton

@@ -118,7 +118,7 @@ const ElementFilter: React.FC<ElementFilterProps> = ({
             variant="panel"
             className="w-64 max-h-[500px] flex flex-col mb-4 overflow-hidden p-0! rounded-xl!"
         >
-            <div className="p-3 border-b border-gray-200/50 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md">
+            <div className="p-3 border-b border-slate-200/50 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-200 font-semibold text-sm">
                     <span className="flex-1">{t('editor.findElement')}</span>
                     <button onClick={() => setIsCollapsed(true)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10">

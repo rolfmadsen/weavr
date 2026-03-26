@@ -47,14 +47,14 @@ export const GlassColorPicker: React.FC<GlassColorPickerProps> = ({
                 render={
                     <Button 
                         variant="outline" 
-                        className="w-full flex items-center justify-between gap-2 px-3 h-10 bg-white dark:bg-neutral-900 border-slate-200 dark:border-neutral-700 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all shadow-sm"
+                        className="w-full flex items-center justify-between gap-2 px-3 h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
                     >
                         <div className="flex items-center gap-2">
                             <div 
-                                className="size-4 rounded-full border border-slate-200 dark:border-neutral-700 shadow-sm" 
+                                className="size-4 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm" 
                                 style={{ backgroundColor: color || '#9333ea' }} 
                             />
-                            <span className="text-xs font-light text-slate-600 dark:text-neutral-400">
+                            <span className="text-xs font-light text-slate-600 dark:text-slate-400">
                                 {color?.toUpperCase() || '#9333EA'}
                             </span>
                         </div>
@@ -62,7 +62,7 @@ export const GlassColorPicker: React.FC<GlassColorPickerProps> = ({
                     </Button>
                 }
             />
-            <PopoverContent className="w-64 p-3 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border-slate-200 dark:border-neutral-700 shadow-xl rounded-xl z-[100]">
+            <PopoverContent className="w-64 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-slate-200 dark:border-slate-700 shadow-xl rounded-xl z-[100]">
                 <div className="space-y-4">
                     <div>
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block">
@@ -88,7 +88,7 @@ export const GlassColorPicker: React.FC<GlassColorPickerProps> = ({
                         </div>
                     </div>
 
-                    <div className="h-px bg-slate-100 dark:bg-neutral-800" />
+                    <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
                     <div>
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block">
@@ -99,10 +99,10 @@ export const GlassColorPicker: React.FC<GlassColorPickerProps> = ({
                                 <Input
                                     value={color?.toUpperCase() || '#'}
                                     onChange={(e) => onChange(e.target.value)}
-                                    className="h-8 text-[10px] font-mono bg-slate-50 dark:bg-neutral-950 border-slate-200 dark:border-neutral-800"
+                                    className="h-8 text-[10px] font-mono bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
                                 />
                             </div>
-                            <div className="relative w-8 h-8 rounded-md border border-slate-200 dark:border-neutral-800 overflow-hidden shadow-sm">
+                            <div className="relative w-8 h-8 rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                                 <input
                                     type="color"
                                     value={color || '#9333ea'}

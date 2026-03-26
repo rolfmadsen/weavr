@@ -59,13 +59,13 @@ const QuickPickLinker: React.FC<{
         <div
             ref={containerRef}
             style={style}
-            className="w-[220px] bg-white dark:bg-neutral-900 border border-blue-500/30 shadow-xl rounded-lg p-1 animate-in zoom-in-95 duration-100"
+            className="w-[220px] bg-white dark:bg-slate-900 border border-blue-500/30 shadow-xl rounded-lg p-1 animate-in zoom-in-95 duration-100"
         >
             <div className="relative mb-1">
-                <Search size={12} className="absolute left-2 top-1/2 -trangray-y-1/2 text-gray-400" />
+                <Search size={12} className="absolute left-2 top-1/2 -trangray-y-1/2 text-slate-400" />
                 <input
                     autoFocus
-                    className="py-2 px-3 ps-9 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs bg-white dark:bg-neutral-900 text-gray-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-all"
+                    className="py-2 px-3 ps-9 block w-full border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-all"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder={t('schema.searchAttributes')}
@@ -73,7 +73,7 @@ const QuickPickLinker: React.FC<{
             </div>
             <div className="max-h-40 overflow-y-auto">
                 {attributes.length === 0 && (
-                    <div className="p-3 text-center text-[10px] text-gray-400 italic">{t('schema.noMatches')}</div>
+                    <div className="p-3 text-center text-[10px] text-slate-400 italic">{t('schema.noMatches')}</div>
                 )}
                 {attributes.map((attr) => (
                     <button
@@ -83,15 +83,15 @@ const QuickPickLinker: React.FC<{
                     >
                         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getTypeColor(attr.entityType)}`} />
                         <div className="flex flex-col min-w-0">
-                            <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200 group-hover:text-purple-500 truncate">
+                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 group-hover:text-purple-500 truncate">
                                 {attr.attribute.name}
                             </span>
-                            <span className="text-[9px] text-gray-400 truncate">
+                            <span className="text-[9px] text-slate-400 truncate">
                                 {t('schema.in')} {attr.parentName ?? t('modeling.elements.orphan')}
                             </span>
                         </div>
                         <div className="ml-auto flex flex-col items-end gap-0.5">
-                            <span className="text-[9px] text-gray-300 font-mono uppercase">{attr.attribute.type}</span>
+                            <span className="text-[9px] text-slate-300 font-mono uppercase">{attr.attribute.type}</span>
                             <span className={`text-[7px] font-bold px-1 rounded ${getTypeColor(attr.entityType)} text-white opacity-80`}>
                                 {attr.entityType.substring(0, 3).toUpperCase()}
                             </span>
@@ -110,7 +110,7 @@ const getTypeColor = (type: DefinitionType) => {
         case DefinitionType.Entity: return 'bg-blue-500';
         case DefinitionType.ValueObject: return 'bg-purple-500';
         case DefinitionType.Enum: return 'bg-amber-500';
-        default: return 'bg-gray-400';
+        default: return 'bg-slate-400';
     }
 };
 
@@ -187,7 +187,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
     return (
         <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center mb-1">
-                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">{t('schema.title')}</h4>
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{t('schema.title')}</h4>
                 <GlassButton variant="ghost" size="sm" onClick={handleAddField}>
                     <Plus size={14} className="mr-1" /> {t('schema.add')}
                 </GlassButton>
@@ -205,7 +205,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
 
             {/* Fields List */}
             <div className="flex flex-col gap-2">
-                {fields.length === 0 && <p className="text-xs text-gray-400 italic">{t('schema.noFields')}</p>}
+                {fields.length === 0 && <p className="text-xs text-slate-400 italic">{t('schema.noFields')}</p>}
                 {fields.map((field, idx) => {
                     const isLinked = !!field.definitionId;
                     const definition = definitions.find(d => d.id === field.definitionId);
@@ -217,7 +217,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                     const isBrokenLink = isLinked && !linkedAttribute;
 
                     return (
-                        <div key={idx} className="group relative flex flex-col gap-1 bg-white dark:bg-neutral-900 p-2 rounded-lg border border-gray-200 dark:border-neutral-700 hover:border-blue-500/50 transition-colors shadow-sm">
+                        <div key={idx} className="group relative flex flex-col gap-1 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 transition-colors shadow-sm">
                             <div className="flex items-center gap-2">
                                 {/* Required Indicator (Left) */}
                                 <div className="flex-shrink-0">
@@ -225,7 +225,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                                         <button
                                             className={`h-8 w-8 flex items-center justify-center rounded-lg cursor-pointer transition-all border ${field.required
                                                 ? "bg-amber-500/10 border-amber-500/50 text-amber-600 shadow-sm"
-                                                : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-40 hover:opacity-100"
+                                                : "bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400 opacity-40 hover:opacity-100"
                                                 }`}
                                             onClick={() => handleUpdateField(idx, { required: !field.required })}
                                             aria-label={field.required ? t('schema.markOptional') : t('schema.markRequired')}
@@ -249,7 +249,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                                             <button
                                                 className={`h-8 w-7 flex items-center justify-center rounded-lg cursor-pointer transition-all border ${field.role === 'display'
                                                     ? "bg-blue-500/10 border-blue-500/30 text-blue-500"
-                                                    : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-60 hover:opacity-100"
+                                                    : "bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400 opacity-60 hover:opacity-100"
                                                     }`}
                                                 onClick={() => handleUpdateField(idx, { role: field.role === 'display' ? 'input' : 'display' })}
                                                 aria-label={field.role === 'display' ? t('schema.switchToInput') : t('schema.switchToDisplay')}
@@ -261,9 +261,9 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                                     )}
 
                                     <input
-                                        className={`h-8 px-2.5 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-neutral-950 focus:border-blue-500 focus:ring-blue-500 transition-all ${isLinked
-                                            ? 'text-blue-600 dark:text-blue-400 cursor-not-allowed bg-gray-50 dark:bg-neutral-800'
-                                            : 'text-gray-700 dark:text-neutral-200'
+                                        className={`h-8 px-2.5 block w-full border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-950 focus:border-blue-500 focus:ring-blue-500 transition-all ${isLinked
+                                            ? 'text-blue-600 dark:text-blue-400 cursor-not-allowed bg-slate-50 dark:bg-slate-800'
+                                            : 'text-slate-700 dark:text-slate-200'
                                             } ${isBrokenLink ? 'border-red-500 text-red-500' : ''}`}
                                         value={displayName}
                                         onChange={(e) => !isLinked && handleUpdateField(idx, { name: e.target.value })}
@@ -273,7 +273,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                                     />
                                 </div>
 
-                                <span className="text-gray-400 opacity-30">:</span>
+                                <span className="text-slate-400 opacity-30">:</span>
 
                                 <GlassSelect
                                     className="w-1/3"
@@ -326,7 +326,7 @@ export const SchemaBuilder: React.FC<SchemaBuilderProps> = ({
                                             <GlassTooltip content={t('schema.removeField')}>
                                                 <button
                                                     onClick={() => handleRemoveField(idx)}
-                                                    className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
+                                                    className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
                                                     aria-label={t('schema.removeField')}
                                                     title={t('schema.removeField')}
                                                 >

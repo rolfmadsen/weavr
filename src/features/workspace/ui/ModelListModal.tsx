@@ -101,7 +101,7 @@ const ModelListModal: React.FC<ModelListModalProps> = ({ isOpen, onClose, curren
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="glass-card w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-0 border-none shadow-2xl">
-                <DialogHeader className="p-6 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md flex flex-row items-center justify-between">
+                <DialogHeader className="p-6 border-b border-slate-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md flex flex-row items-center justify-between">
                     <DialogTitle className="text-2xl font-bold text-slate-800 dark:text-white">
                         {t('modelList.title')}
                     </DialogTitle>

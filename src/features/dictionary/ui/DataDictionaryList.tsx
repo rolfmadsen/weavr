@@ -32,7 +32,7 @@ const getTypeColor = (type: DefinitionType) => {
         case DefinitionType.Entity: return 'bg-blue-500';
         case DefinitionType.ValueObject: return 'bg-purple-500';
         case DefinitionType.Enum: return 'bg-amber-500';
-        default: return 'bg-gray-400';
+        default: return 'bg-slate-400';
     }
 };
 
@@ -133,35 +133,35 @@ const DataDictionaryItem = React.memo<{
 }) => {
     return (
         <details
-            className={`group bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm border border-gray-200 dark:border-neutral-700/50 rounded-lg overflow-hidden open:bg-gray-100/50 dark:open:bg-neutral-800 transition-all duration-200 shadow-sm ${def.parentId ? 'ml-6' : ''}`}
+            className={`group bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-lg overflow-hidden open:bg-slate-100/50 dark:open:bg-slate-800 transition-all duration-200 shadow-sm ${def.parentId ? 'ml-6' : ''}`}
         >
-            <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-gray-100/80 dark:hover:bg-neutral-800/80 select-none text-sm focus:outline-none">
-                <ChevronDown className="group-open:rotate-180 text-gray-500 transition-transform duration-200" size={16} />
+            <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-slate-100/80 dark:hover:bg-slate-800/80 select-none text-sm focus:outline-none">
+                <ChevronDown className="group-open:rotate-180 text-slate-500 transition-transform duration-200" size={16} />
                 <div className={`w-2.5 h-2.5 rounded-full ${getTypeColor(def.type)} ${def.isRoot ? 'ring-2 ring-emerald-500/50' : ''} shadow-sm`} />
 
                 <div className="flex flex-col flex-1">
                     <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-800 dark:text-neutral-100">{def.name}</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-100">{def.name}</span>
                         {def.isRoot && (
                             <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold uppercase tracking-tighter">{t('dataDictionary.root')}</span>
                         )}
                     </div>
-                    {parent && <span className="text-[10px] text-gray-500 opacity-60">{t('dataDictionary.partOf', { name: parent.name })}</span>}
+                    {parent && <span className="text-[10px] text-slate-500 opacity-60">{t('dataDictionary.partOf', { name: parent.name })}</span>}
                 </div>
 
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">
                     {t(getTypeLabelKey(def.type))}
                 </span>
             </summary>
 
-            <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700">
+            <div className="p-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
                 {/* Aggregate Members Section (Only for Aggregates) */}
                 {def.type === DefinitionType.Aggregate && (
                     <div className="mb-6">
-                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">{t('dataDictionary.aggregateMembers')}</h4>
+                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-1">{t('dataDictionary.aggregateMembers')}</h4>
                         <div className="space-y-1">
                             {definitions.filter(d => d.parentId === def.id).map(member => (
-                                <div key={member.id} className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-neutral-800 rounded border border-gray-100 dark:border-neutral-700 text-xs text-gray-700 dark:text-neutral-200">
+                                <div key={member.id} className="flex items-center gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200">
                                     <div className={`w-1.5 h-1.5 rounded-full ${getTypeColor(member.type)}`} />
                                     <span className="flex-1 font-medium">{member.name}</span>
                                     {member.isRoot ? (
@@ -178,7 +178,7 @@ const DataDictionaryItem = React.memo<{
                                                 // Set this one
                                                 onUpdate(member.id, { isRoot: true });
                                             }}
-                                            className="text-[9px] text-gray-500 hover:text-emerald-500 transition-colors uppercase font-bold p-0 h-auto"
+                                            className="text-[9px] text-slate-500 hover:text-emerald-500 transition-colors uppercase font-bold p-0 h-auto"
                                         >
                                             {t('dataDictionary.makeRoot')}
                                         </Button>
@@ -186,12 +186,12 @@ const DataDictionaryItem = React.memo<{
                                 </div>
                             ))}
                             {definitions.filter(d => d.parentId === def.id).length === 0 && (
-                                <div className="text-[10px] text-gray-500 italic p-2 border border-dashed border-gray-200 dark:border-neutral-700 rounded-lg">
+                                <div className="text-[10px] text-slate-500 italic p-2 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
                                     {t('dataDictionary.noMembers')}
                                 </div>
                             )}
                         </div>
-                        <div className="h-px bg-gray-200 dark:bg-neutral-700 mt-6"></div>
+                        <div className="h-px bg-slate-200 dark:bg-slate-700 mt-6"></div>
                     </div>
                 )}
 
@@ -205,11 +205,11 @@ const DataDictionaryItem = React.memo<{
 
                     <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${getTypeColor(def.type)}`} />
-                        <span className={`text-[11px] font-bold truncate ${isDuplicate ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-neutral-200'}`}>
+                        <span className={`text-[11px] font-bold truncate ${isDuplicate ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-200'}`}>
                             {def.name}
                         </span>
                         {isDuplicate && <DuplicateWarning />}
-                        <span className="ml-auto text-[9px] font-bold text-gray-400 uppercase tracking-tight">
+                        <span className="ml-auto text-[9px] font-bold text-slate-400 uppercase tracking-tight">
                             {t(getTypeLabelKey(def.type))}
                         </span>
                     </div>
@@ -230,7 +230,7 @@ const DataDictionaryItem = React.memo<{
 
                         {def.type !== DefinitionType.Aggregate && (
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">{t('dataDictionary.parentAggregate')}</label>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">{t('dataDictionary.parentAggregate')}</label>
                                 <div className="flex gap-2">
                                     <div className="flex-1">
                                         <SmartSelect
@@ -258,7 +258,7 @@ const DataDictionaryItem = React.memo<{
                                                 }
                                                 onUpdate(def.id, { isRoot: !def.isRoot });
                                             }}
-                                            className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all shadow-sm ${def.isRoot ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 dark:border-neutral-700 text-gray-500 bg-white dark:bg-neutral-800 hover:border-emerald-500/50'}`}
+                                            className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all shadow-sm ${def.isRoot ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200 dark:border-slate-700 text-slate-500 bg-white dark:bg-slate-800 hover:border-emerald-500/50'}`}
                                         >
                                             {t('dataDictionary.root').toUpperCase()}
                                         </button>
@@ -288,12 +288,12 @@ const DataDictionaryItem = React.memo<{
                     </div>
                 </div>
 
-                <div className="h-px bg-gray-200 dark:bg-neutral-700 mb-4"></div>
+                <div className="h-px bg-slate-200 dark:bg-slate-700 mb-4"></div>
 
                 {/* Attributes */}
                 <div>
                     <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">{t('dataDictionary.attributesLabel')}</h4>
+                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{t('dataDictionary.attributesLabel')}</h4>
                         <Button variant="ghost" size="sm" onClick={() => onAddAttribute(def.id, def.attributes || [])}>
                             <Plus size={14} className="mr-1" /> {t('dataDictionary.addAction')}
                         </Button>
@@ -301,7 +301,7 @@ const DataDictionaryItem = React.memo<{
 
                     <div className="space-y-2">
                         {(Array.isArray(def.attributes) ? def.attributes : []).map((attr, index) => (
-                            <div key={index} className="group relative flex flex-col gap-1 bg-white dark:bg-neutral-900 p-2 rounded-lg border border-gray-200 dark:border-neutral-700 hover:border-blue-500/50 transition-colors shadow-sm">
+                            <div key={index} className="group relative flex flex-col gap-1 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 transition-colors shadow-sm">
                                 <div className="flex items-center gap-2">
                                     {/* PII Toggle */}
                                     <div className="flex-shrink-0">
@@ -313,7 +313,7 @@ const DataDictionaryItem = React.memo<{
                                                 "rounded-lg transition-[background-color,border-color,color] border",
                                                 attr.isPII
                                                     ? "bg-red-500/10 border-red-500/50 text-red-600 shadow-sm"
-                                                    : "bg-gray-100 dark:bg-neutral-800 border-transparent text-gray-400 opacity-40 hover:opacity-100"
+                                                    : "bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400 opacity-40 hover:opacity-100"
                                             )}
                                             title={attr.isPII ? t('dataDictionary.piiSensitive') : t('dataDictionary.piiMark')}
                                         >
@@ -324,7 +324,7 @@ const DataDictionaryItem = React.memo<{
                                     <div className="relative w-1/2 flex items-center">
                                         <div className="flex-1">
                                             <input
-                                                className="h-8 px-2.5 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-neutral-950 text-gray-700 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 transition-[border-color,box-shadow] shadow-sm"
+                                                className="h-8 px-2.5 block w-full border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500 transition-[border-color,box-shadow] shadow-sm"
                                                 value={attr.name}
                                                 placeholder={t('dataDictionary.attributeNamePlaceholder')}
                                                 onChange={(e) => onUpdateAttribute(def.id, def.attributes || [], index, 'name', e.target.value)}
@@ -350,7 +350,7 @@ const DataDictionaryItem = React.memo<{
                                             variant="ghost"
                                             size="icon-xs"
                                             onClick={() => onDeleteAttribute(def.id, def.attributes || [], index)}
-                                            className="text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors p-0"
+                                            className="text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors p-0"
                                         >
                                             <X size={14} />
                                         </Button>
@@ -359,7 +359,7 @@ const DataDictionaryItem = React.memo<{
                             </div>
                         ))}
                         {(def.attributes || []).length === 0 && (
-                            <p className="text-center text-xs text-gray-400 italic py-2">{t('dataDictionary.noAttributes')}</p>
+                            <p className="text-center text-xs text-slate-400 italic py-2">{t('dataDictionary.noAttributes')}</p>
                         )}
                     </div>
                 </div>
@@ -521,10 +521,10 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                     </div>
                     <div className="space-y-2">
                         {orphanedFields.map((field, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-700 group shadow-sm">
+                            <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 group shadow-sm">
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-gray-800 dark:text-neutral-100">{field.name}</span>
-                                    <span className="text-[10px] text-gray-400 font-mono">{field.type}</span>
+                                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{field.name}</span>
+                                    <span className="text-[10px] text-slate-400 font-mono">{field.type}</span>
                                 </div>
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Button
@@ -553,12 +553,12 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                                             {t('dataDictionary.linkTo')}
                                         </Button>
                                         <div className="absolute right-0 bottom-full mb-1 hidden group-hover/menu:block z-[110] min-w-[140px]">
-                                            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-xl p-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-1 max-h-48 overflow-y-auto custom-scrollbar">
                                                 {definitions.filter(d => d.type !== DefinitionType.Aggregate).map((def: DataDefinition) => (
                                                     <button
                                                         key={def.id}
                                                         onClick={() => onLinkFieldToDefinition?.(field.name, field.type, def.id)}
-                                                        className="w-full text-left px-3 py-1.5 text-[10px] hover:bg-purple-500/10 rounded transition-colors text-gray-700 dark:text-gray-200 truncate"
+                                                        className="w-full text-left px-3 py-1.5 text-[10px] hover:bg-purple-500/10 rounded transition-colors text-slate-700 dark:text-slate-200 truncate"
                                                     >
                                                         {def.name}
                                                     </button>
@@ -608,7 +608,7 @@ const DataDictionaryList: React.FC<DataDictionaryListProps> = ({
                 ))}
 
                 {definitions.length === 0 && (
-                    <p className="text-center text-gray-400 pt-8 italic">{t('dataDictionary.noDefinitions')}</p>
+                    <p className="text-center text-slate-400 pt-8 italic">{t('dataDictionary.noDefinitions')}</p>
                 )}
             </div>
 

@@ -169,7 +169,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
             className="w-64 max-h-[450px] flex flex-col mb-4 overflow-hidden p-0! rounded-xl!"
         >
             {/* Header */}
-            <div className="p-3 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md">
+            <div className="p-3 border-b border-slate-200/50 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-200 font-semibold text-sm">
                     <span className="flex-1">{t('editor.filterSlices')}</span>
                     <button onClick={() => setIsCollapsed(true)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
@@ -192,7 +192,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
                 <div className={`px-3 py-2 flex items-center gap-2 border-b transition-colors ${
                     focusModeEnabled
                         ? 'border-amber-300/50 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-900/20'
-                        : 'border-gray-200/30 dark:border-white/5 bg-black/3 dark:bg-white/3'
+                        : 'border-slate-200/30 dark:border-white/5 bg-black/3 dark:bg-white/3'
                 }`}>
                     <GlassTooltip content={focusModeEnabled ? t('common.disableFocusMode') : t('common.enableFocusMode')}>
                         <button
@@ -241,7 +241,7 @@ const SliceFilter: React.FC<SliceFilterProps> = ({
             )}
 
             {/* Actions */}
-            <div className="px-3 py-2 flex justify-between items-center border-b border-gray-200/30 dark:border-white/5 bg-black/5 dark:bg-white/5">
+            <div className="px-3 py-2 flex justify-between items-center border-b border-slate-200/30 dark:border-white/5 bg-black/5 dark:bg-white/5">
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
                     {t('editor.slicesVisible', { count: visibleCount })}
                 </span>

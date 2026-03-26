@@ -207,7 +207,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
             {/* General Section */}
             <section>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{t('properties.general')}</h3>
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('properties.general')}</h3>
                     <Button
                         size="sm"
                         variant="ghost"
@@ -353,11 +353,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 </div>
             </section>
 
-            <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
             {/* Organization Section */}
             <section>
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">{t('properties.organization')}</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">{t('properties.organization')}</h3>
 
                 <div className="mb-4">
                     <Label className="mb-2 block">{t('properties.slice')}</Label>
@@ -372,11 +372,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 </div>
             </section>
 
-            <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
              {/* Relationships Section */}
             <section>
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">{t('properties.relationships')}</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">{t('properties.relationships')}</h3>
                 <div className="space-y-6">
                     {validationService.getRules()
                         .filter(rule => rule.source === node.type)
@@ -408,12 +408,12 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                     {connectedNodes.length > 0 && (
                                         <div className="space-y-1 mb-2">
                                             {connectedNodes.map(cn => (
-                                                <div key={cn.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-neutral-800/50 group">
+                                                <div key={cn.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 group">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => onUpdateNode(cn.id, 'id', cn.id)} // Dummy to trigger focus/select if needed
-                                                        className="text-sm text-gray-700 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 truncate text-left flex-1 h-auto py-1 px-2 justify-start font-normal"
+                                                        className="text-sm text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 truncate text-left flex-1 h-auto py-1 px-2 justify-start font-normal"
                                                     >
                                                         {cn.name}
                                                     </Button>
@@ -426,7 +426,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                                                                 onDeleteLink(link.id);
                                                             }
                                                         }}
-                                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                                        className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                                                         title={t('common.unpin')}
                                                     >
                                                         <Trash2 size={14} />
@@ -458,7 +458,7 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 </div>
             </section>
 
-            <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
             {/* Schema Section */}
             <section>
@@ -472,11 +472,11 @@ const NodeProperties: React.FC<NodePropertiesProps> = ({
                 />
             </section>
 
-            <div className="h-px bg-gray-200 dark:bg-neutral-700"></div>
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
             {/* Actions Section */}
             <section>
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">{t('properties.actions')}</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">{t('properties.actions')}</h3>
                 <Button
                     variant="destructive"
                     size="sm"

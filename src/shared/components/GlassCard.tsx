@@ -23,7 +23,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         card: "glass-card flex flex-col p-4",
 
         // Sidebar / Pannel (slightly different borders for layout)
-        sidebar: "bg-white/50 dark:bg-neutral-900/50 backdrop-blur-xl border-r border-white/20 dark:border-white/5",
+        sidebar: "bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl",
 
         // High Contrast Panel (Popovers, Modals)
         panel: "glass-card flex flex-col shadow-2xl p-6"

@@ -56,7 +56,7 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
     return (
         <div className={cn("w-full", className)}>
             {label && (
-                <Label className="mb-2 flex items-center gap-1 ml-1 text-slate-700 dark:text-neutral-300">
+                <Label className="mb-2 flex items-center gap-1 ml-1 text-slate-700 dark:text-slate-300">
                     {label}
                     {labelTooltip && (
                         <GlassTooltip content={labelTooltip}>
@@ -87,7 +87,7 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
                     {Object.entries(groupedOptions).map(([group, opts], idx, arr) => (
                         <SelectGroup key={group}>
                             {group !== 'default' && (
-                                <SelectLabel className="px-3 py-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest dark:text-neutral-500">
+                                <SelectLabel className="px-3 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest dark:text-slate-500">
                                     {group}
                                 </SelectLabel>
                             )}

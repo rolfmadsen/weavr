@@ -65,7 +65,7 @@ const ActorItemContent: React.FC<{
                     onBlur={onNameBlur}
                     onFocus={onNameFocus}
                     onKeyDown={onNameKeyDown}
-                    className="bg-white dark:bg-neutral-900 font-light"
+                    className="bg-white dark:bg-slate-900 font-light"
                 />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -77,7 +77,7 @@ const ActorItemContent: React.FC<{
                     onFocus={onDescFocus}
                     onKeyDown={onDescKeyDown}
                     placeholder={t('actors.description')}
-                    className="min-h-[80px] bg-white dark:bg-neutral-900 border-slate-200 dark:border-slate-700 font-light"
+                    className="min-h-[80px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 font-light"
                 />
             </div>
 
@@ -165,7 +165,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
                         value={actor.id}
                         className="glass-card overflow-hidden border-none shadow-sm transition-all duration-200 rounded-xl"
                     >
-                        <AccordionTrigger className="flex items-center gap-3 p-3 hover:bg-white/10 dark:hover:bg-neutral-800/80 no-underline hover:no-underline font-light group">
+                        <AccordionTrigger className="flex items-center gap-3 p-3 hover:bg-white/10 dark:hover:bg-slate-800/80 no-underline hover:no-underline font-light group">
                             <div className="flex items-center gap-3 flex-1">
                                 <div 
                                     className="size-8 rounded-full flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-110"
@@ -173,7 +173,7 @@ const ActorsList: React.FC<ActorsListProps> = ({
                                 >
                                     <Users size={14} />
                                 </div>
-                                <span className="font-light text-slate-800 dark:text-neutral-100">{actor.name}</span>
+                                <span className="font-light text-slate-800 dark:text-slate-100">{actor.name}</span>
                             </div>
                         </AccordionTrigger>
 

@@ -270,21 +270,26 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
       ref={containerRef}
       style={style}
       className={cn(
-        "glass-card shadow-2xl rounded-[32px] flex flex-col gap-4 animate-in fade-in duration-200 backdrop-blur-3xl bg-white/92 dark:bg-neutral-900/92",
+        "glass-card shadow-2xl rounded-[32px] flex flex-col gap-4 animate-in fade-in duration-200 backdrop-blur-3xl",
         "border px-6 py-6 relative ring-1 ring-black/5 dark:ring-white/5",
-        node.type === ElementType.DomainEvent && "border-t-[6px] border-orange-500",
-        node.type === ElementType.Command && "border-t-[6px] border-blue-500",
-        node.type === ElementType.ReadModel && "border-t-[6px] border-green-500",
-        node.type === ElementType.Screen && "border-t-[6px] border-blue-400",
-        node.type === ElementType.IntegrationEvent && "border-t-[6px] border-purple-500",
-        node.type === ElementType.Automation && "border-t-[6px] border-pink-500"
       )}
       onKeyDown={handleKeyDown}
     >
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">
-          <div className="text-[10px] font-black text-slate-500 dark:text-neutral-400 uppercase tracking-[0.2em] opacity-60">
-            {t(`modeling.elements.${node.type}`)}
+          <div className="flex items-center gap-2 mr-3">
+             <div className={cn(
+               "size-1.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.1)]",
+               node.type === ElementType.DomainEvent && "bg-orange-500",
+               node.type === ElementType.Command && "bg-blue-500",
+               node.type === ElementType.ReadModel && "bg-green-500",
+               node.type === ElementType.Screen && "bg-slate-400",
+               node.type === ElementType.IntegrationEvent && "bg-yellow-400",
+               node.type === ElementType.Automation && "bg-teal-500"
+             )} />
+             <div className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] opacity-60">
+               {t(`modeling.elements.${node.type}`)}
+             </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -292,7 +297,7 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
             <button
               type="button"
               onClick={() => { onClose(); onOpenSidebar(); }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <Settings2 size={14} />
             </button>
@@ -301,7 +306,7 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
+              className="p-1.5 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <X size={14} />
             </button>
@@ -328,8 +333,8 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
             }}
             className={cn(
               'w-full h-11 px-4 rounded-xl text-sm font-bold',
-              'bg-white/80 dark:bg-neutral-800/60 border border-white/40 dark:border-neutral-700/50',
-              'text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-neutral-500 shadow-sm',
+              'bg-white/80 dark:bg-slate-800/60 border border-white/40 dark:border-slate-700/50',
+              'text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm',
               'focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all',
             )}
           />
@@ -349,13 +354,13 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
             placeholder={t('InlineOmnibar.slicePlaceholder')}
             allowCustomValue={false}
             align="start"
-            className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-neutral-800/60 shadow-sm border border-white/20 dark:border-neutral-700/30 w-full"
+            className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-slate-800/60 shadow-sm border border-white/20 dark:border-slate-700/30 w-full"
           />
         </div>
 
         {validRules.length > 0 && (
-          <div className="flex flex-col gap-4 mt-2 border-t border-slate-200 dark:border-neutral-700 pt-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-neutral-500 px-1 opacity-60">
+          <div className="flex flex-col gap-4 mt-2 border-t border-slate-200 dark:border-slate-700 pt-3">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 px-1 opacity-60">
               {t('properties.relationships')}
             </div>
             {validRules.map((rule) => {
@@ -406,7 +411,7 @@ const NodeOmnibar: React.FC<NodeOmnibarProps> = ({
                     placeholder={t('InlineOmnibar.linkPlaceholder')}
                     allowCustomValue={false}
                     align="start"
-                    className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-neutral-800/60 shadow-sm border border-white/20 dark:border-neutral-700/30 w-full"
+                    className="h-11 text-sm font-bold rounded-xl bg-white/80 dark:bg-slate-800/60 shadow-sm border border-white/20 dark:border-slate-700/30 w-full"
                   />
                 </div>
               );
@@ -461,9 +466,9 @@ const EdgeOmnibar: React.FC<EdgeOmnibarProps> = ({ link, position, onUpdateLink,
     transform: 'translateX(-50%)',
   };
   return createPortal(
-    <div ref={containerRef} style={style} onKeyDown={handleKeyDown} className="glass-card shadow-2xl rounded-[24px] p-3.5 flex items-center gap-3 animate-in fade-in duration-150 backdrop-blur-3xl bg-white/90 dark:bg-neutral-900/90 border ring-1 ring-black/5">
-      <input ref={inputRef} type="text" {...labelInputGroup} placeholder={t('InlineOmnibar.edgeLabelPlaceholder')} autoComplete="off" className="flex-1 h-11 px-4 rounded-xl text-sm font-bold bg-white/80 dark:bg-neutral-800/60 border border-white/40 dark:border-neutral-700/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-neutral-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"/>
-      <button ref={settingsBtnRef} type="button" onClick={() => { onClose(); onOpenSidebar(); }} className="h-11 w-11 flex-shrink-0 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-neutral-700/50 transition-all shadow-sm border border-white/40 dark:border-neutral-700/50"><Settings2 size={18}/></button>
+    <div ref={containerRef} style={style} onKeyDown={handleKeyDown} className="glass-card shadow-2xl rounded-[24px] p-3.5 flex items-center gap-3 animate-in fade-in duration-150 backdrop-blur-3xl bg-white/90 dark:bg-slate-900/90 border ring-1 ring-black/5">
+      <input ref={inputRef} type="text" {...labelInputGroup} placeholder={t('InlineOmnibar.edgeLabelPlaceholder')} autoComplete="off" className="flex-1 h-11 px-4 rounded-xl text-sm font-bold bg-white/80 dark:bg-slate-800/60 border border-white/40 dark:border-slate-700/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"/>
+      <button ref={settingsBtnRef} type="button" onClick={() => { onClose(); onOpenSidebar(); }} className="h-11 w-11 flex-shrink-0 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all shadow-sm border border-white/40 dark:border-slate-700/50"><Settings2 size={18}/></button>
     </div>,
     document.body
   );

@@ -52,12 +52,12 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
 
     return (
         <div ref={setNodeRef} style={style} className="mb-4">
-            <div className="flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700">
-                <div className="flex items-center justify-between py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
+            <div className="flex flex-col bg-white border border-slate-200 shadow-sm rounded-lg dark:bg-slate-900 dark:border-slate-700">
+                <div className="flex items-center justify-between py-3 px-4 border-b border-slate-200 dark:border-slate-700">
                     <div className="flex items-center gap-2 flex-grow min-w-0">
                         {/* Drag Handle */}
                         <div
-                            className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-neutral-400"
+                            className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-400"
                             {...attributes}
                             {...listeners}
                         >
@@ -67,7 +67,7 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
                         {/* Collapse Toggle */}
                         <button
                             onClick={() => setIsCollapsed(!isCollapsed)}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-neutral-400 p-0.5 rounded transition-transform"
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 p-0.5 rounded transition-transform"
                         >
                             <ChevronDown size={16} className={`transform transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
                         </button>
@@ -85,17 +85,17 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
                                         if (e.key === 'Escape') setIsEditing(false);
                                     }}
                                     onBlur={handleRenameSubmit}
-                                    className="py-1 px-2 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600 outline-none"
+                                    className="py-1 px-2 block w-full border-slate-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:placeholder-slate-500 dark:focus:ring-slate-600 outline-none"
                                 />
                                 <button onMouseDown={handleRenameSubmit} className="text-green-500 hover:text-green-600"><Check size={16} /></button>
                                 <button onClick={() => setIsEditing(false)} className="text-red-500 hover:text-red-600"><X size={16} /></button>
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 group/title cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
-                                <span className="text-sm font-semibold text-gray-800 dark:text-neutral-200 truncate">
+                                <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
                                     {chapterName}
                                 </span>
-                                <span className="inline-flex items-center py-0.5 px-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-white">
+                                <span className="inline-flex items-center py-0.5 px-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-white">
                                     {slices.length}
                                 </span>
 
@@ -106,7 +106,7 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
                                             setEditName(chapterName);
                                             setIsEditing(true);
                                         }}
-                                        className="opacity-0 group-hover/title:opacity-100 text-gray-400 hover:text-blue-600 transition-opacity p-1"
+                                        className="opacity-0 group-hover/title:opacity-100 text-slate-400 hover:text-blue-600 transition-opacity p-1"
                                         title={t('modelList.rename')}
                                     >
                                         <Edit2 size={12} />
@@ -135,7 +135,7 @@ export const SortableChapter: React.FC<SortableChapterProps> = ({
             </div>
             
             {!isCollapsed && (
-                <div className="pl-4 border-l-2 border-gray-100 dark:border-white/5 ml-2 mt-2 animate-in slide-in-from-top-2 duration-200">
+                <div className="pl-4 border-l-2 border-slate-100 dark:border-white/5 ml-2 mt-2 animate-in slide-in-from-top-2 duration-200">
                     {children}
                 </div>
             )}

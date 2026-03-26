@@ -27,7 +27,7 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(({
 
             <div className="relative">
                 {startIcon && (
-                    <div className="absolute inset-y-0 start-0 flex items-center pointer-events-none z-20 ps-4 text-gray-500">
+                    <div className="absolute inset-y-0 start-0 flex items-center pointer-events-none z-20 ps-4 text-slate-500">
                         {startIcon}
                     </div>
                 )}

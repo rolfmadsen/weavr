@@ -114,7 +114,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="glass-card w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden p-0 border-none shadow-2xl">
-                <DialogHeader className="p-5 border-b border-gray-200/20 flex flex-row items-center gap-3">
+                <DialogHeader className="p-5 border-b border-slate-200/20 flex flex-row items-center gap-3">
                     {viewingSpecsId && (
                         <GlassButton 
                             variant="ghost" 
@@ -156,18 +156,18 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
                                                      <select
                                                          value={editType}
                                                          onChange={(e) => setEditType(e.target.value as SliceType)}
-                                                         className="py-2.5 px-3 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                                                         className="py-2.5 px-3 block w-full border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-blue-500 focus:ring-blue-500"
                                                      >
-                                                         <option value="" className="bg-white dark:bg-neutral-900">{t('editor.type')}</option>
-                                                         <option value={SliceType.StateChange} className="bg-white dark:bg-neutral-900">{t('editor.command')}</option>
-                                                         <option value={SliceType.StateView} className="bg-white dark:bg-neutral-900">{t('editor.view')}</option>
-                                                         <option value={SliceType.Automation} className="bg-white dark:bg-neutral-900">{t('editor.automation')}</option>
+                                                         <option value="" className="bg-white dark:bg-slate-900">{t('editor.type')}</option>
+                                                         <option value={SliceType.StateChange} className="bg-white dark:bg-slate-900">{t('editor.command')}</option>
+                                                         <option value={SliceType.StateView} className="bg-white dark:bg-slate-900">{t('editor.view')}</option>
+                                                         <option value={SliceType.Automation} className="bg-white dark:bg-slate-900">{t('editor.automation')}</option>
                                                      </select>
                                                      <input
                                                          type="text"
                                                          value={editContext}
                                                          onChange={(e) => setEditContext(e.target.value)}
-                                                         className="py-2.5 px-3 block w-full border-gray-200 dark:border-neutral-700 rounded-lg text-sm bg-white dark:bg-neutral-900 transition-all duration-200 text-gray-800 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                                                         className="py-2.5 px-3 block w-full border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-blue-500 focus:ring-blue-500"
                                                          placeholder={t('editor.boundedContext')}
                                                          onKeyDown={(e) => {
                                                              if (e.key === 'Enter') saveEdit();
@@ -270,7 +270,7 @@ const SliceManagerModal: React.FC<SliceManagerModalProps> = ({
 
                 {/* Footer / Add New */}
                 {!viewingSpecsId && (
-                    <div className="p-5 border-t border-gray-200/20 bg-slate-50/50 dark:bg-white/5">
+                    <div className="p-5 border-t border-slate-200/20 bg-slate-50/50 dark:bg-white/5">
                         <form onSubmit={handleAdd} className="flex flex-col gap-3">
                             <div className="flex gap-2">
                                 <GlassInput

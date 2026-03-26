@@ -104,7 +104,7 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
     return (
         <div ref={setNodeRef} style={style} className={`transition-opacity ${isDragging ? 'opacity-50' : 'opacity-100'} ${disabled ? 'pointer-events-none' : ''}`}>
             <div
-                className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 transition-all duration-200 ${expanded ? 'bg-gray-50 dark:bg-neutral-800' : ''}`}
+                className={`flex flex-col bg-white border border-slate-200 shadow-sm rounded-lg dark:bg-slate-900 dark:border-slate-700 transition-all duration-200 ${expanded ? 'bg-slate-50 dark:bg-slate-800' : ''}`}
             >
                 {/* Header Area */}
                 <div className="flex items-center gap-0 list-none select-none">
@@ -113,7 +113,7 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
                         {...attributes}
                         {...listeners}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-neutral-400 cursor-grab active:cursor-grabbing p-3 -ml-1 h-full flex items-center"
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-grab active:cursor-grabbing p-3 -ml-1 h-full flex items-center"
                     >
                         <GripVertical size={16} />
                     </div>
@@ -121,16 +121,16 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
                     {/* Clickable Area for Expansion */}
                     <div
                         onClick={() => onExpandChange(!expanded)}
-                        className="flex-1 flex items-center gap-3 p-3 pl-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-r-lg"
+                        className="flex-1 flex items-center gap-3 p-3 pl-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded-r-lg"
                     >
-                        <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
 
-                        <div className="size-4 rounded-full flex-shrink-0 shadow-sm ring-1 ring-gray-300 dark:ring-neutral-600" style={{ backgroundColor: slice.color }} />
+                        <div className="size-4 rounded-full flex-shrink-0 shadow-sm ring-1 ring-slate-300 dark:ring-slate-600" style={{ backgroundColor: slice.color }} />
 
-                        <span className="text-sm font-light text-gray-800 dark:text-neutral-200 flex-1">{slice.title || 'Untitled Slice'}</span>
+                        <span className="text-sm font-light text-slate-800 dark:text-slate-200 flex-1">{slice.title || 'Untitled Slice'}</span>
 
                         {slice.sliceType && (
-                            <span className="inline-flex items-center gap-x-1.5 py-1 px-2 rounded-md text-[10px] font-bold bg-gray-100 text-gray-800 dark:bg-neutral-700 dark:text-white uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-x-1.5 py-1 px-2 rounded-md text-[10px] font-bold bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-white uppercase tracking-wider">
                                 {slice.sliceType === SliceType.StateChange ? t('slices.command') :
                                     slice.sliceType === SliceType.StateView ? t('slices.view') :
                                         slice.sliceType === SliceType.Automation ? t('slices.auto') :
@@ -143,7 +143,7 @@ const SortableSliceItem: React.FC<SortableSliceItemProps> = ({
 
                 {/* Content Area */}
                 {expanded && (
-                    <div className="p-4 bg-gray-50 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700 rounded-b-lg">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 rounded-b-lg">
                         {children}
                     </div>
                 )}
@@ -177,7 +177,7 @@ const SpecificationStepItem: React.FC<{
     return (
         <li className="flex items-start gap-1 group/step">
             <div className="w-[20px] flex justify-end mt-1.5 flex-shrink-0">
-                <span className="text-gray-400 dark:text-neutral-600 text-[10px]">•</span>
+                <span className="text-slate-400 dark:text-slate-600 text-[10px]">•</span>
             </div>
 
             <Textarea
@@ -193,7 +193,7 @@ const SpecificationStepItem: React.FC<{
                         el.style.height = `${el.scrollHeight}px`;
                     }
                 }}
-                className="flex-1 text-sm text-gray-700 dark:text-neutral-300 border border-transparent hover:border-blue-500/20 focus:border-blue-500/50 rounded-md px-2 py-1 bg-transparent focus:bg-white dark:focus:bg-neutral-900/50 transition-all outline-none resize-none overflow-hidden placeholder:italic placeholder:text-gray-400/50 min-h-[28px]"
+                className="flex-1 text-sm text-slate-700 dark:text-slate-300 border border-transparent hover:border-blue-500/20 focus:border-blue-500/50 rounded-md px-2 py-1 bg-transparent focus:bg-white dark:focus:bg-slate-900/50 transition-all outline-none resize-none overflow-hidden placeholder:italic placeholder:text-slate-400/50 min-h-[28px]"
                 placeholder={t('slices.describeStep', { step: t(`slices.${section}`) })}
                 rows={1}
                 onKeyDown={(e) => {
@@ -206,7 +206,7 @@ const SpecificationStepItem: React.FC<{
             />
             <button
                 onClick={onDelete}
-                className="text-gray-400 hover:text-red-500 opacity-0 group-hover/step:opacity-100 transition-opacity p-1 mt-0.5"
+                className="text-slate-400 hover:text-red-500 opacity-0 group-hover/step:opacity-100 transition-opacity p-1 mt-0.5"
                 tabIndex={-1}
             >
                 <X size={14} />
@@ -311,15 +311,15 @@ const SpecificationItem: React.FC<{
     return (
         <Accordion multiple className="mb-3">
             <AccordionItem value={spec.id} className="glass-card overflow-hidden border-none shadow-sm transition-all">
-                <AccordionTrigger className="flex items-center justify-between px-4 py-3 hover:bg-white/10 dark:hover:bg-neutral-800/50 no-underline hover:no-underline">
+                <AccordionTrigger className="flex items-center justify-between px-4 py-3 hover:bg-white/10 dark:hover:bg-slate-800/50 no-underline hover:no-underline">
                     <div className="flex items-center gap-3 flex-1 text-left">
-                        <span className="text-sm font-semibold text-slate-800 dark:text-neutral-100 truncate">
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
                             {spec.title || t('slices.specPlaceholder')}
                         </span>
                     </div>
                 </AccordionTrigger>
 
-                <AccordionContent className="p-4 bg-slate-50/50 dark:bg-neutral-900/30 border-t border-white/10 space-y-6">
+                <AccordionContent className="p-4 bg-slate-50/50 dark:bg-slate-900/30 border-t border-white/10 space-y-6">
                     <div className="flex justify-end -mt-2 mb-2">
                         <button
                             onClick={(e) => {
@@ -352,7 +352,7 @@ const SpecificationItem: React.FC<{
                             onFocus={onTitleFocus}
                             onKeyDown={onTitleKeyDown}
                             placeholder={t('slices.specPlaceholder')}
-                            className="bg-white dark:bg-neutral-900"
+                            className="bg-white dark:bg-slate-900"
                         />
                     </div>
                     {(['given', 'when', 'then'] as const).map(section => {
@@ -363,7 +363,7 @@ const SpecificationItem: React.FC<{
                                 <div key={section} className="flex justify-start">
                                     <button
                                         onClick={() => handleAddStep(section)}
-                                        className="text-[10px] text-slate-400 hover:text-purple-500 hover:bg-purple-500/10 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-neutral-700 hover:border-purple-500/30 transition-all font-bold uppercase tracking-wider"
+                                        className="text-[10px] text-slate-400 hover:text-purple-500 hover:bg-purple-500/10 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-purple-500/30 transition-all font-bold uppercase tracking-wider"
                                     >
                                         + {t('slices.addStep', { step: t(`slices.${section}`) })}
                                     </button>
@@ -413,7 +413,7 @@ const SpecificationItem: React.FC<{
                     })}
 
                     {/* Examples Section */}
-                    <div className="pt-4 border-t border-dashed border-slate-200 dark:border-neutral-700">
+                    <div className="pt-4 border-t border-dashed border-slate-200 dark:border-slate-700">
                         <Accordion multiple>
                             <AccordionItem value="examples" className="border-none">
                                 <AccordionTrigger className="text-[10px] font-bold text-slate-400 uppercase tracking-widest no-underline hover:no-underline py-0 h-auto">
@@ -428,17 +428,17 @@ const SpecificationItem: React.FC<{
                                             {t('slices.createExamples')}
                                         </button>
                                     ) : (
-                                        <div className="overflow-x-auto border border-slate-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800/50 shadow-sm">
-                                            <table className="min-w-full divide-y divide-slate-200 dark:divide-neutral-700">
-                                                <thead className="bg-slate-50 dark:bg-neutral-800">
+                                        <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800/50 shadow-sm">
+                                            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                                                <thead className="bg-slate-50 dark:bg-slate-800">
                                                     <tr>
                                                         {(spec.examples.headers || []).map((header, i) => (
-                                                            <th key={i} scope="col" className="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-100 dark:border-neutral-700 last:border-r-0">
+                                                            <th key={i} scope="col" className="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-100 dark:border-slate-700 last:border-r-0">
                                                                 <input
                                                                     type="text"
                                                                     value={t(header, { number: i + 1, defaultValue: header })}
                                                                     onChange={(e) => updateExampleHeader(i, e.target.value)}
-                                                                    className="bg-transparent border-none w-full focus:ring-0 p-0 text-[10px] font-bold text-slate-700 dark:text-neutral-300 outline-none"
+                                                                    className="bg-transparent border-none w-full focus:ring-0 p-0 text-[10px] font-bold text-slate-700 dark:text-slate-300 outline-none"
                                                                     placeholder="VAR"
                                                                 />
                                                             </th>
@@ -448,16 +448,16 @@ const SpecificationItem: React.FC<{
                                                         </th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="bg-transparent divide-y divide-slate-100 dark:divide-neutral-700">
+                                                <tbody className="bg-transparent divide-y divide-slate-100 dark:divide-slate-700">
                                                     {(spec.examples.rows || []).map((row, rowIndex) => (
-                                                        <tr key={rowIndex} className="hover:bg-slate-50/50 dark:hover:bg-neutral-700/30 transition-colors">
+                                                        <tr key={rowIndex} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
                                                             {row.map((cell, colIndex) => (
-                                                                <td key={colIndex} className="px-3 py-2 whitespace-nowrap text-sm text-slate-600 dark:text-neutral-400 border-r border-slate-100 dark:border-neutral-700 last:border-r-0">
+                                                                <td key={colIndex} className="px-3 py-2 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 border-r border-slate-100 dark:border-slate-700 last:border-r-0">
                                                                     <input
                                                                         type="text"
                                                                         value={cell}
                                                                         onChange={(e) => updateExampleCell(rowIndex, colIndex, e.target.value)}
-                                                                        className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs text-slate-700 dark:text-neutral-300 outline-none"
+                                                                        className="bg-transparent border-none w-full focus:ring-0 p-0 text-xs text-slate-700 dark:text-slate-300 outline-none"
                                                                         placeholder="..."
                                                                     />
                                                                 </td>
@@ -530,7 +530,7 @@ const SliceItemContent: React.FC<{
                     onBlur={onTitleBlur}
                     onFocus={onTitleFocus}
                     onKeyDown={onTitleKeyDown}
-                    className="w-full text-base font-light bg-white dark:bg-neutral-900"
+                    className="w-full text-base font-light bg-white dark:bg-slate-900"
                 />
                 <div className="grid grid-cols-1 gap-4 focus-within:ring-1 focus-within:ring-blue-500/20 rounded-xl transition-all">
                     <div className="grid grid-cols-2 gap-3">
@@ -566,7 +566,7 @@ const SliceItemContent: React.FC<{
                             onFocus={onContextFocus}
                             onKeyDown={onContextKeyDown}
                             placeholder={t('slices.contextLabel')}
-                            className="bg-white dark:bg-neutral-900"
+                            className="bg-white dark:bg-slate-900"
                         />
                     </div>
                 </div>
@@ -583,11 +583,11 @@ const SliceItemContent: React.FC<{
                 </div>
             </div>
 
-            <div className="h-px bg-gray-200 dark:bg-neutral-700 mb-2"></div>
+            <div className="h-px bg-slate-200 dark:bg-slate-700 mb-2"></div>
 
             <div>
                 <div className="flex items-center justify-between mb-4">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('slices.specificationsLabel')}</div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('slices.specificationsLabel')}</div>
                     <Button
                         variant="ghost"
                         size="sm"
@@ -600,8 +600,8 @@ const SliceItemContent: React.FC<{
 
                 <div className="space-y-3">
                     {(slice.specifications || []).length === 0 ? (
-                        <div className="text-center py-6 px-4 border-2 border-dashed border-gray-200 dark:border-neutral-700 rounded-xl">
-                            <p className="text-xs text-gray-400 italic mb-2">{t('slices.noSpecs')}</p>
+                        <div className="text-center py-6 px-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                            <p className="text-xs text-slate-400 italic mb-2">{t('slices.noSpecs')}</p>
                             <button
                                 onClick={onAddSpec}
                                 className="text-[10px] font-bold uppercase tracking-widest text-purple-500 hover:text-purple-600 transition-colors"
@@ -1026,7 +1026,7 @@ const SliceList: React.FC<SliceListProps> = ({
                             </SortableChapter>
                         ))}
                         {slices.length === 0 && (
-                            <p className="text-center text-gray-500 pt-8 italic">{t('slices.noSlices')}</p>
+                            <p className="text-center text-slate-500 pt-8 italic">{t('slices.noSlices')}</p>
                         )}
                     </div>
                 </SortableContext>

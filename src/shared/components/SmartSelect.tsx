@@ -159,7 +159,7 @@ const SmartSelect = React.forwardRef<HTMLButtonElement, SmartSelectProps>(({
                                             setOpen(false)
                                             setSearch("")
                                         }}
-                                        className="flex-col items-start gap-0 px-3 py-2 cursor-pointer aria-selected:bg-gray-100 dark:aria-selected:bg-neutral-800 data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-neutral-800"
+                                        className="flex-col items-start gap-0 px-3 py-2 cursor-pointer aria-selected:bg-slate-100 dark:aria-selected:bg-slate-800 data-[selected=true]:bg-slate-100 dark:data-[selected=true]:bg-slate-800"
                                     >
                                         <div className="flex items-center justify-between w-full">
                                             <div className="flex items-center gap-2">
