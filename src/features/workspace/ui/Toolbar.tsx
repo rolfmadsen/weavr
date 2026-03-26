@@ -18,9 +18,10 @@ interface ToolbarProps {
   disabled?: boolean;
   isMenuOpen: boolean;
   onToggleMenu: () => void;
+  style?: React.CSSProperties;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOpen, onToggleMenu }) => {
+const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOpen, onToggleMenu, style }) => {
   const { t } = useTranslation();
   // Mapping local enum if needed, or importing from modeling. 
   // Assuming these enums match the 'any' or exact type passed.
@@ -38,7 +39,10 @@ const Toolbar: React.FC<ToolbarProps> = ({ onAddNode, disabled = false, isMenuOp
   };
 
   return (
-    <div className="absolute bottom-8 right-4 md:bottom-12 md:right-8 z-20 flex flex-col items-center gap-4 pointer-events-none">
+    <div 
+      className="absolute bottom-8 right-4 md:bottom-12 md:right-8 z-20 flex flex-col items-center gap-4 pointer-events-none transition-all duration-300"
+      style={style}
+    >
       <div className="pointer-events-auto flex flex-col items-end gap-3">
         {isMenuOpen && !disabled && (
           <div className="flex flex-col items-end gap-3 bg-white/20 dark:bg-slate-900/60 backdrop-blur-xl shadow-2xl rounded-2xl p-4 border border-white/20 dark:border-white/10 animate-in slide-in-from-bottom-5 fade-in duration-200">

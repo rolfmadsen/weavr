@@ -119,6 +119,7 @@ const App: React.FC = () => {
     sidebarView, setSidebarView,
     isElementFilterOpen, setIsElementFilterOpen,
     isSliceFilterOpen, setIsSliceFilterOpen,
+    sidebarWidth, setSidebarWidth,
     viewState, setViewState,
     currentModelName,
     handleRenameModel
@@ -688,15 +689,13 @@ const App: React.FC = () => {
           <div className="absolute bottom-16 left-8 z-10 flex flex-col items-start pointer-events-none [&>*]:pointer-events-auto">
             <ElementFilter 
               nodes={nodes} 
-              onNodeClick={(n: Node) => {
-                handleFocusNode(n.id);
-              }} 
+              onNodeClick={(node) => handleFocusNode(node.id)} 
               isCollapsed={!isElementFilterOpen}
               onToggle={() => setIsElementFilterOpen(prev => !prev)}
             />
-            <SliceFilter
-              slices={slices}
-              hiddenSliceIds={hiddenSliceIds}
+            <SliceFilter 
+              slices={slices} 
+              hiddenSliceIds={hiddenSliceIds} 
               onChange={(ids) => setHiddenSliceIds(ids)}
               focusModeEnabled={focusModeEnabled}
               onFocusModeChange={setFocusModeEnabled}
@@ -706,9 +705,17 @@ const App: React.FC = () => {
               isCollapsed={!isSliceFilterOpen}
               onToggle={() => setIsSliceFilterOpen(prev => !prev)}
             />
-            <Minimap nodes={nodes} slices={slices} stageScale={viewState.scale} stagePos={viewState} onNavigate={(x: number, y: number) => {
-              graphRef.current?.handleNavigate?.(x, y);
-            }} viewportWidth={viewState.width || windowSize.width} viewportHeight={viewState.height || windowSize.height} />
+            <Minimap 
+              nodes={nodes} 
+              slices={slices} 
+              stageScale={viewState.scale} 
+              stagePos={viewState} 
+              onNavigate={(x: number, y: number) => {
+                graphRef.current?.handleNavigate?.(x, y);
+              }} 
+              viewportWidth={viewState.width || windowSize.width} 
+              viewportHeight={viewState.height || windowSize.height} 
+            />
             <ZoomControls
               scale={viewState.scale}
               onZoomIn={() => graphRef.current?.zoomIn()}
@@ -717,26 +724,45 @@ const App: React.FC = () => {
             />
           </div>
 
-          <div className="absolute bottom-8 right-24 md:bottom-12 md:right-32 z-20 pointer-events-none flex items-center justify-center">
+          <div 
+            className="absolute bottom-8 right-24 md:bottom-12 md:right-32 z-20 pointer-events-none flex items-center justify-center transition-all duration-300"
+            style={{ right: sidebarView ? sidebarWidth + 128 : undefined }}
+          >
              <GlassTooltip content={t('workspace.header.help')}>
                 <HelpButton onClick={() => { setIsHelpModalOpen(true); signal("Help.Opened"); }} />
              </GlassTooltip>
           </div>
 
-          <Toolbar onAddNode={handleAddNode} disabled={!isReady} isMenuOpen={isToolbarOpen} onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} />
+          <Toolbar 
+            onAddNode={handleAddNode} 
+            disabled={!isReady} 
+            isMenuOpen={isToolbarOpen} 
+            onToggleMenu={() => setIsToolbarOpen((prev: boolean) => !prev)} 
+            style={{ right: sidebarView ? sidebarWidth + 32 : undefined } as any}
+          />
 
           <Sidebar
             isOpen={!!sidebarView}
             onClose={handleCloseSidebar}
-            title={sidebarView === 'properties' ? t('workspace.sidebar.properties') : sidebarView === 'slices' ? t('workspace.sidebar.slices') : sidebarView === 'actors' ? t('workspace.sidebar.actors') : t('workspace.sidebar.dictionary')}
-            activeTab={sidebarView || 'properties'}
-            onTabChange={(tab: string) => { setSidebarView(tab as any); }}
+            title={sidebarView === 'properties' ? t('workspace.sidebar.properties') :
+                   sidebarView === 'slices' ? t('workspace.sidebar.slices') :
+                   sidebarView === 'dictionary' ? t('workspace.sidebar.dictionary') :
+                   sidebarView === 'actors' ? t('workspace.sidebar.actors') :
+                   undefined}
+            activeTab={sidebarView === 'properties' ? 'properties' :
+                      sidebarView === 'slices' ? 'slices' :
+                      sidebarView === 'dictionary' ? 'dictionary' :
+                      sidebarView === 'actors' ? 'actors' :
+                      undefined}
+            onTabChange={(tab: string) => setSidebarView(tab as any)}
             tabs={[
-                { id: 'properties', label: t('workspace.sidebar.properties'), title: 'Alt + P' }, 
-                { id: 'dictionary', label: t('workspace.sidebar.dictionary'), title: 'Alt + D' }, 
-                { id: 'slices', label: t('workspace.sidebar.slices'), title: 'Alt + S' }, 
-                { id: 'actors', label: t('workspace.sidebar.actors'), title: 'Start' }
+                { id: 'properties', label: t('workspace.sidebar.properties'), title: t('workspace.sidebar.properties') },
+                { id: 'dictionary', label: t('workspace.sidebar.dictionary'), title: t('workspace.sidebar.dictionary') },
+                { id: 'slices', label: t('workspace.sidebar.slices'), title: t('workspace.sidebar.slices') },
+                { id: 'actors', label: t('workspace.sidebar.actors'), title: t('workspace.sidebar.actors') },
             ]}
+            width={sidebarWidth}
+            onWidthChange={setSidebarWidth}
           >
             <div className={cn(sidebarView !== 'properties' && "hidden")}>
               {(sidebarView === 'properties' || isSidebarDeferredMounted) && (

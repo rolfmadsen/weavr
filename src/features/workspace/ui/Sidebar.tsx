@@ -20,11 +20,12 @@ interface SidebarProps {
     activeTab?: string;
     onTabChange?: (tab: string) => void;
     tabs?: { id: string; label: string; title?: string }[];
+    width: number;
+    onWidthChange: (width: number) => void;
 }
 
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 800;
-const DEFAULT_WIDTH = 480;
 
 const Sidebar: React.FC<SidebarProps> = ({
     isOpen,
@@ -33,10 +34,47 @@ const Sidebar: React.FC<SidebarProps> = ({
     children,
     activeTab,
     onTabChange,
-    tabs
+    tabs,
+    width,
+    onWidthChange
 }) => {
-    const [width, setWidth] = useState(DEFAULT_WIDTH);
+    const contentRef = React.useRef<HTMLDivElement>(null);
     const [isResizing, setIsResizing] = useState(false);
+
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key !== 'Tab' || !contentRef.current) return;
+
+        // Check if focus is actually inside the sidebar
+        if (!contentRef.current.contains(document.activeElement)) return;
+
+        const allFocusable = contentRef.current.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        
+        // Filter for visible elements
+        const focusableElements = Array.from(allFocusable).filter(el => {
+            const htmlEl = el as HTMLElement;
+            return !!(htmlEl.offsetWidth || htmlEl.offsetHeight || htmlEl.getClientRects().length);
+        }) as HTMLElement[];
+
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) { // Shift + Tab
+            if (document.activeElement === firstElement) {
+                e.preventDefault();
+                lastElement.focus();
+            }
+        } else { // Tab
+            if (document.activeElement === lastElement) {
+                e.preventDefault();
+                // Use a small timeout to ensure browser state is ready
+                setTimeout(() => firstElement.focus(), 0);
+            }
+        }
+    }, []);
 
     const startResizing = useCallback((e: React.MouseEvent) => {
         setIsResizing(true);
@@ -51,10 +89,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         if (isResizing) {
             const newWidth = window.innerWidth - e.clientX;
             if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
-                setWidth(newWidth);
+                onWidthChange(newWidth);
             }
         }
-    }, [isResizing]);
+    }, [isResizing, onWidthChange]);
 
     useEffect(() => {
         if (isResizing) {
@@ -71,10 +109,21 @@ const Sidebar: React.FC<SidebarProps> = ({
     }, [isResizing, resize, stopResizing]);
 
     return (
-        <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Sheet 
+            open={isOpen} 
+            modal={false}
+            onOpenChange={(open, eventDetails) => {
+                if (!open && eventDetails.reason === 'escape-key') {
+                    onClose();
+                }
+            }}
+        >
             <SheetContent 
                 side="right" 
                 showCloseButton={false}
+                hideOverlay
+                ref={contentRef}
+                onKeyDown={handleKeyDown}
                 className={cn(
                     "glass-card flex flex-col p-0 border-none shadow-2xl transition-none",
                     !isResizing && "transition-transform"

@@ -36,20 +36,26 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   )
 }
 
-function SheetContent({
+const SheetContent = React.forwardRef<
+  HTMLDivElement,
+  SheetPrimitive.Popup.Props & {
+    side?: "top" | "right" | "bottom" | "left"
+    showCloseButton?: boolean
+    hideOverlay?: boolean
+  }
+>(({
   className,
   children,
   side = "right",
   showCloseButton = true,
+  hideOverlay = false,
   ...props
-}: SheetPrimitive.Popup.Props & {
-  side?: "top" | "right" | "bottom" | "left"
-  showCloseButton?: boolean
-}) {
+}, ref) => {
   return (
     <SheetPortal>
-      <SheetOverlay />
+      {!hideOverlay && <SheetOverlay />}
       <SheetPrimitive.Popup
+        ref={ref}
         data-slot="sheet-content"
         data-side={side}
         className={cn(
@@ -70,15 +76,15 @@ function SheetContent({
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Popup>
     </SheetPortal>
   )
-}
+})
+SheetContent.displayName = "SheetContent"
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (

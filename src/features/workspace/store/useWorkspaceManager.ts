@@ -21,6 +21,7 @@ export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
     const [sidebarView, setSidebarView] = useState<SidebarView>(null);
     const [isElementFilterOpen, setIsElementFilterOpen] = useState(false);
     const [isSliceFilterOpen, setIsSliceFilterOpen] = useState(false);
+    const [sidebarWidth, setSidebarWidth] = useState(480); // Default width
 
     // View state persistence
     const [viewState, setViewState] = useState<ViewState>(() => {
@@ -72,6 +73,7 @@ export function useWorkspaceManager({ modelId }: UseWorkspaceManagerProps) {
         sidebarView, setSidebarView,
         isElementFilterOpen, setIsElementFilterOpen,
         isSliceFilterOpen, setIsSliceFilterOpen,
+        sidebarWidth, setSidebarWidth,
         viewState, setViewState,
         models,
         currentModelName,
