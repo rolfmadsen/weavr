@@ -133,11 +133,12 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                     if (id && !seenIds.has(id)) {
                         seenIds.add(id);
 
-                        let x = safeNum(n.x);
-                        let y = safeNum(n.y);
+                        let x = Math.round(safeNum(n.x) / GRID_SIZE) * GRID_SIZE;
+                        let y = Math.round(safeNum(n.y) / GRID_SIZE) * GRID_SIZE;
 
-                        // Calculate height once
-                        const computedHeight = calculateNodeHeight(safeStr(n.name));
+                        // Calculate height once and snap it
+                        const rawHeight = calculateNodeHeight(safeStr(n.name));
+                        const computedHeight = Math.ceil(rawHeight / GRID_SIZE) * GRID_SIZE;
                         result.push({ ...n, id, x, y, computedHeight });
                     }
                 }
@@ -1031,7 +1032,6 @@ const GraphCanvasKonva = forwardRef<GraphCanvasKonvaRef, GraphCanvasKonvaProps>(
                         const points = resolveLinkPoints(
                             sourceNode,
                             targetNode,
-                            unifiedSliceBounds,
                             edgeRoutes?.get(link.id),
                             portData?.sIdx,
                             portData?.sTot,

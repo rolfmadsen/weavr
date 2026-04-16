@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Konva from 'konva';
 import { Node, Link } from '../../modeling';
-import { GRID_SIZE } from '../../../shared/constants';
+import { NODE_WIDTH, MIN_NODE_HEIGHT } from '../../../shared/constants';
 import { safeNum, safeStr, getPolylineMidpoint } from '../domain/canvasUtils';
 import { resolveLinkPoints } from '../domain/routing';
 import { bus } from '../../../shared/events/eventBus';
@@ -246,8 +246,8 @@ export function useCanvasInteractions({
                 rect.width(stage.width() / scale);
                 rect.height(stage.height() / scale);
                 rect.fillPatternOffset({
-                    x: stageX % (GRID_SIZE || 20),
-                    y: stageY % (GRID_SIZE || 20)
+                    x: -x / scale,
+                    y: -y / scale
                 });
             }
 
@@ -302,8 +302,8 @@ export function useCanvasInteractions({
                         if (node) {
                             const nodeX = safeNum(node.x);
                             const nodeY = safeNum(node.y);
-                            const nodeH = node.computedHeight || 60;
-                            const nodeW = 180; // NODE_WIDTH
+                            const nodeH = node.computedHeight || MIN_NODE_HEIGHT;
+                            const nodeW = NODE_WIDTH; 
 
                             // 4 handles
                             const handles = [
@@ -430,7 +430,7 @@ export function useCanvasInteractions({
                     ? { ...tNodeRaw, x: safeNum(tNodeRaw.x) + dx, y: safeNum(tNodeRaw.y) + dy }
                     : tNodeRaw;
 
-                const points = resolveLinkPoints(sNode as any, tNode as any, sliceBounds, undefined);
+                const points = resolveLinkPoints(sNode as any, tNode as any, undefined);
 
                 const arrow = stage.findOne(`#link-arrow-${linkId}`);
                 const line = stage.findOne(`#link-line-${linkId}`);

@@ -1,0 +1,1341 @@
+{
+  "projectInfo": {
+    "name": "Weavr Meta-Model",
+    "description": "The high-fidelity Event Model of the Weavr platform architecture.",
+    "version": "2.0.0",
+    "author": "Antigravity Expert Modeler"
+  },
+  "eventModel": {
+    "slices": [
+      {
+        "id": "slice_core_architecture",
+        "title": "Core System Architecture",
+        "sliceType": "STATE_VIEW",
+        "description": "The foundational blueprint of Weavr: UI Screens and specialized Projections.",
+        "commands": [],
+        "events": [],
+        "readmodels": [
+          {
+            "id": "rm_modeling_visualization",
+            "title": "Modeling Visualization Projection",
+            "type": "READMODEL",
+            "description": "Primary projection of Nodes, Links, and Slices, including spatial filtering.",
+            "fields": [
+              {
+                "name": "nodes",
+                "type": "List<Node>"
+              },
+              {
+                "name": "links",
+                "type": "List<Link>"
+              },
+              {
+                "name": "slices",
+                "type": "List<Slice>"
+              }
+            ],
+            "dependencies": []
+          },
+          {
+            "id": "rm_sidebar_slice_manager",
+            "title": "Slice Aggregation View",
+            "type": "READMODEL",
+            "description": "Derived state grouping Nodes into their respective vertical slices.",
+            "fields": [
+              {
+                "name": "slicesWithNodes",
+                "type": "List<SliceWithNodes>"
+              }
+            ],
+            "dependencies": []
+          },
+          {
+            "id": "rm_sidebar_data_dictionary",
+            "title": "Semantic Dictionary & Diagnostic",
+            "type": "READMODEL",
+            "description": "Registry of Data Definitions and orphaned field detection.",
+            "fields": [
+              {
+                "name": "definitions",
+                "type": "List<Definition>"
+              },
+              {
+                "name": "orphanedFields",
+                "type": "List<Field>"
+              }
+            ],
+            "dependencies": []
+          },
+          {
+            "id": "rm_properties_panel_viewer",
+            "title": "Selected Item Property Projection",
+            "type": "READMODEL",
+            "description": "View model for the currently selected item(s) on the canvas.",
+            "fields": [
+              {
+                "name": "selectedItem",
+                "type": "Custom"
+              }
+            ],
+            "dependencies": []
+          },
+          {
+            "id": "rm_workspace_catalog",
+            "title": "Workspace Model Catalog",
+            "type": "READMODEL",
+            "description": "List of available projects in LocalStorage.",
+            "fields": [
+              {
+                "name": "models",
+                "type": "List<ModelMetadata>"
+              }
+            ],
+            "dependencies": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_modeling_visualization",
+            "title": "Konva Modeling Canvas",
+            "type": "SCREEN",
+            "description": "The primary interactive modeling workspace.",
+            "dependencies": [
+              {
+                "id": "rm_modeling_visualization",
+                "type": "INBOUND",
+                "title": "consumes",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "scr_sidebar_data_dictionary",
+            "title": "Sidebar: Data Dictionary",
+            "type": "SCREEN",
+            "description": "List and editor for formal semantic definitions.",
+            "dependencies": [
+              {
+                "id": "rm_sidebar_data_dictionary",
+                "type": "INBOUND",
+                "title": "consumes",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "scr_sidebar_slice_manager",
+            "title": "Sidebar: Slice Organizer",
+            "type": "SCREEN",
+            "description": "Functional overview of vertical slices.",
+            "dependencies": [
+              {
+                "id": "rm_sidebar_slice_manager",
+                "type": "INBOUND",
+                "title": "consumes",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "scr_properties_panel_viewer",
+            "title": "Sidebar: Properties Editor",
+            "type": "SCREEN",
+            "description": "Detail view for the selected element properties.",
+            "dependencies": [
+              {
+                "id": "rm_properties_panel_viewer",
+                "type": "INBOUND",
+                "title": "consumes",
+                "elementType": "READMODEL"
+              }
+            ]
+          },
+          {
+            "id": "scr_header_controls",
+            "title": "Global Header Bar",
+            "type": "SCREEN",
+            "description": "Global workspace and system controls.",
+            "dependencies": [
+              {
+                "id": "rm_modeling_visualization",
+                "type": "INBOUND",
+                "title": "consumes",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": false
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_create_modeling_node",
+        "title": "Create Modeling Node",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_modeling_node",
+            "title": "Create Modeling Node",
+            "type": "COMMAND",
+            "description": "Execute Create Modeling Node",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "type",
+                "type": "String"
+              },
+              {
+                "name": "name",
+                "type": "String"
+              },
+              {
+                "name": "x",
+                "type": "Decimal"
+              },
+              {
+                "name": "y",
+                "type": "Decimal"
+              },
+              {
+                "name": "sliceId",
+                "type": "UUID"
+              },
+              {
+                "name": "pinned",
+                "type": "Boolean"
+              },
+              {
+                "name": "context",
+                "type": "String"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_create_modeling_node_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_create_modeling_node_completed",
+            "title": "Create Modeling Node Completed",
+            "type": "EVENT",
+            "description": "Create Modeling Node was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "payload",
+                "type": "Node"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_modeling_visualization",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_move_modeling_node",
+        "title": "Move Modeling Node",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_move_modeling_node",
+            "title": "Move Modeling Node",
+            "type": "COMMAND",
+            "description": "Execute Move Modeling Node",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "x",
+                "type": "Decimal"
+              },
+              {
+                "name": "y",
+                "type": "Decimal"
+              },
+              {
+                "name": "pinned",
+                "type": "Boolean"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_move_modeling_node_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_move_modeling_node_completed",
+            "title": "Move Modeling Node Completed",
+            "type": "EVENT",
+            "description": "Move Modeling Node was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "x",
+                "type": "Decimal"
+              },
+              {
+                "name": "y",
+                "type": "Decimal"
+              },
+              {
+                "name": "pinned",
+                "type": "Boolean"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_modeling_visualization",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_create_modeling_link",
+        "title": "Create Modeling Link",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_modeling_link",
+            "title": "Create Modeling Link",
+            "type": "COMMAND",
+            "description": "Execute Create Modeling Link",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "sourceId",
+                "type": "UUID"
+              },
+              {
+                "name": "targetId",
+                "type": "UUID"
+              },
+              {
+                "name": "name",
+                "type": "String"
+              },
+              {
+                "name": "description",
+                "type": "String"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_create_modeling_link_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_create_modeling_link_completed",
+            "title": "Create Modeling Link Completed",
+            "type": "EVENT",
+            "description": "Create Modeling Link was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "payload",
+                "type": "Link"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_modeling_visualization",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_create_data_definition",
+        "title": "Create Data Definition",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_data_definition",
+            "title": "Create Data Definition",
+            "type": "COMMAND",
+            "description": "Execute Create Data Definition",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "name",
+                "type": "String"
+              },
+              {
+                "name": "type",
+                "type": "String"
+              },
+              {
+                "name": "description",
+                "type": "String"
+              },
+              {
+                "name": "parentId",
+                "type": "UUID"
+              },
+              {
+                "name": "isRoot",
+                "type": "Boolean"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_create_data_definition_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_create_data_definition_completed",
+            "title": "Create Data Definition Completed",
+            "type": "EVENT",
+            "description": "Create Data Definition was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "payload",
+                "type": "DataDefinition"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_sidebar_data_dictionary",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_update_data_definition",
+        "title": "Update Data Definition",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_update_data_definition",
+            "title": "Update Data Definition",
+            "type": "COMMAND",
+            "description": "Execute Update Data Definition",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "changes",
+                "type": "Custom"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_update_data_definition_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_update_data_definition_completed",
+            "title": "Update Data Definition Completed",
+            "type": "EVENT",
+            "description": "Update Data Definition was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "payload",
+                "type": "DataDefinition"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_sidebar_data_dictionary",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_delete_modeling_node",
+        "title": "Delete Modeling Node",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_delete_modeling_node",
+            "title": "Delete Modeling Node",
+            "type": "COMMAND",
+            "description": "Execute Delete Modeling Node",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_delete_modeling_node_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_delete_modeling_node_completed",
+            "title": "Delete Modeling Node Completed",
+            "type": "EVENT",
+            "description": "Delete Modeling Node was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_modeling_visualization",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_delete_modeling_link",
+        "title": "Delete Modeling Link",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_delete_modeling_link",
+            "title": "Delete Modeling Link",
+            "type": "COMMAND",
+            "description": "Execute Delete Modeling Link",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_delete_modeling_link_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_delete_modeling_link_completed",
+            "title": "Delete Modeling Link Completed",
+            "type": "EVENT",
+            "description": "Delete Modeling Link was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_modeling_visualization",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_create_actor",
+        "title": "Create Actor",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_actor",
+            "title": "Create Actor",
+            "type": "COMMAND",
+            "description": "Execute Create Actor",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "name",
+                "type": "String"
+              },
+              {
+                "name": "description",
+                "type": "String"
+              },
+              {
+                "name": "color",
+                "type": "String"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_create_actor_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_create_actor_completed",
+            "title": "Create Actor Completed",
+            "type": "EVENT",
+            "description": "Create Actor was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "payload",
+                "type": "Actor"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_modeling_visualization",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_create_modeling_slice",
+        "title": "Create Modeling Slice",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_modeling_slice",
+            "title": "Create Modeling Slice",
+            "type": "COMMAND",
+            "description": "Execute Create Modeling Slice",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "name",
+                "type": "String"
+              },
+              {
+                "name": "description",
+                "type": "String"
+              },
+              {
+                "name": "color",
+                "type": "String"
+              },
+              {
+                "name": "actorIds",
+                "type": "Custom"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_create_modeling_slice_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_create_modeling_slice_completed",
+            "title": "Create Modeling Slice Completed",
+            "type": "EVENT",
+            "description": "Create Modeling Slice was successfully completed",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "payload",
+                "type": "ModelingSlice"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_sidebar_slice_manager",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_sidebar_slice_manager_view",
+        "title": "Sidebar Slice Manager View",
+        "sliceType": "STATE_VIEW",
+        "commands": [],
+        "events": [],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": false
+          }
+        ],
+        "aggregates": []
+      },
+      {
+        "id": "slice_sidebar_data_dictionary_view",
+        "title": "Sidebar Data Dictionary View",
+        "sliceType": "STATE_VIEW",
+        "commands": [],
+        "events": [],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": false
+          }
+        ],
+        "aggregates": []
+      },
+      {
+        "id": "slice_properties_panel_view",
+        "title": "Properties Panel View",
+        "sliceType": "STATE_VIEW",
+        "commands": [],
+        "events": [],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": false
+          }
+        ],
+        "aggregates": []
+      },
+      {
+        "id": "slice_export_modeling_to_json",
+        "title": "Export Modeling to JSON",
+        "sliceType": "AUTOMATION",
+        "commands": [
+          {
+            "id": "cmd_export_modeling_to_json",
+            "title": "Execute Export Modeling to JSON",
+            "type": "COMMAND",
+            "description": "Command issued by Export Modeling to JSON automation",
+            "fields": [
+              {
+                "name": "fileName",
+                "type": "String"
+              },
+              {
+                "name": "content",
+                "type": "Custom"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_export_modeling_to_json_completed",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_export_modeling_to_json_completed",
+            "title": "Export Modeling to JSON Completed",
+            "type": "EVENT",
+            "description": "Export Modeling to JSON automation completed successfully",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "fileName",
+                "type": "String"
+              },
+              {
+                "name": "content",
+                "type": "Custom"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": []
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [
+          {
+            "id": "auto_export_modeling_to_json",
+            "title": "Export Modeling to JSON Process",
+            "type": "AUTOMATION",
+            "description": "Automated Export Modeling to JSON logic",
+            "fields": [],
+            "dependencies": [
+              {
+                "id": "evt_create_modeling_node_completed",
+                "type": "INBOUND",
+                "title": "triggers",
+                "elementType": "EVENT"
+              },
+              {
+                "id": "cmd_export_modeling_to_json",
+                "type": "OUTBOUND",
+                "title": "issues",
+                "elementType": "COMMAND"
+              }
+            ]
+          }
+        ],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "System Logic",
+            "authRequired": false
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_find_modeling_element_view",
+        "title": "Find Modeling Element View",
+        "sliceType": "STATE_VIEW",
+        "commands": [],
+        "events": [],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": false
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_minimap_view",
+        "title": "Minimap View",
+        "sliceType": "STATE_VIEW",
+        "commands": [],
+        "events": [],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": false
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      },
+      {
+        "id": "slice_workspace_catalog",
+        "title": "Workspace Catalog Management",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_workspace_model",
+            "title": "Create New Model",
+            "type": "COMMAND",
+            "description": "Initialize a new modeling project.",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID"
+              },
+              {
+                "name": "name",
+                "type": "String"
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "evt_workspace_model_created",
+                "type": "OUTBOUND",
+                "title": "results in",
+                "elementType": "EVENT"
+              }
+            ],
+            "aggregate": "EventModel"
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_workspace_model_created",
+            "title": "Workspace Model Created",
+            "type": "EVENT",
+            "description": "A new project was added to the catalog.",
+            "fields": [
+              {
+                "name": "id",
+                "type": "UUID",
+                "generated": true,
+                "idAttribute": true
+              },
+              {
+                "name": "payload",
+                "type": "ModelMetadata"
+              },
+              {
+                "name": "timestamp",
+                "type": "DateTime",
+                "generated": true,
+                "technicalAttribute": true
+              }
+            ],
+            "dependencies": [
+              {
+                "id": "rm_workspace_catalog",
+                "type": "OUTBOUND",
+                "title": "populates",
+                "elementType": "READMODEL"
+              }
+            ]
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [
+          {
+            "name": "Weavr User",
+            "authRequired": true
+          }
+        ],
+        "aggregates": [
+          "EventModel"
+        ]
+      }
+    ]
+  },
+  "dataDictionary": {
+    "definitions": {
+      "node_agg": {
+        "id": "node_agg",
+        "name": "Node",
+        "type": "Aggregate",
+        "isRoot": true,
+        "attributes": [
+          {
+            "name": "id",
+            "type": "UUID"
+          },
+          {
+            "name": "type",
+            "type": "String"
+          },
+          {
+            "name": "name",
+            "type": "String"
+          }
+        ]
+      },
+      "link_agg": {
+        "id": "link_agg",
+        "name": "Link",
+        "type": "Aggregate",
+        "isRoot": true,
+        "attributes": [
+          {
+            "name": "id",
+            "type": "UUID"
+          },
+          {
+            "name": "sourceId",
+            "type": "UUID"
+          },
+          {
+            "name": "targetId",
+            "type": "UUID"
+          }
+        ]
+      },
+      "slice_agg": {
+        "id": "slice_agg",
+        "name": "Slice",
+        "type": "Aggregate",
+        "isRoot": true,
+        "attributes": [
+          {
+            "name": "id",
+            "type": "UUID"
+          },
+          {
+            "name": "title",
+            "type": "String"
+          }
+        ]
+      },
+      "definition_agg": {
+        "id": "definition_agg",
+        "name": "DataDefinition",
+        "type": "Aggregate",
+        "isRoot": true,
+        "attributes": [
+          {
+            "name": "id",
+            "type": "UUID"
+          },
+          {
+            "name": "name",
+            "type": "String"
+          }
+        ]
+      }
+    }
+  }
+}

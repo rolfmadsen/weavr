@@ -35,7 +35,7 @@ const SliceGroup: React.FC<SliceGroupProps> = ({ slice, onSliceClick, finalBound
             />
             <Group
                 x={finalBounds.x}
-                y={finalBounds.y - 30}
+                y={finalBounds.y - 40}
                 onClick={() => onSliceClick?.(slice)}
                 onTap={() => onSliceClick?.(slice)}
                 onMouseEnter={(e) => {

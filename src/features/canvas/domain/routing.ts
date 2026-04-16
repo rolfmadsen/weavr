@@ -324,21 +324,79 @@ export function calculateSmartPoints(
 export function resolveLinkPoints(
     sourceNode: Node,
     targetNode: Node,
-    sliceBounds: Map<string, { minX: number; maxX: number; minY: number; maxY: number }>,
     _cachedRoute?: number[],
-    sIdx = 0, sTot = 1,
-    tIdx = 0, tTot = 1
+    _sIdx = 0, _sTot = 1,
+    _tIdx = 0, _tTot = 1
 ): number[] {
-    // Try smart routing first for inter-slice consistency
-    const smartRoute = calculateSmartPoints(sourceNode, targetNode, sliceBounds);
-    if (smartRoute) return smartRoute;
+    // Determine logical vertical flow (matches worker's ranks)
+    const TYPE_RANKS: Record<string, number> = {
+        'SCREEN': 0, 'AUTOMATION': 1, 'COMMAND': 2, 'READ_MODEL': 2, 'DOMAIN_EVENT': 3, 'INTEGRATION_EVENT': 4
+    };
+    const sRank = TYPE_RANKS[sourceNode.type] ?? 0;
+    const tRank = TYPE_RANKS[targetNode.type] ?? 0;
+    const sideS = sRank <= tRank ? 'S' : 'N';
+    const sideT = sRank < tRank ? 'N' : 'S';
 
-    // Weavr: Cached routes from the Layout Engine are intentionally bypassed here
-    // in favor of calculateDynamicPoints to preserve the port-distribution aesthetics (sIdx/tIdx) 
-    // where multiple edges splay out along the boundary of the node rather than starting from center.
+    // TWIN-CABLE BUNDLING:
+    // To prevent overlaps when a node has both incoming and outgoing traffic on the same face,
+    // we use two parallel bundled "cables" offset from the center.
+    const BUNDLE_OFFSET = 20; // 20px Grid Alignment
+    
+    // Use dynamic widths for exact center alignment
+    const sW = (sourceNode as any).width || (sourceNode as any).computedWidth || NODE_WIDTH;
+    const tW = (targetNode as any).width || (targetNode as any).computedWidth || NODE_WIDTH;
+    const sCenterX = (sourceNode.x || 0) + sW / 2;
+    const tCenterX = (targetNode.x || 0) + tW / 2;
 
-    return calculateDynamicPoints(sourceNode, targetNode, sIdx, sTot, tIdx, tTot);
+    const pStart = getPortPoint(sourceNode, sideS, 0, 1);
+    const pEnd = getPortPoint(targetNode, sideT, 0, 1);
+
+    // SEMANTIC LANE SEPARATION:
+    // To prevent overlaps at the node face (especially on Screen elements):
+    // Write-Path (COMMANDs/triggers) -> Right Lane (+20)
+    // Read-Path (READ_MODELS/renders) -> Left Lane (-20)
+    const isWritePath = sourceNode.type === 'COMMAND' || targetNode.type === 'COMMAND' || targetNode.type === 'DOMAIN_EVENT';
+    const laneOffset = isWritePath ? BUNDLE_OFFSET : -BUNDLE_OFFSET;
+
+    if (Math.abs(sCenterX - tCenterX) < 5) {
+        // Aligned Vertical Column
+        pStart.x = sCenterX + laneOffset;
+        pEnd.x = tCenterX + laneOffset;
+    } else {
+        // Branching Manhattan
+        pStart.x = sCenterX + laneOffset;
+        pEnd.x = tCenterX + laneOffset;
+    }
+
+    // RESTORE MANHATTAN STUB: Strictly 20px as requested
+    const STUB = 20;
+    const sDir = sideS === 'S' ? 1 : -1;
+    const tDir = sideT === 'S' ? 1 : -1;
+
+    // IF ALIGNED: If the inbound and outbound cables happen to align vertically
+    if (Math.abs(pStart.x - pEnd.x) < 2) {
+        return applyArrowPadding([pStart.x, pStart.y, pEnd.x, pEnd.y]);
+    }
+
+    // "CABLE & BRANCH" ROUTING:
+    const branchY = pStart.y + (sDir * STUB);
+    const entryY = pEnd.y + (tDir * STUB);
+    
+    // Check if we have a worker route to potentially reuse architectural "midY" 
+    // but the user strictly prefers branching at 20px from the node.
+    
+    return applyArrowPadding([
+        pStart.x, pStart.y,           // Start (Bundled)
+        pStart.x, branchY,            // vertical stem (20px)
+        pEnd.x, branchY,              // Horizontal branch (Happens AT 20px)
+        pEnd.x, entryY,               // Vertical drop/rise to target stub
+        pEnd.x, pEnd.y                // Into target
+    ]);
 }
+
+
+
+
 
 export function resolvePortPoint(node: Node, targetX: number, targetY: number): { x: number, y: number } {
     const r = getRect(node);

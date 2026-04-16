@@ -1,0 +1,1761 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "generator": "Weavr",
+    "createdAt": "2026-02-19T21:26:26.384Z",
+    "updatedAt": "2026-02-19T21:26:26.384Z",
+    "projectId": "3feccbef-a23f-4c55-994a-a9ed5d99bcc7",
+    "projectName": "Weavr the Event Modeling Collaboration Editor"
+  },
+  "eventModel": {
+    "slices": [
+      {
+        "id": "d3e0ada8-fd79-4a15-81cf-34b309f10ec6",
+        "title": "Creating a Slice",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_slice",
+            "title": "Create Slice",
+            "type": "COMMAND",
+            "description": "Add a new slice",
+            "dependencies": [
+              {
+                "id": "evt_slice_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_slice_created",
+            "title": "Slice Created",
+            "type": "EVENT",
+            "description": "Slice persisted",
+            "dependencies": [
+              {
+                "id": "rm_structure",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_structure",
+            "title": "Structure Projection",
+            "type": "READMODEL",
+            "description": "Swimlanes Layout",
+            "dependencies": [
+              {
+                "id": "scr_canvas_3",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_3",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Slice Headers",
+            "dependencies": [
+              {
+                "id": "cmd_create_slice",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "75793d09-3474-45e0-a596-4be80383cb86",
+        "title": "Toggling the Toolbar",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_toggle_toolbar",
+            "title": "Toggle Toolbar",
+            "type": "COMMAND",
+            "description": "Key: 'A'",
+            "dependencies": [
+              {
+                "id": "evt_toolbar_toggled",
+                "type": "OUTBOUND",
+                "title": "updates UI",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_toolbar_toggled",
+            "title": "Toolbar Toggled",
+            "type": "EVENT",
+            "description": "Visibility Changed",
+            "dependencies": [
+              {
+                "id": "rm_ui_state",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_ui_state",
+            "title": "UI Projection",
+            "type": "READMODEL",
+            "description": "View Preferences",
+            "dependencies": [
+              {
+                "id": "scr_canvas_5",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_5",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Toolbar",
+            "dependencies": [
+              {
+                "id": "cmd_toggle_toolbar",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "9682a171-306a-4480-8394-12a427b3e320",
+        "title": "Exporting the Model",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_export",
+            "title": "Export Model",
+            "type": "COMMAND",
+            "description": "Download model as JSON",
+            "dependencies": [
+              {
+                "id": "evt_exported",
+                "type": "OUTBOUND",
+                "title": "generates",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_exported",
+            "title": "Model Exported",
+            "type": "EVENT",
+            "description": "JSON generated",
+            "dependencies": [],
+            "fields": []
+          }
+        ],
+        "readmodels": [],
+        "screens": [
+          {
+            "id": "scr_start",
+            "title": "Start Screen",
+            "type": "SCREEN",
+            "description": "My Models",
+            "dependencies": [
+              {
+                "id": "cmd_export",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "379e12e3-6790-42e6-b0d3-bfe65ce4049d",
+        "title": "Crating a Relationship",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_link",
+            "title": "Create Link",
+            "type": "COMMAND",
+            "description": "Connect two nodes",
+            "dependencies": [
+              {
+                "id": "evt_link_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_link_created",
+            "title": "Link Created",
+            "type": "EVENT",
+            "description": "Link persisted",
+            "dependencies": [
+              {
+                "id": "rm_graph_2",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_graph_2",
+            "title": "Graph Projection",
+            "type": "READMODEL",
+            "description": "Updated Connections",
+            "dependencies": [
+              {
+                "id": "scr_canvas_2",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_2",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Interactive Ports",
+            "dependencies": [
+              {
+                "id": "cmd_create_link",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "2fd7da23-24f9-4a29-a8c7-d2f54ad55ad8",
+        "title": "Initiating Auto Layout",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_layout",
+            "title": "Auto Layout",
+            "type": "COMMAND",
+            "description": "Key: Cmd+L",
+            "dependencies": [
+              {
+                "id": "evt_layout",
+                "type": "OUTBOUND",
+                "title": "recalculates",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_layout",
+            "title": "Layout Calculated",
+            "type": "EVENT",
+            "description": "Positions Updated",
+            "dependencies": [
+              {
+                "id": "rm_graph_3",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_graph_3",
+            "title": "Graph Projection",
+            "type": "READMODEL",
+            "description": "New Coordinates",
+            "dependencies": [
+              {
+                "id": "scr_canvas_7",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_7",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Layout Controls",
+            "dependencies": [
+              {
+                "id": "cmd_layout",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "2791d065-7eac-4ef9-b275-d17c307079f6",
+        "title": "Web Analytics",
+        "sliceType": "STATE_CHANGE",
+        "commands": [],
+        "events": [
+          {
+            "id": "evt_help",
+            "title": "Event Appended to Event Store",
+            "type": "EVENT",
+            "description": "User clicked help",
+            "dependencies": [
+              {
+                "id": "auto_plausible",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "AUTOMATION"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "screenImages": [],
+        "processors": [
+          {
+            "id": "auto_plausible",
+            "title": "Plausible Tracker",
+            "type": "AUTOMATION",
+            "description": "Send signal",
+            "dependencies": [],
+            "fields": []
+          }
+        ],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "171f0cec-4c6f-4767-96a5-de5e0bd1534c",
+        "title": "Assigning an Actor",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_actor",
+            "title": "Create Actor",
+            "type": "COMMAND",
+            "description": "Register new stakeholder",
+            "dependencies": [
+              {
+                "id": "evt_actor_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_actor_created",
+            "title": "Actor Created",
+            "type": "EVENT",
+            "description": "Actor available",
+            "dependencies": [
+              {
+                "id": "rm_actors",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_actors",
+            "title": "Actor Projection",
+            "type": "READMODEL",
+            "description": "Available Roles",
+            "dependencies": [
+              {
+                "id": "scr_canvas_4",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas_4",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Actor Management",
+            "dependencies": [
+              {
+                "id": "cmd_create_actor",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "a34a5045-25be-48e2-92c0-173bf0def73b",
+        "title": "Creating an Element",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_node",
+            "title": "Create Node",
+            "type": "COMMAND",
+            "description": "Add a new node to the canvas",
+            "dependencies": [
+              {
+                "id": "evt_node_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_node_created",
+            "title": "Node Created",
+            "type": "EVENT",
+            "description": "Node persisted",
+            "dependencies": [
+              {
+                "id": "rm_graph",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_graph",
+            "title": "Graph Projection",
+            "type": "READMODEL",
+            "description": "Visual Graph State",
+            "dependencies": [
+              {
+                "id": "scr_canvas",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_canvas",
+            "title": "Canvas UI",
+            "type": "SCREEN",
+            "description": "Main Editing Interface",
+            "dependencies": [
+              {
+                "id": "cmd_create_node",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "60fbb97e-80a3-479b-aedf-620a2f262d90",
+        "title": "Renaming an Event Model",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_rename_model",
+            "title": "Rename Model",
+            "type": "COMMAND",
+            "description": "Change project title",
+            "dependencies": [
+              {
+                "id": "evt_model_renamed",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_model_renamed",
+            "title": "Model Renamed",
+            "type": "EVENT",
+            "description": "Project name changed",
+            "dependencies": [],
+            "fields": []
+          }
+        ],
+        "readmodels": [],
+        "screens": [],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "55c7bc88-2157-43c4-a2c2-a1de0698948c",
+        "title": "Defining Data Entities",
+        "sliceType": "STATE_CHANGE",
+        "commands": [
+          {
+            "id": "cmd_create_def",
+            "title": "Create Definition",
+            "type": "COMMAND",
+            "description": "Define a new data type",
+            "dependencies": [
+              {
+                "id": "evt_def_created",
+                "type": "OUTBOUND",
+                "title": "persists",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "events": [
+          {
+            "id": "evt_def_created",
+            "title": "Definition Created",
+            "type": "EVENT",
+            "description": "Definition stored",
+            "dependencies": [
+              {
+                "id": "rm_dictionary",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              },
+              {
+                "id": "auto_dict_verify",
+                "type": "OUTBOUND",
+                "title": "Verified by",
+                "elementType": "AUTOMATION"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_dictionary",
+            "title": "Dictionary Projection",
+            "type": "READMODEL",
+            "description": "List of Definitions",
+            "dependencies": [
+              {
+                "id": "scr_dict_modal",
+                "type": "OUTBOUND",
+                "title": "displayed by",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "scr_dict_modal",
+            "title": "Dictionary Modal",
+            "type": "SCREEN",
+            "description": "Schema Editor",
+            "dependencies": [
+              {
+                "id": "cmd_create_def",
+                "type": "OUTBOUND",
+                "title": "triggers",
+                "elementType": "COMMAND"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      },
+      {
+        "id": "65752961-5481-4311-a3e7-9c3cabbdc32e",
+        "title": "Performing the Information Completeness Check",
+        "sliceType": "STATE_CHANGE",
+        "commands": [],
+        "events": [
+          {
+            "id": "evt_dict_verified",
+            "title": "Dictionary Verified",
+            "type": "EVENT",
+            "description": "Consistency Result",
+            "dependencies": [
+              {
+                "id": "rm_dict_status",
+                "type": "OUTBOUND",
+                "title": "updates",
+                "elementType": "READMODEL"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "readmodels": [
+          {
+            "id": "rm_dict_status",
+            "title": "Dictionary Status",
+            "type": "READMODEL",
+            "description": "Health Report",
+            "dependencies": [
+              {
+                "id": "0be6206a-09ca-46db-9aaa-913788dadb09",
+                "type": "OUTBOUND",
+                "title": "",
+                "elementType": "SCREEN"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "screens": [
+          {
+            "id": "0be6206a-09ca-46db-9aaa-913788dadb09",
+            "title": "Dictionary Modal",
+            "type": "SCREEN",
+            "description": "",
+            "dependencies": [],
+            "fields": []
+          }
+        ],
+        "screenImages": [],
+        "processors": [
+          {
+            "id": "auto_dict_verify",
+            "title": "Dictionary Verifier",
+            "type": "AUTOMATION",
+            "description": "Consistency Checks",
+            "dependencies": [
+              {
+                "id": "evt_dict_verified",
+                "type": "OUTBOUND",
+                "title": "produces report",
+                "elementType": "EVENT"
+              }
+            ],
+            "fields": []
+          }
+        ],
+        "tables": [],
+        "specifications": [],
+        "actors": [],
+        "aggregates": []
+      }
+    ]
+  },
+  "layout": {
+    "0be6206a-09ca-46db-9aaa-913788dadb09": {
+      "x": 4580,
+      "y": 100,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Dictionary Modal"
+    },
+    "auto_dict_verify": {
+      "x": 4700,
+      "y": 220,
+      "height": 40,
+      "type": "AUTOMATION",
+      "title": "Dictionary Verifier"
+    },
+    "auto_plausible": {
+      "x": 2460,
+      "y": 200,
+      "height": 40,
+      "type": "AUTOMATION",
+      "title": "Plausible Tracker"
+    },
+    "cmd_create_actor": {
+      "x": 2980,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Actor"
+    },
+    "cmd_create_def": {
+      "x": 4060,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Definition"
+    },
+    "cmd_create_link": {
+      "x": 1420,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Link"
+    },
+    "cmd_create_node": {
+      "x": 3500,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Node"
+    },
+    "cmd_create_slice": {
+      "x": 100,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Create Slice"
+    },
+    "cmd_export": {
+      "x": 1140,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Export Model"
+    },
+    "cmd_layout": {
+      "x": 2180,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Auto Layout"
+    },
+    "cmd_rename_model": {
+      "x": 3780,
+      "y": 220,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Rename Model"
+    },
+    "cmd_toggle_toolbar": {
+      "x": 860,
+      "y": 280,
+      "height": 40,
+      "type": "COMMAND",
+      "title": "Toggle Toolbar"
+    },
+    "evt_actor_created": {
+      "x": 2860,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Actor Created"
+    },
+    "evt_def_created": {
+      "x": 4180,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Definition Created"
+    },
+    "evt_exported": {
+      "x": 1140,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Model Exported"
+    },
+    "evt_help": {
+      "x": 2460,
+      "y": 320,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Event Appended to Event Store"
+    },
+    "evt_layout": {
+      "x": 2060,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Layout Calculated"
+    },
+    "evt_link_created": {
+      "x": 1540,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Link Created"
+    },
+    "evt_model_renamed": {
+      "x": 3780,
+      "y": 340,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Model Renamed"
+    },
+    "evt_node_created": {
+      "x": 3380,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Node Created"
+    },
+    "evt_slice_created": {
+      "x": 220,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Slice Created"
+    },
+    "evt_toolbar_toggled": {
+      "x": 740,
+      "y": 400,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Toolbar Toggled"
+    },
+    "rm_actors": {
+      "x": 2740,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Actor Projection"
+    },
+    "scr_canvas_2": {
+      "x": 1540,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_canvas_3": {
+      "x": 220,
+      "y": 140,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_canvas_4": {
+      "x": 2860,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_canvas_5": {
+      "x": 740,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_canvas_7": {
+      "x": 2060,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "scr_dict_modal": {
+      "x": 4180,
+      "y": 140,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Dictionary Modal"
+    },
+    "scr_start": {
+      "x": 1140,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Start Screen"
+    },
+    "rm_dict_status": {
+      "x": 4580,
+      "y": 340,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Dictionary Status"
+    },
+    "rm_dictionary": {
+      "x": 4300,
+      "y": 260,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Dictionary Projection"
+    },
+    "rm_graph": {
+      "x": 3260,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Graph Projection"
+    },
+    "rm_graph_2": {
+      "x": 1660,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Graph Projection"
+    },
+    "rm_graph_3": {
+      "x": 1940,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Graph Projection"
+    },
+    "rm_structure": {
+      "x": 340,
+      "y": 260,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "Structure Projection"
+    },
+    "rm_ui_state": {
+      "x": 620,
+      "y": 280,
+      "height": 40,
+      "type": "READMODEL",
+      "title": "UI Projection"
+    },
+    "scr_canvas": {
+      "x": 3380,
+      "y": 160,
+      "height": 40,
+      "type": "SCREEN",
+      "title": "Canvas UI"
+    },
+    "evt_dict_verified": {
+      "x": 4640,
+      "y": 460,
+      "height": 40,
+      "type": "EVENT",
+      "title": "Dictionary Verified"
+    },
+    "cmd_layout_evt_layout": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2260,
+        360,
+        2260,
+        360,
+        2160,
+        360,
+        2160,
+        400
+      ]
+    },
+    "rm_ui_state_scr_canvas_5": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        700,
+        280,
+        700,
+        240,
+        780,
+        240,
+        780,
+        240
+      ]
+    },
+    "scr_canvas_2_cmd_create_link": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1580,
+        240,
+        1580,
+        240,
+        1500,
+        240,
+        1500,
+        280
+      ]
+    },
+    "evt_slice_created_rm_structure": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        320,
+        400,
+        320,
+        380,
+        420,
+        380,
+        420,
+        360
+      ]
+    },
+    "cmd_create_node_evt_node_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3580,
+        360,
+        3580,
+        360,
+        3480,
+        360,
+        3480,
+        400
+      ]
+    },
+    "cmd_toggle_toolbar_evt_toolbar_toggled": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        940,
+        360,
+        940,
+        360,
+        840,
+        360,
+        840,
+        400
+      ]
+    },
+    "rm_graph_3_scr_canvas_7": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2020,
+        280,
+        2020,
+        240,
+        2100,
+        240,
+        2100,
+        240
+      ]
+    },
+    "rm_dictionary_scr_dict_modal": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4380,
+        260,
+        4380,
+        240,
+        4280,
+        240,
+        4280,
+        220
+      ]
+    },
+    "rm_structure_scr_canvas_3": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        420,
+        260,
+        420,
+        240,
+        320,
+        240,
+        320,
+        220
+      ]
+    },
+    "auto_dict_verify_evt_dict_verified": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4780,
+        300,
+        4780,
+        420,
+        4740,
+        420,
+        4740,
+        460
+      ]
+    },
+    "evt_def_created_rm_dictionary": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4280,
+        400,
+        4280,
+        380,
+        4380,
+        380,
+        4380,
+        360
+      ]
+    },
+    "evt_def_created_auto_dict_verify": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4480,
+        300,
+        4520,
+        300
+      ]
+    },
+    "cmd_create_slice_evt_slice_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        180,
+        360,
+        180,
+        380,
+        260,
+        380,
+        260,
+        400
+      ]
+    },
+    "scr_canvas_cmd_create_node": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3480,
+        240,
+        3480,
+        240,
+        3580,
+        240,
+        3580,
+        280
+      ]
+    },
+    "evt_help_auto_plausible": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2540,
+        320,
+        2540,
+        280
+      ]
+    },
+    "cmd_create_actor_evt_actor_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3060,
+        360,
+        3060,
+        360,
+        2960,
+        360,
+        2960,
+        400
+      ]
+    },
+    "cmd_create_def_evt_def_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4140,
+        360,
+        4140,
+        380,
+        4220,
+        380,
+        4220,
+        400
+      ]
+    },
+    "evt_link_created_rm_graph_2": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1640,
+        400,
+        1640,
+        360,
+        1740,
+        360,
+        1740,
+        360
+      ]
+    },
+    "scr_dict_modal_cmd_create_def": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4220,
+        220,
+        4220,
+        240,
+        4140,
+        240,
+        4140,
+        280
+      ]
+    },
+    "evt_actor_created_rm_actors": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2900,
+        400,
+        2900,
+        360,
+        2820,
+        360,
+        2820,
+        360
+      ]
+    },
+    "cmd_export_evt_exported": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1220,
+        360,
+        1220,
+        400
+      ]
+    },
+    "cmd_create_link_evt_link_created": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1500,
+        360,
+        1500,
+        360,
+        1580,
+        360,
+        1580,
+        400
+      ]
+    },
+    "rm_graph_scr_canvas": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3340,
+        280,
+        3340,
+        240,
+        3420,
+        240,
+        3420,
+        240
+      ]
+    },
+    "scr_canvas_3_cmd_create_slice": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        260,
+        220,
+        260,
+        240,
+        180,
+        240,
+        180,
+        280
+      ]
+    },
+    "scr_canvas_5_cmd_toggle_toolbar": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        840,
+        240,
+        840,
+        240,
+        940,
+        240,
+        940,
+        280
+      ]
+    },
+    "rm_graph_2_scr_canvas_2": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1740,
+        280,
+        1740,
+        240,
+        1640,
+        240,
+        1640,
+        240
+      ]
+    },
+    "scr_canvas_7_cmd_layout": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2160,
+        240,
+        2160,
+        240,
+        2260,
+        240,
+        2260,
+        280
+      ]
+    },
+    "rm_dict_status_0be6206a-09ca-46db-9aaa-913788dadb09": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4660,
+        340,
+        4660,
+        180
+      ]
+    },
+    "scr_start_cmd_export": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        1220,
+        240,
+        1220,
+        280
+      ]
+    },
+    "evt_dict_verified_rm_dict_status": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        4680,
+        460,
+        4680,
+        420,
+        4660,
+        420,
+        4660,
+        420
+      ]
+    },
+    "evt_layout_rm_graph_3": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2100,
+        400,
+        2100,
+        360,
+        2020,
+        360,
+        2020,
+        360
+      ]
+    },
+    "rm_actors_scr_canvas_4": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2820,
+        280,
+        2820,
+        240,
+        2900,
+        240,
+        2900,
+        240
+      ]
+    },
+    "evt_node_created_rm_graph": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3420,
+        400,
+        3420,
+        360,
+        3340,
+        360,
+        3340,
+        360
+      ]
+    },
+    "evt_toolbar_toggled_rm_ui_state": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        780,
+        400,
+        780,
+        360,
+        700,
+        360,
+        700,
+        360
+      ]
+    },
+    "cmd_rename_model_evt_model_renamed": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        3860,
+        300,
+        3860,
+        340
+      ]
+    },
+    "scr_canvas_4_cmd_create_actor": {
+      "x": 0,
+      "y": 0,
+      "points": [
+        2960,
+        240,
+        2960,
+        240,
+        3060,
+        240,
+        3060,
+        280
+      ]
+    }
+  },
+  "dataDictionary": {
+    "definitions": {
+      "Node": {
+        "type": "object",
+        "title": "Node",
+        "description": "A visual element on the canvas representing a domain concept.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "sliceId": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "aggregate": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string"
+          }
+        }
+      },
+      "DataDefinition": {
+        "type": "object",
+        "title": "DataDefinition",
+        "description": "A schema definition for the Data Dictionary.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "string"
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "title": "Project",
+        "description": "The top-level container for a modeling project.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "apiHost": {
+            "type": "string"
+          }
+        }
+      },
+      "VerificationResult": {
+        "type": "object",
+        "title": "VerificationResult",
+        "description": "Results from consistency verification.",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "issuesFound": {
+            "type": "integer"
+          },
+          "report": {
+            "type": "string"
+          }
+        }
+      },
+      "Slice": {
+        "type": "object",
+        "title": "Slice",
+        "description": "A horizontal swimming lane grouping related functionality.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "context": {
+            "type": "string"
+          },
+          "sliceType": {
+            "type": "string"
+          }
+        }
+      },
+      "MaintenanceTask": {
+        "type": "object",
+        "title": "MaintenanceTask",
+        "description": "Parameters and results for system maintenance.",
+        "properties": {
+          "targetVersion": {
+            "type": "string"
+          },
+          "recordsUpdated": {
+            "type": "integer"
+          }
+        }
+      },
+      "Link": {
+        "type": "object",
+        "title": "Link",
+        "description": "A connection between two nodes.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "Actor": {
+        "type": "object",
+        "title": "Actor",
+        "description": "A user role or external system interacting with the application.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      },
+      "AnalyticsEvent": {
+        "type": "object",
+        "title": "AnalyticsEvent",
+        "description": "A trackable interaction signal.",
+        "properties": {
+          "element": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          }
+        }
+      },
+      "UIState": {
+        "type": "object",
+        "title": "UIState",
+        "description": "Transient state of the user interface.",
+        "properties": {
+          "isVisible": {
+            "type": "boolean"
+          },
+          "isToolbarOpen": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LayoutResult": {
+        "type": "object",
+        "title": "LayoutResult",
+        "description": "Metrics from an auto-layout calculation.",
+        "properties": {
+          "algorithm": {
+            "type": "string"
+          },
+          "nodeCount": {
+            "type": "integer"
+          },
+          "durationMs": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

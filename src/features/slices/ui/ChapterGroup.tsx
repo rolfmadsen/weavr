@@ -88,7 +88,7 @@ const ChapterGroup: React.FC<ChapterGroupProps> = ({
             {!isEditing ? (
                 <Group
                     x={minX}
-                    y={minY - 30}
+                    y={minY - 40}
                     width={width}
                     onClick={() => setIsEditing(true)}
                 >

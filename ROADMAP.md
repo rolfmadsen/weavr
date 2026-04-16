@@ -42,6 +42,26 @@ This phase transforms Weavr from a "Box & Arrow" tool into a "System Architect's
     -   **Visual Feedback:**
         -   ✅ **Green Check:** All Command fields are represented on the Screen.
         -   ⚠️ **Yellow Warning:** "Command 'Submit Order' requires 'ShippingAddress', but Screen 'Checkout' is missing this input."
+        -   🚩 **Red Flag:** "Data out of thin air: Field 'ProjectName' on Screen 'Settings' has no provenance trail to an Event."
+
+-   **[ ] Horizontal Threading (The "Storyboard Link"):**
+    -   Connect isolated functional slices via **Automations** and **Cross-Slice Projections**.
+    -   Example: `Event (NodeCreated)` -> `Automation (AutoLayout)` -> `Command (MoveNode)`.
+
+---
+
+## 🚀 Phase 5: Semantic Integration & Tooling Audit
+
+This phase focuses on the "Vibe Shift" from functional silos to a connected storyboard and the hardening of AI-assisted modeling tools.
+
+- **[ ] Semantic Integrity Enforcement:**
+    - **Contextual Generation:** Update MCP tools to ingest existing model state to ensure reuse of global Read Models (`rm_modeling_visualization`) and Screens.
+    - **Provenance Verification:** Automated audit of every Screen field to ensure 100% lineage to an Event.
+- **[ ] Horizontal Flow Orchestration:**
+    - Create a new set of "Bridge Slices" that explicitly model the timing and dependencies *between* existing functional units.
+- **[ ] MCP Server Upgrades:**
+    - Implement `weavr_gen_thread` to semi-automatically link state changes in one domain to intent in another.
+    - Implement `weavr_gen_diff` to visualize structural changes before merging.
 
 -   **[ ] Image & Asset Support:**
     -   Allow users to paste images (e.g., screenshots, high-fi designs) onto Screen nodes as an alternative to wireframes, supporting "Design Reference" workflows.

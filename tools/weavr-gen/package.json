@@ -1,0 +1,35 @@
+{
+  "name": "weavr-gen",
+  "version": "1.0.0",
+  "description": "AI-assisted Event Model generation harness with validation guardrails",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "weavr-gen": "dist/cli.js",
+    "weavr-gen-mcp": "dist/mcp.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "generate": "tsx src/cli.ts generate",
+    "validate": "tsx src/cli.ts validate",
+    "merge": "tsx src/cli.ts merge"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "commander": "^13.1.0",
+    "uuid": "^11.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}
